@@ -52,7 +52,8 @@
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/bluecuracao = 2,
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/absinthe = 2,
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/grenadine = 5,
-		/obj/item/weapon/reagent_containers/food/drinks/bottle/chartreusegreen = 5,/obj/item/weapon/reagent_containers/food/drinks/bottle/chartreuseyellow =5,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/chartreusegreen = 5,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle/chartreuseyellow = 5,
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/bitters = 6,
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/mintsyrup = 5,
 		/obj/item/weapon/reagent_containers/food/drinks/bottle/cremewhite = 4,
@@ -120,7 +121,7 @@
 	products = list(
 		/obj/item/weapon/reagent_containers/food/snacks/candy = 6,
 		/obj/item/weapon/reagent_containers/food/drinks/dry_ramen = 6,
-		/obj/item/weapon/reagent_containers/food/snacks/chips =6,
+		/obj/item/weapon/reagent_containers/food/snacks/chips = 6,
 		/obj/item/weapon/reagent_containers/food/snacks/sosjerky = 6,
 		/obj/item/weapon/reagent_containers/food/snacks/no_raisin = 6,
 		/obj/item/weapon/reagent_containers/food/snacks/spacetwinkie = 6,
@@ -173,14 +174,14 @@
 		/obj/item/weapon/reagent_containers/food/snacks/liquidfood = 6
 	)
 	prices = list(
-		/obj/item/weapon/reagent_containers/food/drinks/cans/cola = 15,
-		/obj/item/weapon/reagent_containers/food/drinks/cans/space_mountain_wind = 11,
-		/obj/item/weapon/reagent_containers/food/drinks/cans/dr_gibb = 16,
-		/obj/item/weapon/reagent_containers/food/drinks/cans/starkist = 15,
-		/obj/item/weapon/reagent_containers/food/drinks/cans/waterbottle = 12,
-		/obj/item/weapon/reagent_containers/food/drinks/cans/space_up = 15,
-		/obj/item/weapon/reagent_containers/food/drinks/cans/iced_tea = 13,
-		/obj/item/weapon/reagent_containers/food/drinks/cans/grape_juice = 16
+		/obj/item/weapon/reagent_containers/food/drinks/cans/cola = -1.5,
+		/obj/item/weapon/reagent_containers/food/drinks/cans/space_mountain_wind = -1.5,
+		/obj/item/weapon/reagent_containers/food/drinks/cans/dr_gibb = -1.5,
+		/obj/item/weapon/reagent_containers/food/drinks/cans/starkist = -1.5,
+		/obj/item/weapon/reagent_containers/food/drinks/cans/waterbottle = -1.5,
+		/obj/item/weapon/reagent_containers/food/drinks/cans/space_up = -1.5,
+		/obj/item/weapon/reagent_containers/food/drinks/cans/iced_tea = -1.5,
+		/obj/item/weapon/reagent_containers/food/drinks/cans/grape_juice = -1.5
 	)
 	idle_power_usage = 211 //refrigerator - believe it or not, this is actually the average power consumption of a refrigerated vending machine according to NRCan.
 

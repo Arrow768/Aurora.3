@@ -67,7 +67,10 @@
 	var/list/products	= list() // For each, use the following pattern:
 	var/list/contraband	= list() // list(/type/path = amount,/type/path2 = amount2)
 	var/list/premium 	= list() // No specified amount = only one in stock
-	var/list/prices     = list() // Prices for each item, list(/type/path = price), items not in the list don't have a price.
+	// Prices for each item, list(/type/path = price), items not in the list don't have a price.
+	// Negative values are a modifier of the global item worth.
+	// i.e. -1.5 = 1.5x the global item worth of the item
+	var/list/prices     = list() 
 
 	// List of vending_product items available.
 	var/list/product_records = list()
@@ -135,7 +138,16 @@
 		for(var/entry in current_list[1])
 			var/datum/data/vending_product/product = new/datum/data/vending_product(entry)
 
-			product.price = (entry in src.prices) ? src.prices[entry] : 0
+			if(entry in src.prices)
+				if(src.prices[entry] > 0)
+					product.price = src.prices[entry]
+				else if(src.prices[entry] < 0)
+					product.price = get_item_value(entry) * (-src.prices[entry])
+				else
+					product.price = 0
+			else
+				product.price = 0 //There is no entry in the price table -> Item is free of charge
+
 			product.amount = (current_list[1][entry]) ? current_list[1][entry] : 1
 			product.category = category
 
