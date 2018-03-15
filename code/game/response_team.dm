@@ -80,7 +80,7 @@ var/ert_request_answered = 0
 
 	// Respawnable players get first dibs
 	for(var/mob/dead/observer/M in ert_candidates)
-		if(jobban_isbanned(M, ROLE_TRAITOR) || jobban_isbanned(M, "Security Officer") || jobban_isbanned(M, "Captain") || jobban_isbanned(M, "Cyborg"))
+		if(jobban_isbanned(M, "Response Team") || jobban_isbanned(M, "Security Officer") || jobban_isbanned(M, "Captain") || jobban_isbanned(M, "Cyborg"))
 			continue
 		if((M in respawnable_list) && M.JoinResponseTeam())
 			response_team_members |= M

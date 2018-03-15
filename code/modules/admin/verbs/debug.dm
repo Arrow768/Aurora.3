@@ -378,7 +378,7 @@
 	set category = "Event"
 	set name = "Select equipment"
 
-	if(!check_rights(R_EVENT))
+	if(!check_rights(R_FUN))
 		return
 
 	if(!ishuman(M))
