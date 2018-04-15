@@ -195,7 +195,8 @@
 		/obj/item/weapon/reagent_containers/food/snacks/grown/ambrosiadeus = 1,
 		/obj/item/seeds/ambrosiavulgarisseed = 2,
 		/obj/item/seeds/ambrosiadeusseed = 1,
-		/obj/item/clothing/mask/gas/voice = 1
+		/obj/item/clothing/mask/gas/voice = 1,
+		/obj/item/clothing/gloves/brassknuckles = 2
 	)
 
 /obj/random/energy
@@ -560,12 +561,15 @@
 		/obj/item/weapon/melee/chainsword,
 		/obj/item/weapon/melee/baton/stunrod,
 		/obj/item/weapon/material/harpoon,
-		/obj/item/weapon/material/twohanded/spear/plasteel,
 		/obj/random/sword,
 		/obj/item/weapon/melee/hammer,
 		/obj/item/weapon/melee/hammer/powered,
 		/obj/item/weapon/material/twohanded/fireaxe,
-		/obj/item/weapon/melee/classic_baton
+		/obj/item/weapon/melee/classic_baton,
+		/obj/item/weapon/material/twohanded/pike,
+		/obj/item/weapon/material/twohanded/pike/halberd,
+		/obj/item/weapon/material/twohanded/pike/pitchfork,
+		/obj/item/weapon/melee/whip
 	)
 
 /obj/random/coin
@@ -741,6 +745,7 @@
 		/obj/item/weapon/storage/fancy/cigarettes = 1.2,
 		/obj/item/weapon/storage/fancy/cigarettes/dromedaryco = 0.8,
 		/obj/item/weapon/storage/fancy/cigarettes/killthroat = 0.3,
+		/obj/item/weapon/storage/fancy/cigarettes/custom = 1,
 		/obj/item/weapon/storage/bag/plasticbag = 1,
 		/obj/item/weapon/extinguisher = 1.3,
 		/obj/item/weapon/extinguisher/mini = 0.9,

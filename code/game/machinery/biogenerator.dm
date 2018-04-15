@@ -62,6 +62,14 @@
 			amount = list(1,2,3,4,5),
 			emag = 0
 		),
+		"nutri-spread" = list(
+			name = "Nutri-spread",
+			class = "Food",
+			object = /obj/item/weapon/reagent_containers/food/snacks/spreads,
+			cost = 80,
+			amount = list(1,2,3,4,5),
+			emag = 0
+		),
 		"enzyme" = list(
 			name = "Universal Enzyme (50u)",
 			class = "Food",
@@ -94,7 +102,15 @@
 			amount = list(1,2,3,4,5),
 			emag = 0
 		),
-		"botanic_leather" = list(
+		"custom_cigarettes" = list(
+			name = "Empty Cigarettes (x6)",
+			class = "Items",
+			object = /obj/item/weapon/storage/fancy/cigarettes/custom,
+			cost = 500,
+			amount = list(1,2,3,4,5),
+			emag = 0
+		),
+		"tape_roll" = list(
 			name = "Tape Roll",
 			class = "Items",
 			object = /obj/item/weapon/tape_roll,

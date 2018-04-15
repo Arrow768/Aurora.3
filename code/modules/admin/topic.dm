@@ -849,6 +849,14 @@
 		sleep(2)
 		C.jumptocoord(x,y,z)
 
+	else if(href_list["take_ticket"])
+		var/datum/ticket/ticket = locate(href_list["take_ticket"])
+
+		if(!istype(ticket))
+			return
+
+		ticket.take(usr.client)
+
 	else if(href_list["adminchecklaws"])
 		output_ai_laws()
 
@@ -862,6 +870,7 @@
 		var/special_role_description = ""
 		var/health_description = ""
 		var/gender_description = ""
+		var/species_description = "N/A"
 		var/turf/T = get_turf(M)
 
 		//Location
@@ -890,13 +899,19 @@
 		else
 			health_description = "This mob type has no health to speak of."
 
-		//Gener
+		//Species
+		if (ishuman(M))
+			var/mob/living/carbon/human/H = M
+			if (H.species)
+				species_description = "<b>[H.species.name]</b>"
+
+		//GenDer
 		switch(M.gender)
 			if(MALE,FEMALE)	gender_description = "[M.gender]"
 			else			gender_description = "<font color='red'><b>[M.gender]</b></font>"
 
 		src.owner << "<b>Info about [M.name]:</b> "
-		src.owner << "Mob type = [M.type]; Gender = [gender_description] Damage = [health_description]"
+		src.owner << "Mob type = [M.type]; Species = [species_description] Gender = [gender_description] Damage = [health_description]"
 		src.owner << "Name = <b>[M.name]</b>; Real_name = [M.real_name]; Mind_name = [M.mind?"[M.mind.name]":""]; Key = <b>[M.key]</b>;"
 		src.owner << "Location = [location_description];"
 		src.owner << "[special_role_description]"
@@ -1209,7 +1224,7 @@
 			alert("Select fewer object types, (max 5)")
 			return
 		else if(length(removed_paths))
-			alert("Removed:\n" + list2text(removed_paths, "\n"))
+			alert("Removed:\n" + jointext(removed_paths, "\n"))
 
 		var/list/offset = text2list(href_list["offset"],",")
 		var/number = dd_range(1, 100, text2num(href_list["object_count"]))
@@ -1580,33 +1595,6 @@
 
 		paralyze_mob(M)
 
-	else if(href_list["admindibs"])
-		if (!check_rights(R_ADMIN|R_MOD))
-			return
-
-		var/client/C = locate(href_list["admindibs"])
-
-		if (!istype(C) || !C)
-			usr << "<span class='danger'>Player not found!</span>"
-			return
-
-		if (C.adminhelped >= 2)
-			log_and_message_admins("has called <font color='red'>dibs</font> on [key_name_admin(C)]'s adminhelp!")
-			usr << "<font color='blue'><b>You have taken over [key_name_admin(C)]'s adminhelp.</b></font>'"
-			usr << "[get_options_bar(C, 2, 1, 1)]"
-
-			C << "<font color='red'><b>Your adminhelp will be tended [usr.client.holder.fakekey ? "shortly" : "by [key_name(usr, 0, 0)]"]. Please allow the staff member a minute or two to write up a response.</b></font>"
-
-			if (C.adminhelped == 3)
-				post_webhook_event(WEBHOOK_ADMIN_PM, list("title"="Help is nolonger needed", "message"="Request for Help from **[key_name(C)]** is being tended to by **[key_name(usr)]**."))
-				discord_bot.send_to_admins("Request for Help from [key_name(C)] is being tended to by [key_name(usr)].")
-
-			C.adminhelped = 1
-		else
-			usr << "<font color='red'><b>The adminhelp has already been claimed!</b></font>"
-
-		return
-
 	else if(href_list["access_control"])
 		access_control_topic(href_list["access_control"])
 		return
@@ -1619,6 +1607,9 @@ mob/living/carbon/human/can_centcom_reply()
 
 mob/living/silicon/ai/can_centcom_reply()
 	return common_radio != null && !check_unable(2)
+
+/client/proc/extra_admin_link()
+	return
 
 /atom/proc/extra_admin_link()
 	return

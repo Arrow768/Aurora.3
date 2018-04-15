@@ -194,7 +194,7 @@
 	name_plural = "Skrell"
 	bodytype = "Skrell"
 	age_max = 500
-	economic_modifier = 10
+	economic_modifier = 12
 	icobase = 'icons/mob/human_races/r_skrell.dmi'
 	deform = 'icons/mob/human_races/r_def_skrell.dmi'
 	eyes = "skrell_eyes_s"
@@ -314,7 +314,7 @@
 
 	body_temperature = T0C + 15		//make the plant people have a bit lower body temperature, why not
 
-	flags = NO_BREATHE | NO_SCAN | IS_PLANT | NO_BLOOD | NO_PAIN | NO_SLIP
+	flags = NO_BREATHE | NO_SCAN | IS_PLANT | NO_BLOOD | NO_PAIN | NO_SLIP | NO_CHUBBY
 	appearance_flags = 0
 	spawn_flags = CAN_JOIN | IS_WHITELISTED
 
@@ -422,7 +422,7 @@
 
 
 	brute_mod = 1.0
-	burn_mod = 1.2 
+	burn_mod = 1.2
 	show_ssd = "flashing a 'system offline' glyph on their monitor"
 	death_message = "gives one shrill beep before falling lifeless."
 	knockout_message = "encounters a hardware fault and suddenly reboots!"
@@ -508,7 +508,7 @@ datum/species/machine/handle_post_spawn(var/mob/living/carbon/human/H)
 
 /datum/species/machine/handle_death(var/mob/living/carbon/human/H)
 	..()
-	H.h_style = ""
+	H.f_style = ""
 	addtimer(CALLBACK(H, /mob/living/carbon/human/.proc/update_hair), 100)
 
 /datum/species/machine/sanitize_name(var/new_name)
@@ -567,7 +567,7 @@ datum/species/machine/handle_post_spawn(var/mob/living/carbon/human/H)
 
 	// I hate this, but I can't think of a better way that doesn't involve
 	// rewriting hair.
-	switch (H.h_style)
+	switch (H.f_style)
 		if ("pink IPC screen")
 			return LIGHT_COLOR_PINK
 
@@ -672,7 +672,7 @@ datum/species/machine/handle_post_spawn(var/mob/living/carbon/human/H)
 	heat_level_1 = 330 //Default 360
 	heat_level_2 = 380 //Default 400
 	heat_level_3 = 600 //Default 1000
-	flags = NO_SLIP
+	flags = NO_SLIP | NO_CHUBBY
 	spawn_flags = CAN_JOIN | IS_WHITELISTED
 	appearance_flags = HAS_SKIN_COLOR
 	blood_color = "#E6E600" // dark yellow

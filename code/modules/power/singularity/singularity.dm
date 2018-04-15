@@ -10,6 +10,7 @@
 	layer = 6
 	light_power = -100 //eats all light
 	unacidable = 1 //Don't comment this out.
+	appearance_flags = NO_CLIENT_COLOR
 
 	var/current_size = 1
 	var/allowed_size = 1
@@ -72,11 +73,15 @@
 /obj/singularity/bullet_act(obj/item/projectile/P)
 	return 0 //Will there be an impact? Who knows. Will we see it? No.
 
-/obj/singularity/Bump(atom/A)
-	consume(A)
+/obj/singularity/Collide(atom/A)
+	. = ..()
+	if (A)
+		consume(A)
 
-/obj/singularity/Bumped(atom/A)
-	consume(A)
+/obj/singularity/CollidedWith(atom/movable/AM)
+	. = ..()
+	if (AM)
+		consume(AM)
 
 /obj/singularity/process()
 	eat()

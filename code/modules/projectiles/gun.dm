@@ -122,6 +122,13 @@
 	if(HULK in M.mutations)
 		M << "<span class='danger'>Your fingers are much too large for the trigger guard!</span>"
 		return 0
+
+	if(ishuman(M))
+		var/mob/living/carbon/human/A = M
+		if(A.martial_art && A.martial_art.no_guns)
+			to_chat(A, "<span class='warning'>[A.martial_art.no_guns_message]</span>")
+			return 0
+
 	if((CLUMSY in M.mutations) && prob(40)) //Clumsy handling
 		var/obj/P = consume_next_projectile()
 		if(P)
@@ -177,8 +184,6 @@
 		return ..() //Pistolwhippin'
 
 /obj/item/weapon/gun/proc/Fire(atom/target, mob/living/user, clickparams, pointblank=0, reflex=0)
-
-
 	if(!user || !target) return
 
 	add_fingerprint(user)
@@ -267,7 +272,7 @@
 			P.shot_from = src.name
 			P.silenced = silenced
 
-			P.launch(target)
+			P.launch_projectile(target)
 
 			if(silenced)
 				playsound(src, fire_sound, 10, 1)
@@ -300,7 +305,7 @@
 		return 2
 	//just assume we can shoot through glass and stuff. No big deal, the player can just choose to not target someone
 	//on the other side of a window if it makes a difference. Or if they run behind a window, too bad.
-	return check_trajectory(target, user)
+	return (target in check_trajectory(target, user))
 
 //called if there was no projectile to shoot
 /obj/item/weapon/gun/proc/handle_click_empty(mob/user)
@@ -384,27 +389,21 @@
 		P.accuracy += 2
 
 //does the actual launching of the projectile
-/obj/item/weapon/gun/proc/process_projectile(obj/projectile, mob/user, atom/target, var/target_zone, var/params=null)
+/obj/item/weapon/gun/proc/process_projectile(obj/projectile, mob/user, atom/target, target_zone, params)
 	var/obj/item/projectile/P = projectile
 	if(!istype(P))
 		return 0 //default behaviour only applies to true projectiles
 
-	if(params)
-		P.set_clickpoint(params)
-
 	//shooting while in shock
-	var/x_offset = 0
-	var/y_offset = 0
+	var/added_spread = 0
 	if(istype(user, /mob/living/carbon))
 		var/mob/living/carbon/mob = user
 		if(mob.shock_stage > 120)
-			y_offset = rand(-2,2)
-			x_offset = rand(-2,2)
+			added_spread = 30
 		else if(mob.shock_stage > 70)
-			y_offset = rand(-1,1)
-			x_offset = rand(-1,1)
+			added_spread = 15
 
-	return !P.launch_from_gun(target, user, src, target_zone, x_offset, y_offset)
+	return !P.launch_from_gun(target, target_zone, user, params, null, added_spread, src)
 
 //Suicide handling.
 /obj/item/weapon/gun/var/mouthshoot = 0 //To stop people from suiciding twice... >.>
@@ -616,6 +615,7 @@
 	icon_state = "offhand"
 	item_state = "nothing"
 	name = "offhand"
+	needspin = FALSE
 
 	unwield()
 		if (ismob(loc))

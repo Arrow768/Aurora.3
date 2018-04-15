@@ -70,6 +70,9 @@
 	brightness_power = 1
 	brightness_color = LIGHT_COLOR_RED
 
+/obj/machinery/light/colored/blue
+	brightness_color = LIGHT_COLOR_BLUE
+
 /obj/machinery/light/spot
 	name = "spotlight"
 	fitting = "large tube"
@@ -78,6 +81,11 @@
 	brightness_range = 12
 	brightness_power = 4
 	supports_nightmode = FALSE
+
+/obj/machinery/light/spot/weak
+	name = "exterior spotlight"
+	brightness_range = 12
+	brightness_power = 1.2
 
 /obj/machinery/light/built
 	start_with_cell = FALSE
@@ -157,7 +165,7 @@
 		if (LIGHT_BURNED)
 			stat |= BROKEN
 			stat &= ~MAINT
-		
+
 		if (LIGHT_BROKEN)
 			stat |= BROKEN
 			stat &= ~MAINT
@@ -297,7 +305,7 @@
 					stat &= ~NOPOWER
 
 				update()
-				
+
 				user.drop_item()	//drop the item to update overlays and such
 				qdel(L)
 
@@ -553,7 +561,7 @@
 		stat &= ~NOPOWER
 	else
 		stat |= NOPOWER
-	
+
 	update()
 
 // called when on fire
