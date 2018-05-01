@@ -13,7 +13,7 @@
 	var/scanning = 0
 
 /obj/machinery/computer/diseasesplicer/attackby(var/obj/I as obj, var/mob/user as mob)
-	if(istype(I, /obj/item/weapon/screwdriver))
+	if(isscrewdriver(I))
 		return ..(I,user)
 
 	if(istype(I,/obj/item/weapon/virusdish))
@@ -52,7 +52,7 @@
 	if (memorybank)
 		data["buffer"] = list("name" = (analysed ? memorybank.effect.name : "Unknown Symptom"), "stage" = memorybank.effect.stage)
 	if (species_buffer)
-		data["species_buffer"] = analysed ? list2text(species_buffer, ", ") : "Unknown Species"
+		data["species_buffer"] = analysed ? jointext(species_buffer, ", ") : "Unknown Species"
 
 	if (splicing)
 		data["busy"] = "Splicing..."
@@ -65,7 +65,7 @@
 
 		if (dish.virus2)
 			if (dish.virus2.affected_species)
-				data["affected_species"] = dish.analysed ? list2text(dish.virus2.affected_species, ", ") : "Unknown"
+				data["affected_species"] = dish.analysed ? jointext(dish.virus2.affected_species, ", ") : "Unknown"
 
 			if (dish.growth >= 50)
 				var/list/effects[0]
@@ -79,26 +79,26 @@
 	else
 		data["info"] = "No dish loaded."
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "disease_splicer.tmpl", src.name, 400, 600)
 		ui.set_initial_data(data)
 		ui.open()
 
-/obj/machinery/computer/diseasesplicer/process()
-	if(stat & (NOPOWER|BROKEN))
+/obj/machinery/computer/diseasesplicer/machinery_process()
+	if (inoperable())
 		return
 
 	if(scanning)
 		scanning -= 1
 		if(!scanning)
 			ping("\The [src] pings, \"Analysis complete.\"")
-			nanomanager.update_uis(src)
+			SSnanoui.update_uis(src)
 	if(splicing)
 		splicing -= 1
 		if(!splicing)
 			ping("\The [src] pings, \"Splicing operation complete.\"")
-			nanomanager.update_uis(src)
+			SSnanoui.update_uis(src)
 	if(burning)
 		burning -= 1
 		if(!burning)
@@ -109,7 +109,7 @@
 					d.name = "[memorybank.effect.name] GNA disk (Stage: [memorybank.effect.stage])"
 					d.effect = memorybank
 				else if (species_buffer)
-					d.name = "[list2text(species_buffer, ", ")] GNA disk"
+					d.name = "[jointext(species_buffer, ", ")] GNA disk"
 					d.species = species_buffer
 			else
 				if (memorybank)
@@ -120,13 +120,13 @@
 					d.species = species_buffer
 
 			ping("\The [src] pings, \"Backup disk saved.\"")
-			nanomanager.update_uis(src)
+			SSnanoui.update_uis(src)
 
 /obj/machinery/computer/diseasesplicer/Topic(href, href_list)
 	if(..()) return 1
 
 	var/mob/user = usr
-	var/datum/nanoui/ui = nanomanager.get_open_ui(user, src, "main")
+	var/datum/nanoui/ui = SSnanoui.get_open_ui(user, src, "main")
 
 	src.add_fingerprint(user)
 

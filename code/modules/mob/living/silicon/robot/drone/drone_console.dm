@@ -2,6 +2,7 @@
 	name = "Maintenance Drone Control"
 	desc = "Used to monitor the station's drone population and the assembler that services them."
 	icon = 'icons/obj/computer.dmi'
+	light_color = LIGHT_COLOR_ORANGE
 
 	icon_screen = "power"
 	req_access = list(access_engine_equip)
@@ -27,7 +28,7 @@
 	var/dat
 	dat += "<B>Maintenance Units</B><BR>"
 
-	for(var/mob/living/silicon/robot/drone/D in world)
+	for(var/mob/living/silicon/robot/drone/D in silicon_mob_list)
 		if(D.z != src.z)
 			continue
 		dat += "<BR>[D.real_name] ([D.stat == 2 ? "<font color='red'>INACTIVE</FONT>" : "<font color='green'>ACTIVE</FONT>"])"
@@ -58,7 +59,7 @@
 	if (href_list["setarea"])
 
 		//Probably should consider using another list, but this one will do.
-		var/t_area = input("Select the area to ping.", "Set Target Area", null) as null|anything in tagger_locations
+		var/t_area = input("Select the area to ping.", "Set Target Area", null) as null|anything in SSdisposals.tagger_locations
 
 		if(!t_area)
 			return
@@ -69,7 +70,7 @@
 	else if (href_list["ping"])
 
 		usr << "<span class='notice'>You issue a maintenance request for all active drones, highlighting [drone_call_area].</span>"
-		for(var/mob/living/silicon/robot/drone/D in world)
+		for(var/mob/living/silicon/robot/drone/D in silicon_mob_list)
 			if(D.client && D.stat == 0)
 				D << "-- Maintenance drone presence requested in: [drone_call_area]."
 
@@ -88,7 +89,7 @@
 		if(D.stat != 2)
 			usr << "<span class='danger'>You issue a kill command for the unfortunate drone.</span>"
 			message_admins("[key_name_admin(usr)] issued kill order for drone [key_name_admin(D)] from control console.")
-			log_game("[key_name(usr)] issued kill order for [key_name(src)] from control console.")
+			log_game("[key_name(usr)] issued kill order for [key_name(src)] from control console.",ckey=key_name(usr),ckey_target=key_name(src))
 			D.shut_down()
 
 	else if (href_list["search_fab"])

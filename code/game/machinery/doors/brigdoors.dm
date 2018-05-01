@@ -37,33 +37,33 @@
 
 	var/datum/browser/menu = new( null, "brig_timer", "Brig Timer", 400, 300 )
 
-/obj/machinery/door_timer/New()
+/obj/machinery/door_timer/Initialize()
 	..()
 
-	spawn(20)
-		for(var/obj/machinery/door/window/brigdoor/M in machines)
-			if (M.id == src.id)
-				targets += M
+	return INITIALIZE_HINT_LATELOAD
 
-		for(var/obj/machinery/flasher/F in machines)
-			if(F.id == src.id)
-				targets += F
+/obj/machinery/door_timer/LateInitialize()
+	for(var/obj/machinery/door/window/brigdoor/M in SSmachinery.all_machines)
+		if (M.id == src.id)
+			targets += M
 
-		for(var/obj/structure/closet/secure_closet/brig/C in world)
-			if(C.id == src.id)
-				targets += C
+	for(var/obj/machinery/flasher/F in SSmachinery.all_machines)
+		if(F.id == src.id)
+			targets += F
 
-		if(targets.len==0)
-			stat |= BROKEN
-		update_icon()
-		return
-	return
+	for(var/obj/structure/closet/secure_closet/brig/C in brig_closets)
+		if(C.id == src.id)
+			targets += C
+
+	if(targets.len==0)
+		stat |= BROKEN
+	update_icon()
 
 
 //Main door timer loop, if it's timing and time is >0 reduce time by 1.
 // if it's less than 0, open door, reset timer
 // update the door_timer window and the icon
-/obj/machinery/door_timer/process()
+/obj/machinery/door_timer/machinery_process()
 	if(stat & (NOPOWER|BROKEN))	return
 
 	if(src.timing)
@@ -148,7 +148,7 @@
 
 	qdel( incident )
 	incident = null
-	
+
 	src.updateUsrDialog()
 
 	return 1
@@ -207,7 +207,6 @@
 	// Used for the 'time left' display
 	var/second = round(timeleft() % 60)
 	var/minute = round((timeleft() - second) / 60)
-
 	. = "<h2>Timer System:</h2>"
 	. += "<b>Controls [src.id]</b><hr>"
 
@@ -215,7 +214,8 @@
 		. += "Insert a Securty Incident Report to load a criminal sentence<br>"
 	else
 		// Time Left display (uses releasetime)
-		. += "<b>Criminal</b>: [incident.criminal]\t"
+		var/obj/item/weapon/card/id/card = incident.card.resolve()
+		. += "<b>Criminal</b>: [card]\t"
 		. += "<a href='?src=\ref[src];button=menu_mode;menu_choice=menu_charges'>Charges</a><br>"
 		. += "<b>Sentence</b>: [add_zero( "[minute]", 2 )]:[add_zero( "[second]", 2 )]\t"
 		// Start/Stop timer
@@ -340,9 +340,7 @@
 
 		if( "activate" )
 			src.timer_start()
-			log_debug("Updating record")
 			for (var/datum/data/record/E in data_core.general)
-				log_debug("Searching for criminal with name: [incident.criminal.name]")
 				if(E.fields["name"] == incident.criminal.name)
 					for (var/datum/data/record/R in data_core.security)
 						if(R.fields["id"] == E.fields["id"])
@@ -388,9 +386,8 @@
 // Adds an icon in case the screen is broken/off, stolen from status_display.dm
 /obj/machinery/door_timer/proc/set_picture(var/state)
 	picture_state = state
-	overlays.Cut()
-	overlays += image('icons/obj/status_display.dmi', icon_state=picture_state)
-
+	cut_overlays()
+	add_overlay(picture_state)
 
 //Checks to see if there's 1 line or 2, adds text-icons-numbers/letters over display
 // Stolen from status_display
@@ -413,7 +410,7 @@
 		var/image/ID = image('icons/obj/status_display.dmi', icon_state=char)
 		ID.pixel_x = -(d-1)*5 + px
 		ID.pixel_y = py
-		I.overlays += ID
+		I.add_overlay(ID)
 	return I
 
 

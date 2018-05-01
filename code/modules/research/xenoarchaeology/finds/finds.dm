@@ -210,6 +210,7 @@
 			new_box.max_w_class = pick(1,2,2,3,3,3,4,4)
 			var/storage_amount = 2**(new_box.max_w_class-1)
 			new_box.max_storage_space = rand(storage_amount, storage_amount * 10)
+			new_box.foldable = null
 			if(prob(30))
 				apply_image_decorations = 1
 		if(12)
@@ -323,7 +324,7 @@
 			apply_material_decorations = 0
 		if(23)
 			apply_prefix = 0
-			new_item = PoolOrNew(/obj/item/stack/rods, src.loc)
+			new_item = new /obj/item/stack/rods(src.loc)
 			apply_image_decorations = 0
 			apply_material_decorations = 0
 		if(24)

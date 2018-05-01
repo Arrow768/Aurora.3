@@ -82,10 +82,10 @@
 	max_w_class = 4
 	max_storage_space = 56
 	storage_cost = 29
-
-	New()
-		..()
-		return
+	item_state_slots = list(
+		slot_l_hand_str = "holdingpack",
+		slot_r_hand_str = "holdingpack"
+		)
 
 	attackby(obj/item/weapon/W as obj, mob/user as mob)
 		if(istype(W, /obj/item/weapon/storage/backpack/holding))
@@ -208,6 +208,10 @@
 	name = "leather satchel"
 	desc = "It's a very fancy satchel made with fine leather."
 	icon_state = "satchel"
+	item_state_slots = list(
+		slot_l_hand_str = "satchel",
+		slot_r_hand_str = "satchel"
+		)
 
 /obj/item/weapon/storage/backpack/satchel/withwallet
 	New()
@@ -329,11 +333,19 @@
 	name = "duffel bag"
 	desc = "A spacious duffel bag."
 	icon_state = "duffel-norm"
+	item_state_slots = list(
+		slot_l_hand_str = "duffle",
+		slot_r_hand_str = "duffle"
+	)
 
 /obj/item/weapon/storage/backpack/duffel/cap
 	name = "captain's duffel bag"
 	desc = "A rare and special duffel bag for only the most air-headed of Nanotrasen personnel."
 	icon_state = "duffel-captain"
+	item_state_slots = list(
+		slot_l_hand_str = "duffle_captain",
+		slot_r_hand_str = "duffle_captain"
+	)
 
 /obj/item/weapon/storage/backpack/duffel/hyd
 	name = "botanist's duffel bag"
@@ -344,16 +356,28 @@
 	name = "virology duffel bag"
 	desc = "A sterilized duffel bag suited to those about to unleash pathogenic havoc upon the world."
 	icon_state = "duffel-virology"
+	item_state_slots = list(
+		slot_l_hand_str = "duffle_med",
+		slot_r_hand_str = "duffle_med"
+	)
 
 /obj/item/weapon/storage/backpack/duffel/med
 	name = "medical duffel bag"
 	desc = "A sterilized duffel bag for the young, upcoming lesbayan."
 	icon_state = "duffel-medical"
+	item_state_slots = list(
+		slot_l_hand_str = "duffle_med",
+		slot_r_hand_str = "duffle_med"
+	)
 
 /obj/item/weapon/storage/backpack/duffel/eng
 	name = "industrial duffel bag"
 	desc = "A rough and tumble duffel bag for the hard working wrench-monkey of tomorrow."
 	icon_state = "duffel-engineering"
+	item_state_slots = list(
+		slot_l_hand_str = "duffle_eng",
+		slot_r_hand_str = "duffle_eng"
+	)
 
 /obj/item/weapon/storage/backpack/duffel/tox
 	name = "scientist's duffel bag"
@@ -374,13 +398,85 @@
 	name = "chemistry duffel bag"
 	desc = "Spice up the love life a little."
 	icon_state = "duffel-chemistry"
+	item_state_slots = list(
+		slot_l_hand_str = "duffle_med",
+		slot_r_hand_str = "duffle_med"
+	)
 
 /obj/item/weapon/storage/backpack/duffel/syndie
 	name = "syndicate duffel bag"
 	desc = "A snazzy black and red duffel bag, perfect for smuggling C4 and Parapens."
 	icon_state = "duffel-syndie"
+	item_state_slots = list(
+		slot_l_hand_str = "duffle_syndie",
+		slot_r_hand_str = "duffle_syndie"
+	)
 
 /obj/item/weapon/storage/backpack/duffel/wizard
 	name = "wizardly duffel bag"
 	desc = "A fancy blue wizard bag, duffel edition."
 	icon_state = "duffel-wizard"
+
+/*
+ * Messenger Bags
+ */
+
+/obj/item/weapon/storage/backpack/messenger
+	name = "messenger bag"
+	desc = "A sturdy backpack worn over one shoulder."
+	icon_state = "courierbag"
+
+/obj/item/weapon/storage/backpack/messenger/chem
+	name = "chemistry messenger bag"
+	desc = "A serile backpack worn over one shoulder.  This one is in chemsitry colors."
+	icon_state = "courierbagchem"
+
+/obj/item/weapon/storage/backpack/messenger/med
+	name = "medical messenger bag"
+	desc = "A sterile backpack worn over one shoulder used in medical departments."
+	icon_state = "courierbagmed"
+
+/obj/item/weapon/storage/backpack/messenger/viro
+	name = "virology messenger bag"
+	desc = "A sterile backpack worn over one shoulder.  This one is in virology colors."
+	icon_state = "courierbagviro"
+
+/obj/item/weapon/storage/backpack/messenger/tox
+	name = "research messenger bag"
+	desc = "A backpack worn over one shoulder.  Useful for holding science materials."
+	icon_state = "courierbagtox"
+
+/obj/item/weapon/storage/backpack/messenger/gen
+	name = "geneticist messenger bag"
+	desc = "A backpack worn over one shoulder.  Useful for holding DNA injectors and data disks."
+	icon_state = "courierbaggenetics"
+
+/obj/item/weapon/storage/backpack/messenger/com
+	name = "captain's messenger bag"
+	desc = "A special backpack worn over one shoulder.  This one is made specifically for command officers."
+	icon_state = "courierbagcom"
+
+/obj/item/weapon/storage/backpack/messenger/engi
+	name = "engineering messenger bag"
+	desc = "A strong backpack worn over one shoulder. This one is designed for industrial work."
+	icon_state = "courierbagengi"
+
+/obj/item/weapon/storage/backpack/messenger/hyd
+	name = "hydroponics messenger bag"
+	desc = "A backpack worn over one shoulder.  This one is designed for plant-related work."
+	icon_state = "courierbaghyd"
+
+/obj/item/weapon/storage/backpack/messenger/sec
+	name = "security messenger bag"
+	desc = "A tactical backpack worn over one shoulder. This one is in security colors."
+	icon_state = "courierbagsec"
+
+/obj/item/weapon/storage/backpack/messenger/syndie
+	name = "syndicate messenger bag"
+	desc = "A sturdy backpack worn over one shoulder. This one is in red and black menacing colors."
+	icon_state = "courierbagsyndie"
+
+/obj/item/weapon/storage/backpack/messenger/wizard
+	name = "wizardly messenger bag"
+	desc = "A wizardly backpack worn over one shoulder. This one is in blue and purple colors. "
+	icon_state = "courierbagwizard"

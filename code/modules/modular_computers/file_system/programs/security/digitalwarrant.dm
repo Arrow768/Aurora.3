@@ -12,12 +12,13 @@ var/warrant_uid = 0
 	filename = "digitalwarrant"
 	filedesc = "Warrant Assistant"
 	extended_desc = "Official NTsec program for creation and handling of warrants."
+	program_icon_state = "security"
+	color = LIGHT_COLOR_ORANGE
 	size = 8
 	requires_ntnet = 1
 	available_on_ntnet = 1
 	required_access_download = access_hos
 	required_access_run = access_security
-	usage_flags = PROGRAM_ALL
 	nanomodule_path = /datum/nano_module/program/digitalwarrant/
 
 /datum/nano_module/program/digitalwarrant/
@@ -44,7 +45,7 @@ var/warrant_uid = 0
 		)))
 		data["allwarrants"] = allwarrants
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "digitalwarrant.tmpl", name, 500, 350, state = state)
 		ui.auto_update_layout = 1
@@ -72,8 +73,8 @@ var/warrant_uid = 0
 	if(!istype(user))
 		return
 	var/obj/item/weapon/card/id/I = user.GetIdCard()
-	if(!istype(I) || !I.registered_name || !(access_armory in I.access))
-		to_chat(user, "Authentication error: Unable to locate ID with apropriate access to allow this operation.")
+	if(!istype(I) || !I.registered_name || !(access_armory in I.access) || issilicon(user))
+		to_chat(user, "Authentication error: Unable to locate ID with appropriate access to allow this operation.")
 		return
 
 	if(href_list["addwarrant"])

@@ -18,6 +18,7 @@
 	cannot_amputate = 1
 	parent_organ = null
 	encased = "ribcage"
+	can_be_maimed = FALSE
 
 /obj/item/organ/external/groin
 	name = "lower body"
@@ -33,6 +34,7 @@
 	joint = "hip"
 	dislocated = -1
 	gendered_icon = 1
+	maim_bonus = 0.25
 
 /obj/item/organ/external/arm
 	limb_name = "l_arm"
@@ -91,9 +93,10 @@
 	joint = "left ankle"
 	amputation_point = "left ankle"
 	can_stand = 1
+	maim_bonus = 1
 
 /obj/item/organ/external/foot/removed()
-	if(owner) owner.u_equip(owner.shoes)
+	if(owner) owner.drop_from_inventory(owner.shoes)
 	..()
 
 /obj/item/organ/external/foot/right
@@ -118,9 +121,14 @@
 	joint = "left wrist"
 	amputation_point = "left wrist"
 	can_grasp = 1
+	maim_bonus = 1
 
 /obj/item/organ/external/hand/removed()
-	owner.u_equip(owner.gloves)
+	owner.drop_from_inventory(owner.gloves)
+	if(body_part == HAND_LEFT)
+		owner.drop_l_hand()
+	else
+		owner.drop_r_hand()
 	..()
 
 /obj/item/organ/external/hand/right
@@ -147,15 +155,16 @@
 	gendered_icon = 1
 	encased = "skull"
 	var/can_intake_reagents = 1
+	maim_bonus = 0.33
 
 /obj/item/organ/external/head/removed()
 	if(owner)
 		name = "[owner.real_name]'s head"
-		owner.u_equip(owner.glasses)
-		owner.u_equip(owner.head)
-		owner.u_equip(owner.l_ear)
-		owner.u_equip(owner.r_ear)
-		owner.u_equip(owner.wear_mask)
+		owner.drop_from_inventory(owner.glasses)
+		owner.drop_from_inventory(owner.head)
+		owner.drop_from_inventory(owner.l_ear)
+		owner.drop_from_inventory(owner.r_ear)
+		owner.drop_from_inventory(owner.wear_mask)
 		spawn(1)
 			owner.update_hair()
 	..()
@@ -168,3 +177,13 @@
 				disfigure("brute")
 		if (burn_dam > 40)
 			disfigure("burn")
+
+/obj/item/organ/external/head/dislocate()
+	. = ..()
+	if(owner)
+		owner.brokejaw = 1
+
+/obj/item/organ/external/head/undislocate()
+	. = ..()
+	if(owner)
+		owner.brokejaw = 0

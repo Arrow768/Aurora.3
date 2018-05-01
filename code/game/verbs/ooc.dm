@@ -33,11 +33,11 @@
 			return
 		if(findtext(msg, "byond://"))
 			src << "<B>Advertising other servers is not allowed.</B>"
-			log_admin("[key_name(src)] has attempted to advertise in OOC: [msg]")
+			log_admin("[key_name(src)] has attempted to advertise in OOC: [msg]",ckey=key_name(src))
 			message_admins("[key_name_admin(src)] has attempted to advertise in OOC: [msg]")
 			return
 
-	log_ooc("[mob.name]/[key] : [msg]")
+	log_ooc("[mob.name]/[key] : [msg]",ckey=key_name(mob))
 
 	var/ooc_style = "everyone"
 	if(holder && !holder.fakekey)
@@ -104,11 +104,11 @@
 			return
 		if(findtext(msg, "byond://"))
 			src << "<B>Advertising other servers is not allowed.</B>"
-			log_admin("[key_name(src)] has attempted to advertise in OOC: [msg]")
+			log_admin("[key_name(src)] has attempted to advertise in OOC: [msg]",ckey=key_name(src))
 			message_admins("[key_name_admin(src)] has attempted to advertise in OOC: [msg]")
 			return
 
-	log_ooc("(LOCAL) [mob.name]/[key] : [msg]")
+	log_ooc("(LOCAL) [mob.name]/[key] : [msg]",ckey=key_name(mob))
 
 	var/mob/source = src.mob
 	var/list/messageturfs = list()//List of turfs we broadcast to.
@@ -118,7 +118,7 @@
 		messageturfs += turf
 
 	for(var/mob/M in player_list)
-		if (!M.client || istype(M, /mob/new_player))
+		if (!M.client || istype(M, /mob/abstract/new_player))
 			continue
 		if(get_turf(M) in messageturfs)
 			messagemobs += M
@@ -148,3 +148,13 @@
 				prefix = ""
 			if((target.mob in messagemobs) || display_remote)
 				target << "<span class='ooc'><span class='looc'>" + create_text_tag("looc", "LOOC:", target) + " <span class='prefix'>[prefix]</span><EM>[display_name][admin_stuff]:</EM> <span class='message'>[msg]</span></span></span>"
+
+/client/verb/stop_all_sounds()
+	set name = "Stop all sounds"
+	set desc = "Stop all sounds that are currently playing."
+	set category = "OOC"
+
+	if(!mob)
+		return
+
+	mob << sound(null) 

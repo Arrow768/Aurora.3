@@ -415,7 +415,7 @@
 	interfaced_with = target
 	drain_loc = interfaced_with.loc
 
-	holder.spark_system.start()
+	holder.spark_system.queue()
 	playsound(H.loc, 'sound/effects/sparks2.ogg', 50, 1)
 
 	return 1
@@ -439,7 +439,7 @@
 	if(!H || !istype(H))
 		return 0
 
-	holder.spark_system.start()
+	holder.spark_system.queue()
 	playsound(H.loc, 'sound/effects/sparks2.ogg', 50, 1)
 
 	if(!holder.cell)
@@ -481,31 +481,3 @@
 	drain_loc = null
 	interfaced_with = null
 	total_power_drained = 0
-
-/*
-//Maybe make this use power when active or something
-/obj/item/rig_module/emp_shielding
-	name = "\improper EMP dissipation module"
-	desc = "A bewilderingly complex bundle of fiber optics and chips."
-	toggleable = 1
-	usable = 0
-
-	activate_string = "Enable active EMP shielding"
-	deactivate_string = "Disable active EMP shielding"
-
-	interface_name = "active EMP shielding system"
-	interface_desc = "A highly experimental system that augments the hardsuit's existing EM shielding."
-	var/protection_amount = 20
-
-/obj/item/rig_module/emp_shielding/activate()
-	if(!..())
-		return
-
-	holder.emp_protection += protection_amount
-
-/obj/item/rig_module/emp_shielding/deactivate()
-	if(!..())
-		return
-
-	holder.emp_protection = max(0,(holder.emp_protection - protection_amount))
-*/

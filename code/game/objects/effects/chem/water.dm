@@ -7,9 +7,7 @@
 
 /obj/effect/effect/water/New(loc)
 	..()
-	spawn(150) // In case whatever made it forgets to delete it
-		if(src)
-			qdel(src)
+	QDEL_IN(src, 15 SECONDS)	// In case whatever made it forgets to delete it
 
 /obj/effect/effect/water/proc/set_color() // Call it after you move reagents to it
 	icon += reagents.get_color()
@@ -67,7 +65,7 @@
 		return 0
 	. = ..()
 
-/obj/effect/effect/water/Bump(atom/A)
+/obj/effect/effect/water/Collide(atom/A)
 	var/turf/T = get_turf(A)
 	wet_things(T)
 	return ..()

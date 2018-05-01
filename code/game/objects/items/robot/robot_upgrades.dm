@@ -85,7 +85,7 @@
 		return 0
 
 	if(!R.key)
-		for(var/mob/dead/observer/ghost in player_list)
+		for(var/mob/abstract/observer/ghost in player_list)
 			if(ghost.mind && ghost.mind.current == R)
 				R.key = ghost.key
 
@@ -160,6 +160,7 @@
 		return 0
 
 	R.emagged = 1
+	R.fakeemagged = 1
 	return 1
 
 /obj/item/borg/upgrade/combat

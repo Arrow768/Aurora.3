@@ -114,7 +114,7 @@ var/global/ManifestJSON
 			department = 1
 			if(depthead && sci.len != 1)
 				sci.Swap(1,sci.len)
-				
+
 		if(real_rank in cargo_positions)
 			car[++car.len] = list("name" = name, "rank" = rank, "active" = isactive)
 			department = 1
@@ -146,10 +146,7 @@ var/global/ManifestJSON
 		"bot" = bot,\
 		"misc" = misc\
 		)
-	ManifestJSON = list2json(PDA_Manifest)
-	return
-
-
+	ManifestJSON = json_encode(PDA_Manifest)
 
 /obj/effect/laser
 	name = "laser"
@@ -158,26 +155,10 @@ var/global/ManifestJSON
 	var/damage = 0.0
 	var/range = 10.0
 
-
-/obj/effect/list_container
-	name = "list container"
-
-/obj/effect/list_container/mobl
-	name = "mobl"
-	var/master = null
-
-	var/list/container = list(  )
-
 /obj/effect/projection
 	name = "Projection"
 	desc = "This looks like a projection of something."
 	anchored = 1.0
-
-
-/obj/effect/shut_controller
-	name = "shut controller"
-	var/moving = null
-	var/list/parts = list(  )
 
 /obj/structure/showcase
 	name = "Showcase"
@@ -208,12 +189,19 @@ var/global/ManifestJSON
 		user.drop_item()
 		src.throw_at(target, throw_range, throw_speed, user)
 
-/obj/effect/stop
-	var/victim = null
-	icon_state = "empty"
-	name = "Geas"
-	desc = "You can't resist."
-	// name = ""
-
 /obj/effect/spawner
 	name = "object spawner"
+
+/obj/structure/spaceship
+	name = "Abandoned Shuttle"
+	desc = "An ancient and inoperable shuttle-craft"
+	icon = 'icons/obj/machines/spaceship.dmi'
+	anchored = 1
+	density = 1
+
+/obj/structure/mainframe
+	name = "Ancient Mainframe"
+	desc = "A long-fried AI mainframe from the 2420s. It's more fit to be holding rats than AIs at this point."
+	icon = 'icons/obj/mainframe.dmi'
+	anchored = 1
+	density = 1

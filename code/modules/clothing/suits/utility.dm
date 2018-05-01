@@ -59,7 +59,7 @@
 	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES
 	body_parts_covered = HEAD|FACE|EYES
 	siemens_coefficient = 0
-
+	tint = TINT_HEAVY
 
 
 //Changes by Nanako
@@ -100,11 +100,9 @@
 
 		wearer = user
 		wearer << "<span class='Notice'>You struggle into the [src]. It feels hot, heavy and uncomfortable</span>"
-		if(!(src in processing_objects))
-			processing_objects.Add(src)
+		START_PROCESSING(SSprocessing, src)
 	else
 		wearer = null
-
 
 	..(user, slot)
 
@@ -116,7 +114,7 @@
 		suit_temp -= 0.5
 		if (suit_temp < T20C)
 			suit_temp = T20C
-			processing_objects.Remove(src)
+			STOP_PROCESSING(SSprocessing, src)
 		return
 	else
 		var/amount = BOMBSUIT_THERMAL
@@ -150,8 +148,8 @@
 
 
 /obj/item/clothing/suit/bomb_suit/Destroy()
-	processing_objects.Remove(src)
-	..()
+	STOP_PROCESSING(SSprocessing, src)
+	return ..()
 
 
 /obj/item/clothing/head/bomb_hood/security
@@ -167,7 +165,7 @@
  * Radiation protection
  */
 /obj/item/clothing/head/radiation
-	name = "Radiation Hood"
+	name = "radiation Hood"
 	icon_state = "rad"
 	desc = "A hood with radiation protective properties. Label: Made with lead, do not eat insulation"
 	flags_inv = BLOCKHAIR
@@ -176,7 +174,7 @@
 
 
 /obj/item/clothing/suit/radiation
-	name = "Radiation suit"
+	name = "radiation suit"
 	desc = "A suit that protects against radiation. Label: Made with lead, do not eat insulation."
 	icon_state = "rad"
 	item_state = "rad_suit"

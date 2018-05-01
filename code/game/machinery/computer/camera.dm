@@ -12,10 +12,10 @@
 	var/cache_id = 0
 	circuit = /obj/item/weapon/circuitboard/security
 
-/obj/machinery/computer/security/New()
+/obj/machinery/computer/security/Initialize()
 	if(!network)
-		network = station_networks.Copy()
-	..()
+		network = current_map.station_networks.Copy()
+	. = ..()
 	if(network.len)
 		current_network = network[1]
 
@@ -52,7 +52,7 @@
 		data["current_camera"] = current_camera ? current_camera.nano_structure() : null
 		data["current_network"] = current_network
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "sec_camera.tmpl", "Camera Console", 900, 800)
 
@@ -142,7 +142,17 @@
 		jump_to = locate() in A
 	else if(isturf(A))
 		var/best_dist = INFINITY
-		for(var/obj/machinery/camera/camera in get_area(A))
+		var/check_area = get_area(A)
+
+		if (!check_area)
+			return
+
+		for(var/cc in SSmachinery.all_cameras)
+			var/obj/machinery/camera/camera = cc
+			if(!camera.loc)
+				continue
+			if (camera.loc.loc != check_area)
+				continue
 			if(!camera.can_use())
 				continue
 			if(!can_access_camera(camera))
@@ -156,10 +166,10 @@
 	if(can_access_camera(jump_to))
 		switch_to_camera(user,jump_to)
 
-/obj/machinery/computer/security/process()
+/obj/machinery/computer/security/machinery_process()
 	if(cache_id != camera_repository.camera_cache_id)
 		cache_id = camera_repository.camera_cache_id
-		nanomanager.update_uis(src)
+		SSnanoui.update_uis(src)
 
 /obj/machinery/computer/security/proc/can_access_camera(var/obj/machinery/camera/C)
 	var/list/shared_networks = src.network & C.network
@@ -195,8 +205,9 @@
 	if(istype(usr.machine,/obj/machinery/computer/security))
 		var/obj/machinery/computer/security/console = usr.machine
 		console.jump_on_click(usr,src)
+
 //Camera control: arrow keys.
-/mob/Move(n,direct)
+/mob/living/Move(n,direct)
 	if(istype(machine,/obj/machinery/computer/security))
 		var/obj/machinery/computer/security/console = machine
 		var/turf/T = get_turf(console.current_camera)
@@ -215,6 +226,7 @@
 	network = list(NETWORK_THUNDER)
 	density = 0
 	circuit = null
+	is_holographic = FALSE
 
 /obj/machinery/computer/security/telescreen/entertainment
 	name = "entertainment monitor"
@@ -249,10 +261,10 @@
 	circuit = /obj/item/weapon/circuitboard/security/engineering
 	light_color = "#FAC54B"
 
-/obj/machinery/computer/security/engineering/New()
+/obj/machinery/computer/security/engineering/Initialize()
 	if(!network)
 		network = engineering_networks.Copy()
-	..()
+	. = ..()
 
 /obj/machinery/computer/security/nuclear
 	name = "head mounted camera monitor"
@@ -260,7 +272,8 @@
 	icon_screen = "syndicam"
 	network = list(NETWORK_MERCENARY)
 	circuit = null
+	is_holographic = FALSE	// I mean, it is, but the holo effect looks terrible with the current merc shuttle floor.
 
-/obj/machinery/computer/security/nuclear/New()
-	..()
+/obj/machinery/computer/security/nuclear/Initialize()
+	. = ..()
 	req_access = list(150)

@@ -35,7 +35,7 @@
 			return
 
 	if(P.stored_plasma < cost)
-		src << "\red You don't have enough phoron stored to do that."
+		src << "<span class='warning'>You don't have enough phoron stored to do that.</span>"
 		return 0
 
 	if(needs_foundation)
@@ -46,7 +46,7 @@
 			if(!(istype(T,/turf/space)))
 				has_foundation = 1
 		if(!has_foundation)
-			src << "\red You need a solid foundation to do that on."
+			src << "<span class='warning'>You need a solid foundation to do that on.</span>"
 			return 0
 
 	P.stored_plasma -= cost
@@ -121,7 +121,8 @@
 
 	if(check_alien_ability(50,1,"resin spinner"))
 		visible_message("<span class='alium'><B>[src] has planted some alien weeds!</B></span>")
-		new /obj/structure/alien/node(loc)
+		var/obj/structure/alien/weeds/node/new_node = new(get_turf(src))
+		new_node.linked_node = new_node
 	return
 
 /mob/living/carbon/human/proc/corrosive_acid(O as obj|turf in oview(1)) //If they right click to corrode, an error will flash if its an invalid target./N
@@ -173,25 +174,8 @@
 
 	visible_message("<span class='warning'>[src] spits neurotoxin at [target]!</span>", "<span class='alium'>You spit neurotoxin at [target].</span>")
 
-	//I'm not motivated enough to revise this. Prjectile code in general needs update.
-	// Maybe change this to use throw_at? ~ Z
-	var/turf/T = loc
-	var/turf/U = (istype(target, /atom/movable) ? target.loc : target)
-
-	if(!U || !T)
-		return
-	while(U && !istype(U,/turf))
-		U = U.loc
-	if(!istype(T, /turf))
-		return
-	if (U == T)
-		usr.bullet_act(new /obj/item/projectile/energy/neurotoxin(usr.loc), get_organ_target())
-		return
-	if(!istype(U, /turf))
-		return
-
 	var/obj/item/projectile/energy/neurotoxin/A = new /obj/item/projectile/energy/neurotoxin(usr.loc)
-	A.launch(target, get_organ_target())
+	A.launch_projectile(target,get_organ_target())
 
 /mob/living/carbon/human/proc/resin() // -- TLE
 	set name = "Secrete Resin (75)"

@@ -13,6 +13,8 @@ var/const/AI				=(1<<8)
 var/const/CYBORG			=(1<<9)
 var/const/INTERN_SEC		=(1<<10)
 var/const/INTERN_ENG		=(1<<11)
+var/const/FORENSICS			=(1<<12)
+var/const/JANITOR			=(1<<13)
 
 
 var/const/MEDSCI			=(1<<1)
@@ -37,15 +39,15 @@ var/const/HOP				=(1<<0)
 var/const/BARTENDER			=(1<<1)
 var/const/BOTANIST			=(1<<2)
 var/const/CHEF				=(1<<3)
-var/const/JANITOR			=(1<<4)
-var/const/LIBRARIAN			=(1<<5)
-var/const/QUARTERMASTER		=(1<<6)
-var/const/CARGOTECH			=(1<<7)
-var/const/MINER				=(1<<8)
-var/const/LAWYER			=(1<<9)
-var/const/CHAPLAIN			=(1<<10)
-var/const/CLOWN				=(1<<11)
-var/const/MIME				=(1<<12)
+var/const/LIBRARIAN			=(1<<4)
+var/const/QUARTERMASTER		=(1<<5)
+var/const/CARGOTECH			=(1<<6)
+var/const/MINER				=(1<<7)
+var/const/LAWYER			=(1<<8)
+var/const/CHAPLAIN			=(1<<9)
+var/const/CLOWN				=(1<<10)
+var/const/MIME				=(1<<11)
+var/const/MERCHANT			=(1<<12)
 var/const/ASSISTANT			=(1<<13)
 
 
@@ -66,6 +68,7 @@ var/list/engineering_positions = list(
 	"Chief Engineer",
 	"Station Engineer",
 	"Atmospheric Technician",
+	"Janitor",
 	"Engineering Apprentice"
 )
 
@@ -73,11 +76,10 @@ var/list/engineering_positions = list(
 var/list/medical_positions = list(
 	"Chief Medical Officer",
 	"Medical Doctor",
-	"Geneticist",
 	"Psychiatrist",
 	"Chemist",
 	"Paramedic",
-	"Nursing Intern"
+	"Medical Resident"
 )
 
 
@@ -103,7 +105,6 @@ var/list/civilian_positions = list(
 	"Bartender",
 	"Gardener",
 	"Chef",
-	"Janitor",
 	"Librarian",
 	"Chaplain",
 	"Assistant"
@@ -114,15 +115,16 @@ var/list/security_positions = list(
 	"Head of Security",
 	"Warden",
 	"Detective",
+	"Forensic Technician",
 	"Security Officer",
 	"Security Cadet"
 )
 
-
 var/list/nonhuman_positions = list(
 	"AI",
 	"Cyborg",
-	"pAI"
+	"pAI",
+	"Merchant"
 )
 
 /proc/guest_jobbans(var/job)

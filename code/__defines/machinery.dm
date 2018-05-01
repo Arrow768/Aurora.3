@@ -32,12 +32,14 @@
 #define NETWORK_CRESCENT "Crescent"
 #define NETWORK_CIVILIAN_EAST "Civilian East"
 #define NETWORK_CIVILIAN_WEST "Civilian West"
+#define NETWORK_CIVILIAN_MAIN "Civilian Main"
+#define NETWORK_CIVILIAN_SURFACE "Civilian Surface"
 #define NETWORK_COMMAND "Command"
 #define NETWORK_ENGINE "Engine"
 #define NETWORK_ENGINEERING "Engineering"
 #define NETWORK_ENGINEERING_OUTPOST "Engineering Outpost"
 #define NETWORK_ERT "ZeEmergencyResponseTeam"
-#define NETWORK_EXODUS "Exodus"
+#define NETWORK_STATION "Station"
 #define NETWORK_MEDICAL "Medical"
 #define NETWORK_MERCENARY "MercurialNet"
 #define NETWORK_MINE "MINE"
@@ -52,6 +54,7 @@
 #define NETWORK_ALARM_POWER "Power Alarms"
 #define NETWORK_ALARM_FIRE "Fire Alarms"
 #define NETWORK_SUPPLY "Supply"
+#define NETWORK_SERVICE "Service"
 #define NETWORK_EXPEDITION "Expedition"
 #define NETWORK_CALYPSO "Calypso"
 #define NETWORK_POD "General Utility Pod"
@@ -96,3 +99,17 @@ var/list/restricted_camera_networks = list(NETWORK_ERT,NETWORK_MERCENARY,"Secret
 #define ATMOS_DEFAULT_VOLUME_FILTER 200 // L.
 #define ATMOS_DEFAULT_VOLUME_MIXER  200 // L.
 #define ATMOS_DEFAULT_VOLUME_PIPE   70  // L.
+
+
+// Misc process flags.
+#define M_PROCESSES 0x1
+#define M_USES_POWER 0x2
+
+// If this is returned from a machine's process() proc, the machine will stop processing but 
+// will continue to have power calculations done.
+#define M_NO_PROCESS 27
+
+// This controls how much power the AME generates per unit of fuel.
+// Assuming 100% efficency, use this equation to figure out power output.
+//      power_generated = (fuel**2) * AM_POWER_FACTOR
+#define AM_POWER_FACTOR 50000

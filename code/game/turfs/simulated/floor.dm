@@ -26,24 +26,28 @@
 /turf/simulated/floor/is_plating()
 	return !flooring
 
-/turf/simulated/floor/New(var/newloc, var/floortype)
-	..(newloc)
+/turf/simulated/floor/Initialize(mapload, var/floortype)
+	. = ..()
 	if(!floortype && initial_flooring)
 		floortype = initial_flooring
 	if(floortype)
-		set_flooring(get_flooring_data(floortype))
+		set_flooring(get_flooring_data(floortype), mapload)
 
-/turf/simulated/floor/proc/set_flooring(var/decl/flooring/newflooring)
-	make_plating(defer_icon_update = 1)
+/turf/simulated/floor/proc/set_flooring(decl/flooring/newflooring, mapload)
+	if (!mapload)
+		make_plating(defer_icon_update = 1)
 	flooring = newflooring
-	update_icon(1)
+	if (mapload)
+		queue_icon_update()
+	else
+		queue_icon_update(1)
 	levelupdate()
 
 //This proc will set floor_type to null and the update_icon() proc will then change the icon_state of the turf
 //This proc auto corrects the grass tiles' siding.
 /turf/simulated/floor/proc/make_plating(var/place_product, var/defer_icon_update)
 
-	overlays.Cut()
+	cut_overlays()
 	if(islist(decals))
 		decals.Cut()
 		decals = null

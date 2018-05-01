@@ -15,6 +15,13 @@
 	path = /obj/item/weapon/storage/secure/briefcase/money
 	desc = "A briefcase with 10,000 untraceable credits for funding your sneaky activities."
 
+/datum/uplink_item/item/tools/firingpin //todo, make this a special syndicate one instead of just a normal one?
+	name = "Firing Pin"
+	item_cost = 2
+	path = /obj/item/device/firing_pin
+	desc = "A Syndicate-branded Firing pin - It should be compatible with nearly every weapon onboard."
+
+
 /datum/uplink_item/item/tools/clerical
 	name = "Morphic Clerical Kit"
 	item_cost = 3
@@ -26,9 +33,9 @@
 	path = /obj/item/weapon/plastique
 
 /datum/uplink_item/item/tools/heavy_vest
-	name = "Heavy Armor Vest"
+	name = "Heavy Armor Kit"
 	item_cost = 4
-	path = /obj/item/clothing/suit/storage/vest/merc
+	path = /obj/item/weapon/storage/box/syndie_kit/armor
 
 /datum/uplink_item/item/tools/encryptionkey_radio
 	name = "Encrypted Radio Channel Key"
@@ -87,7 +94,23 @@
 	item_cost = 14
 	path = /obj/item/supply_beacon
 
+/datum/uplink_item/item/tools/advancedpinpointer
+	name = "Advanced pinpointer"
+	item_cost = 15
+	path = /obj/item/weapon/pinpointer/advpinpointer
+	desc = "An advanced pinpointer that can find any target with DNA along with various other items."
+
 /datum/uplink_item/item/tools/syndieborg
 	name = "Syndicate Cyborg Teleporter"
 	item_cost = 35
 	path = /obj/item/weapon/antag_spawner/borg_tele
+
+/datum/uplink_item/item/tools/heatpatch
+	name = "HUDPatch, Thermal"
+	item_cost = 6
+	path = /obj/item/clothing/glasses/eyepatch/hud/thermal
+
+/datum/uplink_item/item/tools/nightpatch
+	name = "HUDPatch, Night-Vision"
+	item_cost = 4
+	path = /obj/item/clothing/glasses/eyepatch/hud/night

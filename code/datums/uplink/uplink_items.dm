@@ -1,4 +1,4 @@
-var/datum/uplink/uplink = new()
+var/datum/uplink/uplink
 
 /datum/uplink
 	var/list/items_assoc
@@ -9,7 +9,7 @@ var/datum/uplink/uplink = new()
 	items_assoc = list()
 	items = init_subtypes(/datum/uplink_item)
 	categories = init_subtypes(/datum/uplink_category)
-	categories = dd_sortedObjectList(categories)
+	sortTim(categories, /proc/cmp_uplink_category, FALSE)
 
 	for(var/datum/uplink_item/item in items)
 		if(!item.name)
@@ -23,7 +23,7 @@ var/datum/uplink/uplink = new()
 				category.items += item
 
 	for(var/datum/uplink_category/category in categories)
-		category.items = dd_sortedObjectList(category.items)
+		sortTim(category.items, /proc/cmp_uplink_item, FALSE)
 
 /datum/uplink_item
 	var/name
@@ -31,6 +31,7 @@ var/datum/uplink/uplink = new()
 	var/item_cost = 0
 	var/datum/uplink_category/category		// Item category
 	var/list/datum/antagonist/antag_roles	// Antag roles this item is displayed to. If empty, display to all.
+	var/list/datum/antagonist/antag_job     // Antag job this item is displayed to, if empty, display to all.
 
 /datum/uplink_item/item
 	var/path = null
@@ -45,6 +46,9 @@ var/datum/uplink/uplink = new()
 		return
 
 	if(!can_buy(U))
+		return
+
+	if(U.CanUseTopic(user, inventory_state) != STATUS_INTERACTIVE)
 		return
 
 	var/cost = cost(U.uses)
@@ -70,7 +74,7 @@ var/datum/uplink/uplink = new()
 
 /datum/uplink_item/proc/can_view(obj/item/device/uplink/U)
 	// Making the assumption that if no uplink was supplied, then we don't care about antag roles
-	if(!U || !antag_roles.len)
+	if(!U || (!antag_roles.len && !antag_job))
 		return 1
 
 	// With no owner, there's no need to check antag status.
@@ -81,6 +85,9 @@ var/datum/uplink/uplink = new()
 		var/datum/antagonist/antag = all_antag_types[antag_role]
 		if(antag.is_antagonist(U.uplink_owner))
 			return 1
+
+	if (antag_job == U.uplink_owner.assigned_role) //for a quick and easy list of the assigned_role, look in specialty.dm
+		return 1
 	return 0
 
 /datum/uplink_item/proc/cost(var/telecrystals)
@@ -100,9 +107,6 @@ var/datum/uplink/uplink = new()
 	feedback_add_details("traitor_uplink_items_bought", "[src]")
 	log_and_message_admins("used \the [U.loc] to buy \a [src]")
 	U.purchase_log[src] = U.purchase_log[src] + 1
-
-datum/uplink_item/dd_SortValue()
-	return cost(INFINITY)
 
 /********************************
 *                           	*
@@ -143,7 +147,9 @@ datum/uplink_item/dd_SortValue()
 *	Abstract Uplink Entries		*
 *                           	*
 ********************************/
-var/image/default_abstract_uplink_icon
+/datum/uplink_item/abstract
+	var/static/image/default_abstract_uplink_icon
+
 /datum/uplink_item/abstract/log_icon()
 	if(!default_abstract_uplink_icon)
 		default_abstract_uplink_icon = image('icons/obj/pda.dmi', "pda-syn")

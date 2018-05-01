@@ -32,6 +32,8 @@
 var/global/list/all_antag_types = list()
 var/global/list/all_antag_spawnpoints = list()
 var/global/list/antag_names_to_ids = list()
+// This is a bit dumb but without it the job and antag age whitelisting would be even dumber.
+var/global/list/bantype_to_antag_age = list()
 
 // Global procs.
 /proc/get_antag_data(var/antag_type)
@@ -66,6 +68,13 @@ var/global/list/antag_names_to_ids = list()
 		all_antag_spawnpoints[A.landmark_id] = list()
 		antag_names_to_ids[A.role_text] = A.id
 
+		// Set up age restrictions for the different antag bantypes.
+		if (!bantype_to_antag_age[A.bantype])
+			if (config.age_restrictions_from_file && config.age_restrictions[lowertext(A.bantype)])
+				bantype_to_antag_age[lowertext(A.bantype)] = config.age_restrictions[lowertext(A.bantype)]
+			else
+				bantype_to_antag_age[A.bantype] = 0
+
 /proc/get_antags(var/atype)
 	var/datum/antagonist/antag = all_antag_types[atype]
 	if(antag && islist(antag.current_antagonists))
@@ -82,3 +91,11 @@ var/global/list/antag_names_to_ids = list()
 		if(player in antag.pending_antagonists)
 			return 1
 	return 0
+
+/**
+ * This must be called after map loading is done!
+ */
+/proc/populate_antag_spawns()
+	for (var/T in all_antag_types)
+		var/datum/antagonist/A = all_antag_types[T]
+		A.get_starting_locations()

@@ -6,7 +6,7 @@
 
 	icon_screen = "medcomp"
 	light_color = "#315ab4"
-	req_one_access = list(access_medical_equip, access_forensics_lockers)
+	req_one_access = list(access_medical_equip, access_forensics_lockers, access_detective, access_hop)
 	circuit = /obj/item/weapon/circuitboard/med_data
 	var/obj/item/weapon/card/id/scan = null
 	var/authenticated = null
@@ -16,7 +16,6 @@
 	var/datum/data/record/active2 = null
 	var/a_id = null
 	var/temp = null
-	//var/printing = null
 
 /obj/machinery/computer/med_data/AltClick(var/mob/user)
 	eject_id()
@@ -26,7 +25,7 @@
 	set name = "Eject ID Card"
 	set src in oview(1)
 
-	if(!usr || usr.stat || usr.lying)	return
+	if(!usr || usr.stat || usr.lying || usr.restrained() || !Adjacent(usr))	return
 
 	if(scan)
 		usr << "You remove \the [scan] from \the [src]."
@@ -132,7 +131,7 @@
 					dat += "<a href='?src=\ref[src];screen=1'>Back</a>"
 					dat += "<br><b>Medical Robots:</b>"
 					var/bdat = null
-					for(var/mob/living/bot/medbot/M in world)
+					for(var/mob/living/bot/medbot/M in mob_list)
 
 						if(M.z != src.z)	continue	//only find medibots on the same z-level as the computer
 						var/turf/bl = get_turf(M)
@@ -454,6 +453,8 @@
 					src.active2 = R
 					src.screen = 4
 
+					R.inDataCore = 1
+
 			if (href_list["add_c"])
 				if (!( istype(src.active2, /datum/data/record) ))
 					return
@@ -499,7 +500,7 @@
 					record1 = active1
 				if ((istype(src.active2, /datum/data/record) && data_core.medical.Find(src.active2)))
 					record2 = active2
-				
+
 				var/obj/item/weapon/paper/P = new /obj/item/weapon/paper()
 				var/info = "<CENTER><B>Medical Record</B></CENTER><BR>"
 				var/rname
@@ -559,6 +560,7 @@
 /obj/machinery/computer/med_data/laptop
 	name = "Medical Laptop"
 	desc = "A cheap laptop."
-	icon_state = "laptop"
+	icon_state = "medlaptop0"
 
 	icon_screen = "medlaptop"
+	is_holographic = FALSE

@@ -13,34 +13,34 @@
 		// Handle things that are part of this interface but not removing/replacing a given item.
 		if("pockets")
 			visible_message("<span class='danger'>\The [user] is trying to empty \the [src]'s pockets!</span>")
-			if(do_after(user,HUMAN_STRIP_DELAY))
+			if(do_after(user,HUMAN_STRIP_DELAY, act_target = src))
 				empty_pockets(user)
 			return 1
 		if("splints")
 			visible_message("<span class='danger'>\The [user] is trying to remove \the [src]'s splints!</span>")
-			if(do_after(user,HUMAN_STRIP_DELAY))
+			if(do_after(user,HUMAN_STRIP_DELAY, act_target = src))
 				remove_splints(user)
 			return 1
 		if("sensors")
 			visible_message("<span class='danger'>\The [user] is trying to set \the [src]'s sensors!</span>")
-			if(do_after(user,HUMAN_STRIP_DELAY))
+			if(do_after(user,HUMAN_STRIP_DELAY, act_target = src))
 				toggle_sensors(user)
 			return 1
 		if("internals")
 			visible_message("<span class='danger'>\The [usr] is trying to set \the [src]'s internals!</span>")
-			if(do_after(user,HUMAN_STRIP_DELAY))
+			if(do_after(user,HUMAN_STRIP_DELAY, act_target = src))
 				toggle_internals(user)
 			return 1
 		if("tie")
 			var/obj/item/clothing/under/suit = w_uniform
-			if(!istype(suit) || !suit.accessories.len)
+			if(!istype(suit) || !LAZYLEN(suit.accessories))
 				return 0
 			var/obj/item/clothing/accessory/A = suit.accessories[1]
 			if(!istype(A))
 				return 0
 			visible_message("<span class='danger'>\The [usr] is trying to remove \the [src]'s [A.name]!</span>")
 
-			if(!do_after(user,HUMAN_STRIP_DELAY))
+			if(!do_after(user,HUMAN_STRIP_DELAY, act_target = src))
 				return 0
 
 			if(!A || suit.loc != src || !(A in suit.accessories))
@@ -50,9 +50,7 @@
 				user.visible_message("<span class='danger'>\The [user] tears off \the [A] from [src]'s [suit.name]!</span>")
 			attack_log += "\[[time_stamp()]\] <font color='orange'>Has had \the [A] removed by [user.name] ([user.ckey])</font>"
 			user.attack_log += "\[[time_stamp()]\] <font color='red'>Attempted to remove [name]'s ([ckey]) [A.name]</font>"
-			A.on_removed(user)
-			suit.accessories -= A
-			update_inv_w_uniform()
+			suit.remove_accessory(user, A)
 			return 1
 
 	// Are we placing or stripping?

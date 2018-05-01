@@ -3,7 +3,7 @@
 	name = "magboots"
 	icon_state = "magboots0"
 	species_restricted = null
-	force = 3
+	force = 5
 	overshoes = 1
 	var/magpulse = 0
 	var/icon_base = "magboots"
@@ -15,6 +15,18 @@
 	slowdown = shoes? max(SHOES_SLOWDOWN, shoes.slowdown): SHOES_SLOWDOWN	//So you can't put on magboots to make you walk faster.
 	if (magpulse)
 		slowdown += 3
+
+/obj/item/clothing/shoes/magboots/proc/update_wearer()
+	if(!wearer)
+		return
+
+	var/mob/living/carbon/human/H = wearer
+	if(shoes && istype(H))
+		if(!H.equip_to_slot_if_possible(shoes, slot_shoes))
+			shoes.forceMove(get_turf(src))
+		src.shoes = null
+	wearer.update_floating()
+	wearer = null
 
 /obj/item/clothing/shoes/magboots/attack_self(mob/user)
 	if(magpulse)
@@ -33,6 +45,12 @@
 		user << "You enable the mag-pulse traction system."
 	user.update_inv_shoes()	//so our mob-overlays update
 	user.update_action_buttons()
+
+/obj/item/clothing/shoes/magboots/negates_gravity()
+	if(magpulse)
+		return 1
+	else
+		return 0
 
 /obj/item/clothing/shoes/magboots/mob_can_equip(mob/user)
 	var/mob/living/carbon/human/H = user
@@ -60,16 +78,12 @@
 
 /obj/item/clothing/shoes/magboots/dropped()
 	..()
-	if(!wearer)
-		return
+	addtimer(CALLBACK(src, .proc/update_wearer), 0)
 
-	var/mob/living/carbon/human/H = wearer
-	if(shoes && istype(H))
-		if(!H.equip_to_slot_if_possible(shoes, slot_shoes))
-			shoes.forceMove(get_turf(src))
-		src.shoes = null
-	wearer.update_floating()
-	wearer = null
+/obj/item/clothing/shoes/magboots/mob_can_unequip()
+	. = ..()
+	if (.)
+		addtimer(CALLBACK(src, .proc/update_wearer), 0)
 
 /obj/item/clothing/shoes/magboots/examine(mob/user)
 	..(user)

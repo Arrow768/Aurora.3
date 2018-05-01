@@ -75,23 +75,13 @@
 	return 0
 
 /obj/item/weapon/gripper/update_icon()
-	overlays.Cut()//Dummy object will be picked up by garbage collection
+	underlays.Cut()
 	if (wrapped && wrapped.icon)
+		var/mutable_appearance/MA = new(wrapped)
+		MA.layer = FLOAT_LAYER
+		MA.pixel_y = -8
 
-
-		var/obj/dummy = new //We create a dummy object which looks like the gripped item, to use as an overlay
-		dummy.icon = wrapped.icon
-		dummy.icon_state = wrapped.icon_state
-		dummy.overlays = wrapped.overlays
-		dummy.layer = 20
-		dummy.pixel_y = -8
-		overlays += dummy
-
-		var/image/I = image(icon, src, icon_state)//Overlaying ourselves ontop of the thing.
-		I.layer = 20
-		overlays += I
-		//Layering overlays seems faster than blending the images
-
+		underlays += MA
 
 /obj/item/weapon/gripper/attack_self(mob/user as mob)
 	if(wrapped)
@@ -126,7 +116,7 @@
 		force_holder = wrapped.force
 		wrapped.force = 0.0
 		wrapped.attack(M,user)
-		if(deleted(wrapped))
+		if(QDELETED(wrapped))
 			wrapped = null
 		return 1
 	else// mob interactions
@@ -162,7 +152,7 @@
 	if(wrapped) //Already have an item.
 		return//This is handled in /mob/living/silicon/robot/GripperClickOn
 
-	else if (istype(target, /obj/item/weapon/storage) && !istype(target, /obj/item/weapon/storage/secure))
+	else if (istype(target, /obj/item/weapon/storage) && !istype(target, /obj/item/weapon/storage/pill_bottle) && !istype(target, /obj/item/weapon/storage/secure))
 		for (var/obj/item/C in target.contents)
 			if (grip_item(C, user, 0))
 				user << "You grab the [C] from inside the [target.name]."
@@ -267,7 +257,8 @@
 		/obj/item/weapon/reagent_containers/food,
 		/obj/item/seeds,
 		/obj/item/weapon/grown,
-		/obj/item/trash
+		/obj/item/trash,
+		/obj/item/weapon/reagent_containers/cooking_container
 		)
 
 /obj/item/weapon/gripper/no_use //Used when you want to hold and put items in other things, but not able to 'use' the item

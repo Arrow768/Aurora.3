@@ -34,7 +34,7 @@
 	circuit = /obj/item/weapon/circuitboard/arcade/orion_trail
 	var/list/supplies = list("1" = 0, "2" = 0, "3" = 0, "4" = 0, "5" = 0, "6" = 0) //engine,hull,electronics,food,fuel
 	var/list/supply_cost = list("1" = 1000, "2" = 950, "3" = 1100, "4" = 75, "5" = 100)
-	var/list/supply_name = list("1" = "engine parts", "2" = "hull parts", "3" = "electronic parts", "4" = "food", "5" = "fuel", "6" = "thalers")
+	var/list/supply_name = list("1" = "engine parts", "2" = "hull parts", "3" = "electronic parts", "4" = "food", "5" = "fuel", "6" = "credits")
 	var/list/settlers = list()
 	var/num_traitors = 0
 	var/list/events = list(ORION_TRAIL_RAIDERS		= 3,
@@ -158,7 +158,7 @@
 			dat = "<center><h1>[event_title]</h1>[event_desc]<br><br>Distance to next port: [distance]<br><b>[event_info]</b><br></center><br>[event_actions]"
 		if(ORION_VIEW_SUPPLIES)
 			dat  = "<center><h1>Supplies</h1>View your supplies or buy more when at a spaceport.</center><BR>"
-			dat += "<center>You have [supplies["6"]] thalers.</center>"
+			dat += "<center>You have [supplies["6"]] credits.</center>"
 			for(var/i=1; i<6; i++)
 				var/amm = (i>3?10:1)
 				dat += "[supplies["[i]"]] [supply_name["[i]"]][event==ORION_TRAIL_SPACEPORT ? ", <a href='?src=\ref[src];buy=[i]'>buy [amm] for [supply_cost["[i]"]]T</a>" : ""]<BR>"
@@ -414,7 +414,7 @@
 			else
 				usr << "<span class='warning'>You feel ill.</span>"
 		if(ORION_TRAIL_CARP)
-			usr << "<span class='danger'> Something bit you!</span>"
+			usr << "<span class='danger'>Something bit you!</span>"
 			var/mob/living/M = usr
 			M.adjustBruteLoss(10)
 		if(ORION_TRAIL_FLUX)
@@ -462,7 +462,7 @@
 	if(emagged)
 		new /obj/item/weapon/orion_ship(src.loc)
 		message_admins("[key_name_admin(usr)] made it to Orion on an emagged machine and got an explosive toy ship.")
-		log_game("[key_name(usr)] made it to Orion on an emagged machine and got an explosive toy ship.")
+		log_game("[key_name(usr)] made it to Orion on an emagged machine and got an explosive toy ship.",ckey=key_name(usr))
 	else
 		prizevend()
 	event = null
@@ -487,7 +487,7 @@
 	if(active)
 		return
 	message_admins("[key_name_admin(usr)] primed an explosive Orion ship for detonation.")
-	log_game("[key_name(usr)] primed an explosive Orion ship for detonation.")
+	log_game("[key_name(usr)] primed an explosive Orion ship for detonation.",ckey=key_name(usr))
 	user << "<span class='warning'>You flip the switch on the underside of [src].</span>"
 	active = 1
 	src.visible_message("<span class='notice'>[src] softly beeps and whirs to life!</span>")

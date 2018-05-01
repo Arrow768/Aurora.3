@@ -1,6 +1,5 @@
 /mob/living/silicon/robot/Life()
-	set invisibility = 0
-	set background = 1
+	set background = BACKGROUND_ENABLED
 
 	if (src.transforming)
 		return
@@ -58,7 +57,7 @@
 		src.has_power = 1
 	else
 		if (src.has_power)
-			src << "\red You are now running on emergency backup power."
+			src << "<span class='warning'>You are now running on emergency backup power.</span>"
 		src.has_power = 0
 		if(lights_on) // Light is on but there is no power!
 			lights_on = 0
@@ -151,14 +150,11 @@
 	..()
 
 	if (src.stat == 2 || (XRAY in mutations) || (src.sight_mode & BORGXRAY))
-		src.sight |= SEE_TURFS
-		src.sight |= SEE_MOBS
-		src.sight |= SEE_OBJS
+		sight |= (SEE_TURFS | SEE_MOBS | SEE_OBJS)
 		src.see_in_dark = 8
 		src.see_invisible = SEE_INVISIBLE_MINIMUM
 	else if ((src.sight_mode & BORGMESON) && (src.sight_mode & BORGTHERM))
-		src.sight |= SEE_TURFS
-		src.sight |= SEE_MOBS
+		sight |= (SEE_TURFS | SEE_MOBS)
 		src.see_in_dark = 8
 		see_invisible = SEE_INVISIBLE_MINIMUM
 	else if (src.sight_mode & BORGMESON)
@@ -174,9 +170,7 @@
 		src.see_in_dark = 8
 		src.see_invisible = SEE_INVISIBLE_LEVEL_TWO
 	else if (src.stat != 2)
-		src.sight &= ~SEE_MOBS
-		src.sight &= ~SEE_TURFS
-		src.sight &= ~SEE_OBJS
+		sight &= ~(SEE_TURFS | SEE_MOBS | SEE_OBJS)
 		src.see_in_dark = 8 			 // see_in_dark means you can FAINTLY see in the dark, humans have a range of 3 or so, tajaran have it at 8
 		src.see_invisible = SEE_INVISIBLE_LIVING // This is normal vision (25), setting it lower for normal vision means you don't "see" things like darkness since darkness
 							 // has a "invisible" value of 15
@@ -341,9 +335,9 @@
 	return canmove
 
 /mob/living/silicon/robot/update_fire()
-	overlays -= image("icon"='icons/mob/OnFire.dmi', "icon_state"="Standing")
+	cut_overlay(image("icon"='icons/mob/OnFire.dmi', "icon_state"="Standing"))
 	if(on_fire)
-		overlays += image("icon"='icons/mob/OnFire.dmi', "icon_state"="Standing")
+		add_overlay(image("icon"='icons/mob/OnFire.dmi', "icon_state"="Standing"))
 
 /mob/living/silicon/robot/fire_act()
 	if(!on_fire) //Silicons don't gain stacks from hotspots, but hotspots can ignite them

@@ -20,7 +20,7 @@
 	add_req_access = 0
 	internal_damage_threshold = 25
 	force = 45
-	max_equip = 4
+	w_class = 35
 
 /obj/mecha/combat/marauder/seraph
 	desc = "Heavy-duty, command-type exosuit. This is a custom model, utilized only by high-ranking military personnel."
@@ -40,6 +40,7 @@
 	name = "Mauler"
 	icon_state = "mauler"
 	initial_icon = "mauler"
+	w_class = 40
 	operation_req_access = list(access_syndicate)
 	wreckage = /obj/effect/decal/mecha_wreckage/mauler
 
@@ -78,7 +79,7 @@
 
 /obj/mecha/combat/marauder/Destroy()
 	qdel(smoke_system)
-	..()
+	return ..()
 
 /obj/mecha/combat/marauder/relaymove(mob/user,direction)
 	if(user != src.occupant) //While not "realistic", this piece is player friendly.
@@ -97,7 +98,7 @@
 			src.occupant_message("Unable to move while connected to the air system port")
 			last_message = world.time
 		return 0
-	if(!thrusters && src.pr_inertial_movement.active())
+	if(!thrusters && (current_processes & MECHA_PROC_MOVEMENT))
 		return 0
 	if(state || !has_charge(step_energy_drain))
 		return 0
@@ -113,9 +114,9 @@
 	if(move_result)
 		if(istype(src.loc, /turf/space))
 			if(!src.check_for_support())
-				src.pr_inertial_movement.start(list(src,direction))
+				start_process(MECHA_PROC_MOVEMENT)
+				float_direction = direction
 				if(thrusters)
-					src.pr_inertial_movement.set_process_args(list(src,direction))
 					tmp_step_energy_drain = step_energy_drain*2
 
 		can_move = 0

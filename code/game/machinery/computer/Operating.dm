@@ -5,13 +5,14 @@
 	density = 1
 	anchored = 1.0
 
+	light_color = LIGHT_COLOR_CYAN
 	icon_screen = "crew"
 	circuit = /obj/item/weapon/circuitboard/operating
 	var/mob/living/carbon/human/victim = null
 	var/obj/machinery/optable/table = null
 
-/obj/machinery/computer/operating/New()
-	..()
+/obj/machinery/computer/operating/Initialize()
+	. = ..()
 	for(dir in list(NORTH,EAST,SOUTH,WEST))
 		table = locate(/obj/machinery/optable, get_step(src, dir))
 		if (table)
@@ -78,6 +79,6 @@
 	return
 
 
-/obj/machinery/computer/operating/process()
-	if(..())
+/obj/machinery/computer/operating/machinery_process()
+	if(operable())
 		src.updateDialog()

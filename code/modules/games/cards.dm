@@ -154,6 +154,7 @@
 		newcards += P
 		cards -= P
 	cards = newcards
+	playsound(src.loc, 'sound/items/cardshuffle.ogg', 100, 1, -4)
 	user.visible_message("\The [user] shuffles [src].")
 
 /obj/item/weapon/deck/MouseDrop(atom/over)
@@ -252,15 +253,14 @@
 		name = "a playing card"
 		desc = "A playing card."
 
-	overlays.Cut()
-
+	cut_overlays()
 
 	if(cards.len == 1)
 		var/datum/playingcard/P = cards[1]
 		var/image/I = new(src.icon, (concealed ? "[P.back_icon]" : "[P.card_icon]") )
 		I.pixel_x += (-5+rand(10))
 		I.pixel_y += (-5+rand(10))
-		overlays += I
+		add_overlay(I)
 		return
 
 	var/offset = Floor(20/cards.len)
@@ -292,7 +292,7 @@
 			else
 				I.pixel_x = -7+(offset*i)
 		I.transform = M
-		overlays += I
+		add_overlay(I)
 		i++
 
 /obj/item/weapon/hand/dropped(mob/user as mob)

@@ -3,6 +3,7 @@
 	filedesc = "NTNet Software Download Tool"
 	program_icon_state = "generic"
 	extended_desc = "This program allows downloads of software from official NT repositories"
+	color = LIGHT_COLOR_GREEN
 	unsendable = 1
 	undeletable = 1
 	size = 4
@@ -175,7 +176,7 @@
 		else
 			data["downloadable_programs"] = list()
 			data["locked"] = 1
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "ntnet_downloader.tmpl", "NTNet Download Program", 575, 700, state = state)
 		ui.auto_update_layout = 1
@@ -188,6 +189,7 @@
 	var/list/all_entries[0]
 	var/datum/computer_file/program/ntnetdownload/prog = program
 	var/list/data = list()
+	data["hackedavailable"] = 0
 	for(var/datum/computer_file/program/P in ntnet_global.available_station_software)
 		var/installed = 0
 		for(var/datum/computer_file/program/Q in program.holder.stored_files)
@@ -199,6 +201,9 @@
 			// Only those programs our user can run will show in the list
 			if(!P.can_download(user) && P.requires_access_to_download)
 				continue
+			
+			if(!P.is_supported_by_hardware(program.computer.hardware_flag))
+				continue
 
 			all_entries.Add(list(list(
 				"filename" = P.filename,
@@ -206,7 +211,6 @@
 				"fileinfo" = P.extended_desc,
 				"size" = P.size
 				)))
-			data["hackedavailable"] = 0
 
 	if(prog.computer_emagged) // If we are running on emagged computer we have access to some "bonus" software
 		var/list/hacked_programs[0]

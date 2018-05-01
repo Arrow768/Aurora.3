@@ -15,15 +15,18 @@
 	use_power = 1
 	idle_power_usage = 15
 	active_power_usage = 200 //builtin health analyzer, dialysis machine, injectors.
-
-/obj/machinery/sleeper/New()
-	..()
-	beaker = new /obj/item/weapon/reagent_containers/glass/beaker/large(src)
-
-/obj/machinery/sleeper/initialize()
+	component_types = list(
+			/obj/item/weapon/circuitboard/sleeper,
+			/obj/item/weapon/stock_parts/capacitor = 2,
+			/obj/item/weapon/stock_parts/scanning_module = 2,
+			/obj/item/weapon/stock_parts/console_screen,
+			/obj/item/weapon/reagent_containers/glass/beaker/large
+		)
+/obj/machinery/sleeper/Initialize()
+	. = ..()
 	update_icon()
 
-/obj/machinery/sleeper/process()
+/obj/machinery/sleeper/machinery_process()
 	if(stat & (NOPOWER|BROKEN))
 		return
 
@@ -41,6 +44,21 @@
 
 /obj/machinery/sleeper/update_icon()
 	icon_state = "sleeper_[occupant ? "1" : "0"]"
+
+/obj/machinery/sleeper/RefreshParts()
+	..()
+	var/scan_rating = 0
+	var/cap_rating = 0
+
+	for(var/obj/item/weapon/stock_parts/P in component_parts)
+		if(isscanner(P))
+			scan_rating += P.rating
+		else if(iscapacitor(P))
+			cap_rating += P.rating
+
+	beaker = locate(/obj/item/weapon/reagent_containers/glass/beaker) in component_parts
+
+	active_power_usage = 200 - (cap_rating + scan_rating)*2
 
 /obj/machinery/sleeper/attack_hand(var/mob/user)
 	if(..())
@@ -88,7 +106,7 @@
 		data["beaker"] = -1
 	data["filtering"] = filtering
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if(!ui)
 		ui = new(user, src, ui_key, "sleeper.tmpl", "Sleeper UI", 600, 600, state = state)
 		ui.set_initial_data(data)
@@ -134,7 +152,41 @@
 		else
 			user << "<span class='warning'>\The [src] has a beaker already.</span>"
 		return
+	else if(istype(I, /obj/item/weapon/grab))
 
+		var/obj/item/weapon/grab/G = I
+		var/mob/living/L = G.affecting
+
+		if(!istype(L))
+			user << "<span class='warning'>\The machine won't accept that.</span>"
+			return
+
+		visible_message("[user] starts putting [G.affecting] into the [src].", 3)
+
+		if (do_mob(user, G.affecting, 20, needhand = 0))
+			if(occupant)
+				user << "<span class='warning'>\The [src] is already occupied.</span>"
+				return
+			var/bucklestatus = L.bucklecheck(user)
+
+			if (!bucklestatus)//incase the patient got buckled during the delay
+				return
+			if(L != G.affecting)//incase it isn't the same mob we started with
+				return
+
+			var/mob/M = G.affecting
+			M.forceMove(src)
+			update_use_power(2)
+			occupant = M
+			update_icon()
+			qdel(G)
+			return
+	else if(isscrewdriver(I))
+		user << "You [panel_open ? "open" : "close"] the maintenance panel."
+		panel_open = !panel_open
+
+	else if(default_part_replacement(user, I))
+		return
 /obj/machinery/sleeper/MouseDrop_T(var/mob/target, var/mob/user)
 	if(user.stat || user.lying || !Adjacent(user) || !target.Adjacent(user)|| !ishuman(target))
 		return
@@ -195,19 +247,19 @@
 	if(occupant.client)
 		occupant.client.eye = occupant.client.mob
 		occupant.client.perspective = MOB_PERSPECTIVE
-	occupant.loc = loc
+	occupant.forceMove(loc)
 	occupant = null
-	for(var/atom/movable/A in src) // In case an object was dropped inside or something
+	for(var/atom/movable/A in (contents - component_parts)) // In case an object was dropped inside or something
 		if(A == beaker)
 			continue
-		A.loc = loc
+		A.forceMove(loc)
 	update_use_power(1)
 	update_icon()
 	toggle_filter()
 
 /obj/machinery/sleeper/proc/remove_beaker()
 	if(beaker)
-		beaker.loc = loc
+		beaker.forceMove(loc)
 		beaker = null
 		toggle_filter()
 

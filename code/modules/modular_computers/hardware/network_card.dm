@@ -25,8 +25,8 @@ var/global/ntnet_card_uid = 1
 	if(ethernet)
 		user << "OpenEth (Physical Connection) - Physical network connection port"
 
-/obj/item/weapon/computer_hardware/network_card/New(var/l)
-	..(l)
+/obj/item/weapon/computer_hardware/network_card/Initialize()
+	. = ..()
 	identification_id = ntnet_card_uid
 	ntnet_card_uid++
 
@@ -52,7 +52,7 @@ var/global/ntnet_card_uid = 1
 	if(holder2 && (holder2.network_card == src))
 		holder2.network_card = null
 	holder2 = null
-	..()
+	return ..()
 
 // Returns a string identifier of this network card
 /obj/item/weapon/computer_hardware/network_card/proc/get_network_tag()
@@ -77,7 +77,7 @@ var/global/ntnet_card_uid = 1
 
 	if(holder2)
 		var/turf/T = get_turf(holder2)
-		if((T && istype(T)) && T.z in config.station_levels)
+		if((T && istype(T)) && T.z in current_map.station_levels)
 			// Computer is on station. Low/High signal depending on what type of network card you have
 			if(long_range)
 				return 2
@@ -92,4 +92,4 @@ var/global/ntnet_card_uid = 1
 /obj/item/weapon/computer_hardware/network_card/Destroy()
 	if(holder2 && (holder2.network_card == src))
 		holder2.network_card = null
-	..()
+	return ..()

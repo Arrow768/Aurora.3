@@ -23,19 +23,22 @@
 
 	var/safedrop = 0//Used to tell when we should or shouldn't spill if the tray is dropped.
 	//Safedrop is set true when throwing, because it will spill on impact. And when placing on a table
-	var/list/valid = list( /obj/item/weapon/reagent_containers,
+	var/list/valid = list(
+		/obj/item/weapon/reagent_containers,
 		/obj/item/weapon/material/kitchen/utensil,
 		/obj/item/weapon/storage/fancy/cigarettes,
 		/obj/item/clothing/mask/smokable,
 		/obj/item/weapon/storage/box/matches,
 		/obj/item/weapon/flame/match,
-		/obj/item/weapon/material/ashtray)
+		/obj/item/weapon/material/ashtray
+	)
 
 /obj/item/weapon/tray/attack(mob/living/carbon/M as mob, mob/living/carbon/user as mob, var/target_zone)
 
+	user.setClickCooldown(DEFAULT_ATTACK_COOLDOWN)
+
 	// Drop all the things. All of them.
 	spill(user, M.loc)
-
 
 	//Note: Added a robot check to all stun/weaken procs, beccause weakening a robot causes its active modules to bug out
 	if((CLUMSY in user.mutations) && prob(50))              //What if he's a clown?
@@ -62,7 +65,7 @@
 
 		M.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been attacked with [src.name] by [user.name] ([user.ckey])</font>")
 		user.attack_log += text("\[[time_stamp()]\] <font color='red'>Used the [src.name] to attack [M.name] ([M.ckey])</font>")
-		msg_admin_attack("[user.name] ([user.ckey]) used the [src.name] to attack [M.name] ([M.ckey]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)")
+		msg_admin_attack("[key_name_admin(user)] used the [src.name] to attack [key_name_admin(M)] (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)",ckey=key_name(user),ckey_target=key_name(M))
 
 		if(prob(15))
 			if(!issilicon(M)) M.Weaken(3)
@@ -119,7 +122,7 @@
 			return
 
 	else if (!issilicon(M))//No eye or head protection, tough luck!
-		M << "\red You get slammed in the face with the tray!"
+		M << "<span class='danger'>You get slammed in the face with the tray!</span>"
 		if(prob(33))
 			src.add_blood(M)
 			var/turf/location = H.loc
@@ -201,9 +204,9 @@
 			if (attempt_load_item(I, usr,0))
 				addedSomething++
 		if ( addedSomething == 1)
-			usr.visible_message("\blue [user] loads an item onto their service tray.")
+			usr.visible_message("<span class='notice'>[user] loads an item onto their service tray.</span>")
 		else if ( addedSomething )
-			usr.visible_message("\blue [user] loads [addedSomething] items onto their service tray.")
+			usr.visible_message("<span class='notice'>[user] loads [addedSomething] items onto their service tray.</span>")
 		else
 			user << "The tray is full or there's nothing valid here"
 			return 1
@@ -234,10 +237,12 @@
 
 /obj/item/weapon/tray/proc/load_item(var/obj/item/I, var/mob/user)
 	user.remove_from_mob(I)
-	I.loc = src
+	I.forceMove(src)
 	current_weight += I.w_class
-	carrying.Add(I)
-	overlays += image("icon" = I.icon, "icon_state" = I.icon_state, "layer" = 30 + I.layer, "pixel_x" = I.pixel_x, "pixel_y" = I.pixel_y)
+	carrying += I
+	var/mutable_appearance/MA = new(I)
+	MA.layer = FLOAT_LAYER
+	add_overlay(MA)
 	//rand(0, (max_offset_y*2)-3)-(max_offset_y)-3
 
 /obj/item/weapon/tray/verb/unload()
@@ -253,14 +258,15 @@
 
 		for(var/obj/item/I in carrying)
 			I.loc = dropspot
-			carrying.Remove(I)
-		overlays.Cut()
+			carrying -= I
+
+		cut_overlays()
 		current_weight = 0
 		usr.visible_message("[usr] unloads the tray.", "You unload the tray.")
 
 /obj/item/weapon/tray/proc/unload_at_loc(var/turf/dropspot = null, var/mob/user)
 	if (!istype(loc,/turf) && !dropspot)//check that we're not being held by a mob
-		usr << "Place the tray down first!"
+		user << "Place the tray down first!"
 		return
 	else
 		if (!dropspot)
@@ -268,10 +274,11 @@
 
 		for(var/obj/item/I in carrying)
 			I.loc = dropspot
-			carrying.Remove(I)
-		overlays.Cut()
+			carrying -= I
+
+		cut_overlays()
 		current_weight = 0
-		usr.visible_message("[usr] unloads the tray.", "You unload the tray.")
+		user.visible_message("[user] unloads the tray.", "You unload the tray.")
 
 
 /obj/item/weapon/tray/proc/spill(var/mob/user = null, var/turf/dropspot = null)
@@ -279,7 +286,7 @@
 	//its also called when a cyborg uses its tray on the floor
 	if (current_weight > 0)//can't spill a tray with nothing on it
 
-		overlays.Cut()
+		cut_overlays()
 
 		//First we have to find where the items are being dropped, unless a location has been passed in
 		if (!dropspot)
@@ -298,9 +305,9 @@
 						step(I, pick(NORTH,SOUTH,EAST,WEST))
 						sleep(rand(2,4))
 		if (user)
-			user.visible_message("\blue [user] spills their tray all over the floor.")
+			user.visible_message("<span class='notice'>[user] spills their tray all over the floor.</span>")
 		else
-			src.visible_message("\blue The tray scatters its contents all over the area.")
+			src.visible_message("<span class='notice'>The tray scatters its contents all over the area.</span>")
 		current_weight = 0
 		if(prob(50))
 			playsound(dropspot, 'sound/items/trayhit1.ogg', 50, 1)

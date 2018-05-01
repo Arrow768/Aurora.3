@@ -75,7 +75,7 @@ var/list/advance_cures = 	list(
 	if(processing)
 		for(var/datum/symptom/S in symptoms)
 			S.End(src)
-	..()
+	return ..()
 
 // Randomly pick a symptom to activate.
 /datum/disease/advance/stage_act()
@@ -262,7 +262,7 @@ var/list/advance_cures = 	list(
 		cure_id = advance_cures[res]
 
 		// Get the cure name from the cure_id
-		var/datum/reagent/D = chemical_reagents_list[cure_id]
+		var/datum/reagent/D = SSchemistry.chemical_reagents[cure_id]
 		cure = D.name
 
 
@@ -297,7 +297,7 @@ var/list/advance_cures = 	list(
 	for(var/datum/symptom/S in symptoms)
 		L += S.id
 	L = sortList(L) // Sort the list so it doesn't matter which order the symptoms are in.
-	var/result = list2text(L, ":")
+	var/result = jointext(L, ":")
 	id = result
 	return result
 
@@ -398,7 +398,7 @@ var/list/advance_cures = 	list(
 		D.AssignName(new_name)
 		D.Refresh()
 
-		for(var/datum/disease/advance/AD in active_diseases)
+		for(var/datum/disease/advance/AD in SSdisease.processing)
 			AD.Refresh()
 
 		for(var/mob/living/carbon/human/H in shuffle(living_mob_list))
@@ -416,7 +416,7 @@ var/list/advance_cures = 	list(
 /*
 /mob/verb/test()
 
-	for(var/datum/disease/D in active_diseases)
+	for(var/datum/disease/D in SSdisease.processing)
 		src << "<a href='?_src_=vars;Vars=\ref[D]'>[D.name] - [D.holder]</a>"
 */
 

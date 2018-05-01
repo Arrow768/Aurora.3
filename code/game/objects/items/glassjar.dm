@@ -34,7 +34,7 @@
 		var/obj/effect/spider/spiderling/S = A
 		user.visible_message("<span class='notice'>[user] scoops [S] into \the [src].</span>", "<span class='notice'>You scoop [S] into \the [src].</span>")
 		S.forceMove(src)
-		processing_objects.Remove(S) // No growing inside jars
+		STOP_PROCESSING(SSprocessing, S)	// No growing inside jars
 		contains = 3
 		update_icon()
 		return
@@ -59,7 +59,7 @@
 			for(var/obj/effect/spider/spiderling/S in src)
 				S.loc = user.loc
 				user.visible_message("<span class='notice'>[user] releases [S] from \the [src].</span>", "<span class='notice'>You release [S] from \the [src].</span>")
-				processing_objects.Add(S) // They can grow after being let out though
+				START_PROCESSING(SSprocessing, S) // They can grow after being let out though
 			contains = 0
 			update_icon()
 			return
@@ -78,7 +78,7 @@
 
 /obj/item/glass_jar/update_icon() // Also updates name and desc
 	underlays.Cut()
-	overlays.Cut()
+	cut_overlays()
 	switch(contains)
 		if(0)
 			name = initial(name)
@@ -96,7 +96,11 @@
 					underlays += A
 		if(2)
 			for(var/mob/M in src)
-				var/image/victim = image(M.icon, M.icon_state)
+				var/image/victim = new()
+				victim.appearance = M
+				victim.layer = FLOAT_LAYER
+				victim.plane = FLOAT_PLANE
+				victim.pixel_x = 0
 				victim.pixel_y = 6
 				underlays += victim
 				name = "glass jar with [M]"

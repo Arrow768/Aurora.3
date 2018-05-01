@@ -86,6 +86,31 @@
 	else
 		..()
 
+/obj/item/weapon/shield/buckler
+	name = "buckler"
+	desc = "A wooden buckler used to block sharp things from entering your body back in the day."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "buckler"
+	slot_flags = SLOT_BACK
+	force = 8
+	throwforce = 8
+	base_block_chance = 60
+	throw_speed = 10
+	throw_range = 20
+	w_class = 4.0
+	origin_tech = list(TECH_MATERIAL = 1)
+	matter = list(DEFAULT_WALL_MATERIAL = 1000, "Wood" = 1000)
+	attack_verb = list("shoved", "bashed")
+
+/obj/item/weapon/shield/buckler/handle_shield(mob/user)
+	. = ..()
+	if(.) playsound(user.loc, 'sound/weapons/Genhit.ogg', 50, 1)
+
+/obj/item/weapon/shield/buckler/get_block_chance(mob/user, var/damage, atom/damage_source = null, mob/attacker = null)
+	if(istype(damage_source, /obj/item/projectile))
+		return 0
+	return base_block_chance
+
 /*
  * Energy Shield
  */
@@ -100,21 +125,64 @@
 	throwforce = 5.0
 	throw_speed = 1
 	throw_range = 4
-	w_class = 2
+	w_class = 1
 	origin_tech = list(TECH_MATERIAL = 4, TECH_MAGNET = 3, TECH_ILLEGAL = 4)
 	attack_verb = list("shoved", "bashed")
+	var/shield_power = 150
 	var/active = 0
 
-/obj/item/weapon/shield/energy/handle_shield(mob/user)
+/obj/item/weapon/shield/energy/handle_shield(mob/user, var/damage, atom/damage_source = null, mob/attacker = null, var/def_zone = null, var/attack_text = "the attack")
 	if(!active)
 		return 0 //turn it on first!
-	. = ..()
+
+	if(user.incapacitated())
+		return 0
 
 	if(.)
-		var/datum/effect/effect/system/spark_spread/spark_system = PoolOrNew(/datum/effect/effect/system/spark_spread)
-		spark_system.set_up(5, 0, user.loc)
-		spark_system.start()
+		spark(user.loc, 5)
 		playsound(user.loc, 'sound/weapons/blade1.ogg', 50, 1)
+
+	//block as long as they are not directly behind us
+	var/bad_arc = reverse_direction(user.dir) //arc of directions from which we cannot block
+	if(check_shield_arc(user, bad_arc, damage_source, attacker))
+
+		if(prob(get_block_chance(user, damage, damage_source, attacker)))
+			spark(user.loc, 5)
+			playsound(user.loc, 'sound/weapons/blade1.ogg', 50, 1)
+			shield_power -= round(damage/4)
+
+			if(shield_power <= 0)
+				visible_message("<span class='danger'>\The [user]'s [src.name] overloads!</span>")
+				active = 0
+				force = 3
+				update_icon()
+				w_class = 1
+				playsound(user, 'sound/weapons/saberoff.ogg', 50, 1)
+				shield_power = initial(shield_power)
+				return 0
+
+			if(istype(damage_source, /obj/item/projectile/energy) || istype(damage_source, /obj/item/projectile/beam))
+				var/obj/item/projectile/P = damage_source
+
+				var/reflectchance = 80 - round(damage/3)
+				if(P.starting && prob(reflectchance))
+					visible_message("<span class='danger'>\The [user]'s [src.name] reflects [attack_text]!</span>")
+
+					// Find a turf near or on the original location to bounce to
+					var/new_x = P.starting.x + pick(0, 0, 0, 0, 0, -1, 1, -2, 2)
+					var/new_y = P.starting.y + pick(0, 0, 0, 0, 0, -1, 1, -2, 2)
+
+					// redirect the projectile
+					P.firer = user
+					P.old_style_target(locate(new_x, new_y, P.z))
+
+					return PROJECTILE_CONTINUE // complete projectile permutation
+				else
+					user.visible_message("<span class='danger'>\The [user] blocks [attack_text] with \the [src]!</span>")
+					return 1
+			else
+				user.visible_message("<span class='danger'>\The [user] blocks [attack_text] with \the [src]!</span>")
+				return 1
 
 /obj/item/weapon/shield/energy/get_block_chance(mob/user, var/damage, atom/damage_source = null, mob/attacker = null)
 	if(istype(damage_source, /obj/item/projectile))
@@ -169,7 +237,7 @@
 	throwforce = 3.0
 	throw_speed = 3
 	throw_range = 4
-	w_class = 2
+	w_class = 3
 	attack_verb = list("shoved", "bashed")
 	var/active = 0
 
@@ -198,9 +266,9 @@
 		force = 3
 		throwforce = 3
 		throw_speed = 3
-		w_class = 2
+		w_class = 3
 		slot_flags = 0
-		user << "<span class='notice'>The [src] folds inwards neatly as you snap your wrist upwards and push it back into the frame.</span>"
+		user << "<span class='notice'>\The [src] folds inwards neatly as you snap your wrist upwards and push it back into the frame.</span>"
 
 	if(istype(user,/mob/living/carbon/human))
 		var/mob/living/carbon/human/H = user

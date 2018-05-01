@@ -1,7 +1,7 @@
 /mob/living/silicon
 	gender = NEUTER
 	voice_name = "synthesized voice"
-	diona_restricted_light = 1//Light emitted by this object or creature has limited interaction with diona
+	//diona_restricted_light = 1//Light emitted by this object or creature has limited interaction with diona
 	var/syndicate = 0
 	var/const/MAIN_CHANNEL = "Main Frequency"
 	var/lawchannel = MAIN_CHANNEL // Default channel on which to state laws
@@ -24,17 +24,19 @@
 	var/next_alarm_notice
 	var/list/datum/alarm/queued_alarms = new()
 
-
+	uv_intensity = 175 //Lights cast by robots have reduced effect on diona
 	var/list/access_rights
 	var/obj/item/weapon/card/id/idcard
 	var/idcard_type = /obj/item/weapon/card/id/synthetic
 
+	mob_thinks = FALSE
+
 	#define SEC_HUD 1 //Security HUD mode
 	#define MED_HUD 2 //Medical HUD mode
 
-/mob/living/silicon/New()
+/mob/living/silicon/Initialize()
 	silicon_mob_list |= src
-	..()
+	. = ..()
 	add_language("Ceti Basic")
 	init_id()
 
@@ -45,9 +47,9 @@
 
 /mob/living/silicon/Destroy()
 	silicon_mob_list -= src
-	for(var/datum/alarm_handler/AH in alarm_manager.all_handlers)
+	for(var/datum/alarm_handler/AH in SSalarm.all_handlers)
 		AH.unregister_alarm(src)
-	..()
+	return ..()
 
 /mob/living/silicon/proc/init_id()
 	if(idcard)
@@ -84,9 +86,7 @@
 /mob/living/silicon/electrocute_act(var/shock_damage, var/obj/source, var/siemens_coeff = 1.0)
 
 	if (istype(source, /obj/machinery/containment_field))
-		var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-		s.set_up(5, 1, loc)
-		s.start()
+		spark(loc, 5, alldirs)
 
 		shock_damage *= 0.75	//take reduced damage
 		take_overall_damage(0, shock_damage)
@@ -112,9 +112,9 @@
 			if(BURN)
 				adjustFireLoss(Proj.damage)
 
-	Proj.on_hit(src,2)
+	Proj.on_hit(src,100)
 	updatehealth()
-	return 2
+	return 100
 
 /mob/living/silicon/apply_effect(var/effect = 0,var/effecttype = STUN, var/blocked = 0)
 	return 0//The only effect that can hit them atm is flashes and they still directly edit so this works for now
@@ -272,20 +272,26 @@
 	if(!blinded)
 		flick("flash", flash)
 
+	var/brute
+	var/burn
 	switch(severity)
 		if(1.0)
-			if (stat != 2)
-				adjustBruteLoss(100)
-				adjustFireLoss(100)
-				if(!anchored)
-					gib()
+			brute = 400
+			burn = 100
+			if(!anchored && !prob(getarmor(null, "bomb")))
+				gib()
 		if(2.0)
-			if (stat != 2)
-				adjustBruteLoss(60)
-				adjustFireLoss(60)
+			brute = 60
+			burn = 60
 		if(3.0)
-			if (stat != 2)
-				adjustBruteLoss(30)
+			brute = 30
+
+	var/protection = BLOCKED_MULT(getarmor(null, "bomb"))
+	brute *= protection
+	burn *= protection
+
+	adjustBruteLoss(brute)
+	adjustFireLoss(burn)
 
 	updatehealth()
 
@@ -369,7 +375,7 @@
 		cameraFollow = null
 
 /mob/living/silicon/Move(newloc, direct)
-	..(newloc,direct)
+	. = ..()
 	if (underdoor)
 		underdoor = 0
 		if ((layer == UNDERDOOR))//if this is false, then we must have used hide, or had our layer changed by something else. We wont do anymore checks for this move proc

@@ -23,22 +23,25 @@
 	return 1
 
 /obj/structure/closet/crate/open()
-	if(src.opened)
+	if(opened)
 		return 0
-	if(!src.can_open())
+	if(!can_open())
 		return 0
 
 	if(rigged && locate(/obj/item/device/radio/electropack) in src)
 		if(isliving(usr))
 			var/mob/living/L = usr
-			if(L.electrocute_act(17, src))
-				var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-				s.set_up(5, 1, src)
-				s.start()
-				if(usr.stunned)
+			var/touchy_hand
+			if(L.hand)
+				touchy_hand = "r_hand"
+			else
+				touchy_hand = "l_hand"
+			if(L.electrocute_act(17, src, ground_zero = touchy_hand))
+				spark(src, 5, alldirs)
+				if(L.stunned)
 					return 2
 
-	playsound(src.loc, 'sound/machines/click.ogg', 15, 1, -3)
+	playsound(loc, 'sound/machines/click.ogg', 15, 1, -3)
 	for(var/obj/O in src)
 		O.forceMove(get_turf(src))
 
@@ -53,17 +56,17 @@
 			M.visible_message(span("danger","\The [M.name] tumbles out of the [src]!"))
 
 	icon_state = icon_opened
-	src.opened = 1
+	opened = 1
 	pass_flags = 0
 	return 1
 
 /obj/structure/closet/crate/close()
-	if(!src.opened)
+	if(!opened)
 		return 0
-	if(!src.can_close())
+	if(!can_close())
 		return 0
 
-	playsound(src.loc, 'sound/machines/click.ogg', 15, 1, -3)
+	playsound(loc, 'sound/machines/click.ogg', 15, 1, -3)
 	var/itemcount = 0
 	for(var/obj/O in get_turf(src))
 		if(itemcount >= storage_capacity)
@@ -78,7 +81,7 @@
 		itemcount++
 
 	icon_state = icon_closed
-	src.opened = 0
+	opened = 0
 	pass_flags = PASSTABLE//Crates can only slide under tables when closed
 	return 1
 
@@ -90,7 +93,7 @@
 		return ..()
 	else if(istype(W, /obj/item/weapon/packageWrap))
 		return
-	else if(istype(W, /obj/item/stack/cable_coil))
+	else if(iscoil(W))
 		var/obj/item/stack/cable_coil/C = W
 		if(rigged)
 			user << "<span class='notice'>[src] is already rigged!</span>"
@@ -105,7 +108,7 @@
 			user.drop_item()
 			W.forceMove(src)
 			return
-	else if(istype(W, /obj/item/weapon/wirecutters))
+	else if(iswirecutter(W))
 		if(rigged)
 			user  << "<span class='notice'>You cut away the wiring.</span>"
 			playsound(loc, 'sound/items/Wirecutter.ogg', 100, 1)
@@ -124,7 +127,7 @@
 
 	if (health <= 0)
 		for (var/atom/movable/A as mob|obj in src)
-			A.forceMove(src.loc)
+			A.forceMove(loc)
 			if (prob(50) && severity > 1)//Higher chance of breaking contents
 				A.ex_act(severity-1)
 			else
@@ -157,7 +160,7 @@
 		else return 1
 	else if(istype(mover) && mover.checkpass(PASSTABLE))
 		return 1
-	return 0
+	return ..()
 
 /obj/structure/closet/crate/Move(var/turf/destination, dir)
 	if(..())
@@ -253,13 +256,6 @@
 		set_tablestatus(1)
 
 
-
-
-
-
-
-
-
 /*
 =====================
 	Secure Crates
@@ -281,27 +277,27 @@
 	var/locked = 1
 	health = 200
 
-/obj/structure/closet/crate/secure/New()
-	..()
+/obj/structure/closet/crate/secure/Initialize()
+	. = ..()
 	if(locked)
-		overlays.Cut()
-		overlays += redlight
+		cut_overlays()
+		add_overlay(redlight)
 	else
-		overlays.Cut()
-		overlays += greenlight
+		cut_overlays()
+		add_overlay(greenlight)
 
 /obj/structure/closet/crate/secure/can_open()
 	if (..())
 		return !locked
 
 /obj/structure/closet/crate/secure/proc/togglelock(mob/user as mob)
-	if(src.opened)
+	if(opened)
 		user << "<span class='notice'>Close the crate first.</span>"
 		return
-	if(src.broken)
+	if(broken)
 		user << "<span class='warning'>The crate appears to be broken.</span>"
 		return
-	if(src.allowed(user))
+	if(allowed(user))
 		set_locked(!locked, user)
 		return 1
 	else
@@ -314,8 +310,8 @@
 	if(user)
 		for(var/mob/O in viewers(user, 3))
 			O.show_message( "<span class='notice'>The crate has been [locked ? null : "un"]locked by [user].</span>", 1)
-	overlays.Cut()
-	overlays += locked ? redlight : greenlight
+	cut_overlays()
+	add_overlay(locked ? redlight : greenlight)
 
 /obj/structure/closet/crate/secure/verb/verb_togglelock()
 	set src in oview(1) // One square distance
@@ -326,17 +322,17 @@
 		return
 
 	if(ishuman(usr))
-		src.add_fingerprint(usr)
-		src.togglelock(usr)
+		add_fingerprint(usr)
+		togglelock(usr)
 	else
 		usr << "<span class='warning'>This mob type can't use this verb.</span>"
 
 /obj/structure/closet/crate/secure/attack_hand(mob/user as mob)
-	src.add_fingerprint(user)
+	add_fingerprint(user)
 	if(locked)
-		return src.togglelock(user)
+		return togglelock(user)
 	else
-		return src.toggle(user)
+		return toggle(user)
 
 /obj/structure/closet/crate/secure/attackby(obj/item/weapon/W as obj, mob/user as mob)
 	if(is_type_in_list(W, list(/obj/item/weapon/packageWrap, /obj/item/stack/cable_coil, /obj/item/device/radio/electropack, /obj/item/weapon/wirecutters)))
@@ -344,19 +340,19 @@
 	if(istype(W, /obj/item/weapon/melee/energy/blade))
 		emag_act(INFINITY, user)
 	if(!opened)
-		src.togglelock(user)
+		togglelock(user)
 		return
 	return ..()
 
 /obj/structure/closet/crate/secure/emag_act(var/remaining_charges, var/mob/user)
 	if(!broken)
-		overlays.Cut()
-		overlays += emag
-		overlays += sparks
-		spawn(6) overlays -= sparks //Tried lots of stuff but nothing works right. so i have to use this *sadface*
-		playsound(src.loc, "sparks", 60, 1)
-		src.locked = 0
-		src.broken = 1
+		cut_overlays()
+		add_overlay(emag)
+		add_overlay(sparks)
+		CUT_OVERLAY_IN(sparks, 6)
+		playsound(loc, "sparks", 60, 1)
+		locked = 0
+		broken = 1
 		user << "<span class='notice'>You unlock \the [src].</span>"
 		return 1
 
@@ -365,22 +361,22 @@
 		O.emp_act(severity)
 	if(!broken && !opened  && prob(50/severity))
 		if(!locked)
-			src.locked = 1
-			overlays.Cut()
-			overlays += redlight
+			locked = 1
+			cut_overlays()
+			add_overlay(redlight)
 		else
-			overlays.Cut()
-			overlays += emag
-			overlays += sparks
-			spawn(6) overlays -= sparks //Tried lots of stuff but nothing works right. so i have to use this *sadface*
-			playsound(src.loc, 'sound/effects/sparks4.ogg', 75, 1)
-			src.locked = 0
+			cut_overlays()
+			add_overlay(emag)
+			add_overlay(sparks)
+			CUT_OVERLAY_IN(sparks, 6)
+			playsound(loc, 'sound/effects/sparks4.ogg', 75, 1)
+			locked = 0
 	if(!opened && prob(20/severity))
 		if(!locked)
 			open()
 		else
-			src.req_access = list()
-			src.req_access += pick(get_all_station_access())
+			req_access = list()
+			req_access += pick(get_all_station_access())
 	..()
 
 /obj/structure/closet/crate/plastic
@@ -434,8 +430,7 @@
 	icon_opened = "crateopen"
 	icon_closed = "crate"
 
-/obj/structure/closet/crate/rcd/New()
-	..()
+/obj/structure/closet/crate/rcd/fill()
 	new /obj/item/weapon/rcd_ammo(src)
 	new /obj/item/weapon/rcd_ammo(src)
 	new /obj/item/weapon/rcd_ammo(src)
@@ -444,8 +439,7 @@
 /obj/structure/closet/crate/solar
 	name = "solar pack crate"
 
-/obj/structure/closet/crate/solar/New()
-	..()
+/obj/structure/closet/crate/solar/fill()
 	new /obj/item/solar_assembly(src)
 	new /obj/item/solar_assembly(src)
 	new /obj/item/solar_assembly(src)
@@ -493,13 +487,12 @@
 			newgas.temperature = target_temp
 		return newgas
 
-/obj/structure/closet/crate/freezer/rations //Fpr use in the escape shuttle
+/obj/structure/closet/crate/freezer/rations //For use in the escape shuttle
 	name = "emergency rations"
 	desc = "A crate of emergency rations."
 
 
-/obj/structure/closet/crate/freezer/rations/New()
-	..()
+/obj/structure/closet/crate/freezer/rations/fill()
 	new /obj/item/weapon/reagent_containers/food/snacks/liquidfood(src)
 	new /obj/item/weapon/reagent_containers/food/snacks/liquidfood(src)
 	new /obj/item/weapon/reagent_containers/food/snacks/liquidfood(src)
@@ -519,8 +512,7 @@
 	icon_opened = "radiationopen"
 	icon_closed = "radiation"
 
-/obj/structure/closet/crate/radiation/New()
-	..()
+/obj/structure/closet/crate/radiation/fill()
 	new /obj/item/clothing/suit/radiation(src)
 	new /obj/item/clothing/head/radiation(src)
 	new /obj/item/clothing/suit/radiation(src)
@@ -582,7 +574,7 @@
 	. = ..()
 	if (.)//we can hold up to one large item
 		var/found = 0
-		for(var/obj/structure/S in src.loc)
+		for(var/obj/structure/S in loc)
 			if(S == src)
 				continue
 			if(!S.anchored)
@@ -590,7 +582,7 @@
 				S.forceMove(src)
 				break
 		if(!found)
-			for(var/obj/machinery/M in src.loc)
+			for(var/obj/machinery/M in loc)
 				if(!M.anchored)
 					M.forceMove(src)
 					break
@@ -611,7 +603,7 @@
 	. = ..()
 	if (.)//we can hold up to one large item
 		var/found = 0
-		for(var/obj/structure/S in src.loc)
+		for(var/obj/structure/S in loc)
 			if(S == src)
 				continue
 			if(!S.anchored)
@@ -619,7 +611,7 @@
 				S.forceMove(src)
 				break
 		if(!found)
-			for(var/obj/machinery/M in src.loc)
+			for(var/obj/machinery/M in loc)
 				if(!M.anchored)
 					M.forceMove(src)
 					break
@@ -642,8 +634,7 @@
 /obj/structure/closet/crate/hydroponics/prespawned
 	//This exists so the prespawned hydro crates spawn with their contents.
 
-	New()
-		..()
+	fill()
 		new /obj/item/weapon/reagent_containers/spray/plantbgone(src)
 		new /obj/item/weapon/reagent_containers/spray/plantbgone(src)
 		new /obj/item/weapon/material/minihoe(src)
@@ -679,18 +670,20 @@
 		"trashcart" = "trashcartopen",
 		"critter" = "critteropen",
 		"largemetal" = "largemetalopen",
-		"medicalcrate" = "medicalcrateopen")
+		"medicalcrate" = "medicalcrateopen"
+	)
 
 
-/obj/structure/closet/crate/loot/New(var/location, var/_rarity = 1, var/_quantity = 10)
-
+/obj/structure/closet/crate/loot/Initialize(mapload, var/_rarity = 1, var/_quantity = 10)
+	. = ..()
 	rarity = _rarity
 	quantity = _quantity
-	..(location)
 
-
-/obj/structure/closet/crate/loot/initialize()
-	spawntypes = list("1" = STOCK_RARE_PROB*rarity, "2" = STOCK_UNCOMMON_PROB*rarity, "3" = (100 - ((STOCK_RARE_PROB*rarity) + (STOCK_UNCOMMON_PROB*rarity))))
+	spawntypes = list(
+		"1" = STOCK_RARE_PROB * rarity,
+		"2" = STOCK_UNCOMMON_PROB * rarity,
+		"3" = (100 - ((STOCK_RARE_PROB * rarity) + (STOCK_UNCOMMON_PROB * rarity)))
+	)
 
 	icon_closed = pick(iconchoices)
 	icon_opened = iconchoices[icon_closed]

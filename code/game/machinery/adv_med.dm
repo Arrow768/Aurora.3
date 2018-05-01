@@ -30,7 +30,8 @@
 
 /obj/machinery/bodyscanner/Destroy()
 	// So the GC can qdel this.
-	src.connected.connected = null
+	if (connected)
+		connected.connected = null
 	return ..()
 
 /obj/machinery/bodyscanner/relaymove(mob/user as mob)
@@ -117,7 +118,7 @@
 				var/obj/structure/LB = L.buckled
 				LB.user_unbuckle_mob(user)
 			var/mob/M = G.affecting
-			if (M.client)
+			if (istype(M) && M.client)
 				M.client.perspective = EYE_PERSPECTIVE
 				M.client.eye = src
 			M.loc = src
@@ -240,7 +241,8 @@
 	anchored = 1
 
 /obj/machinery/body_scanconsole/Destroy()
-	src.connected.connected = null
+	if (connected)
+		connected.connected = null
 	return ..()
 
 /obj/machinery/body_scanconsole/power_change()
@@ -262,16 +264,15 @@
 		collapse_desc = ldesc
 		src.connected.last_occupant_name = src.connected.occupant.name
 		return ldesc
-	
+
 	return collapse_desc
 
-/obj/machinery/body_scanconsole/New()
-	..()
-	spawn(5)
-		src.connected = locate(/obj/machinery/bodyscanner, get_step(src, WEST))
-		src.connected.connected = src
-		return
-	return
+/obj/machinery/body_scanconsole/Initialize()
+	. = ..()
+	for(var/obj/machinery/bodyscanner/C in orange(1,src))
+		connected = C
+		break
+	src.connected.connected = src
 
 /obj/machinery/body_scanconsole/attack_ai(user as mob)
 	return src.attack_hand(user)
@@ -333,7 +334,7 @@
 		data["dexAmt"] 			= R.get_reagent_amount("dexalin")
 		data["dermAmt"]			= R.get_reagent_amount("dermaline")
 		data["otherAmt"]		= R.total_volume - (data["soporAmt"] + data["dexAmt"] + data["bicardAmt"] + data["inaprovAmt"] + data["dermAmt"])
-		data["brainDmgStatus"] 	= val2status(occupant.brainloss, 20, 50)
+		data["brainDmgStatus"] 	= val2status(occupant.getBrainLoss(), 20, 50)
 		data["radStatus"] 		= val2status(occupant.total_radiation)
 		data["cloneDmgStatus"] 	= val2status(occupant.cloneloss, 10, 35)
 		data["bodyparts"]		= get_organ_wound_data(occupant)
@@ -344,7 +345,7 @@
 		data["hastgvirus"]		= occupant.viruses.len
 		data["tgvirus"]			= occupant.viruses
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "med_diagnostics.tmpl", "Medical Diagnostics", 800, 500, state = state)
 		ui.set_initial_data(data)
@@ -386,7 +387,7 @@
 				wounds += "Appears to have cataracts."
 			else if (H.disabilities & NEARSIGHTED)
 				wounds += "Appears to have misaligned retinas."
-		
+
 		if (O.germ_level)
 			var/level = get_infection_level(O.germ_level)
 			if (level && level != "")
@@ -425,7 +426,7 @@
 		if (O.status & ORGAN_BLEEDING)
 			wounds += "Bleeding."
 		if (O.status & ORGAN_BROKEN)
-			wounds += "Is \a [O.broken_description]."
+			wounds += "[O.broken_description]."
 		if (O.open)
 			wounds += "Has an open wound."
 		if (O.germ_level)
@@ -439,7 +440,7 @@
 			var/unk = 0
 			for (var/atom/movable/I in O.implants)
 				if (is_type_in_list(I, known_implants))
-					wounds += "[I.name] present."
+					wounds += "\a [I.name] is installed."
 				else
 					unk += 1
 			if (unk)

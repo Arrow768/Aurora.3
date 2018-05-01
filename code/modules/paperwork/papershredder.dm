@@ -8,29 +8,43 @@
 	var/max_paper = 10
 	var/paperamount = 0
 	var/list/shred_amounts = list(
-		/obj/item/weapon/photo = 1,
+		/obj/item/weapon/photo = -1,
 		/obj/item/weapon/shreddedp = 1,
 		/obj/item/weapon/paper = 1,
 		/obj/item/weapon/newspaper = 3,
-		/obj/item/weapon/card/id = 3,
+		/obj/item/weapon/card/id = -1,
 		/obj/item/weapon/paper_bundle = 3
-		)
+		)// use -1 if it doesn't generate paper
 
 /obj/machinery/papershredder/attackby(var/obj/item/W, var/mob/user)
-
-	if(istype(W, /obj/item/weapon/storage))
+	if (istype(W, /obj/item/weapon/storage))
 		empty_bin(user, W)
 		return
+
+	else if (iswrench(W))
+		playsound(loc, 'sound/items/Ratchet.ogg', 50, 1)
+		anchored = !anchored
+		user.visible_message(
+			span("notice", anchored ? "\The [user] fastens \the [src] to \the [loc]." : "\The unfastens \the [src] from \the [loc]."),
+			span("notice", anchored ? "You fasten \the [src] to \the [loc]." : "You unfasten \the [src] from \the [loc]."),
+			"You hear a ratchet."
+		)
+		return
+		
 	else
 		var/paper_result
 		for(var/shred_type in shred_amounts)
 			if(istype(W, shred_type))
 				paper_result = shred_amounts[shred_type]
 		if(paper_result)
+			if (!anchored)
+				user << span("warning", "\The [src] must be anchored to the ground to operate!")
+				return
 			if(paperamount == max_paper)
 				user << "<span class='warning'>\The [src] is full; please empty it before you continue.</span>"
 				return
-			paperamount += paper_result
+			if (paper_result > 0)
+				paperamount += paper_result
 			user.drop_from_inventory(W)
 			qdel(W)
 			playsound(src.loc, 'sound/items/pshred.ogg', 75, 1)
@@ -90,7 +104,7 @@
 	if(!paperamount)
 		return
 	paperamount--
-	return PoolOrNew(/obj/item/weapon/shreddedp, get_turf(src))
+	return new /obj/item/weapon/shreddedp(get_turf(src))
 
 /obj/machinery/papershredder/update_icon()
 	icon_state = "papershredder[max(0,min(5,Floor(paperamount/2)))]"
@@ -120,7 +134,7 @@
 	var/mob/living/M = loc
 	if(istype(M))
 		M.drop_from_inventory(src)
-	PoolOrNew(/obj/effect/decal/cleanable/ash,get_turf(src))
+	new /obj/effect/decal/cleanable/ash(get_turf(src))
 	qdel(src)
 
 /obj/item/weapon/shreddedp

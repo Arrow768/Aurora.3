@@ -14,9 +14,10 @@
 	var/max_fire_temperature_sustained = 0 //The max temperature of the fire which it was subjected to
 	var/dirt = 0
 
-	var/datum/scheduled_task/unwet_task
+	var/unwet_timer	// Used to keep track of the unwet timer & delete it on turf change so we don't runtime if the new turf is not simulated.
 
-// This is not great.
+	roof_type = /turf/simulated/floor/airless/ceiling
+
 /turf/simulated/proc/wet_floor(var/wet_val = 1)
 	if(wet_val < wet)
 		return
@@ -24,47 +25,34 @@
 	if(!wet)
 		wet = wet_val
 		wet_overlay = image('icons/effects/water.dmi',src,"wet_floor")
-		overlays += wet_overlay
+		add_overlay(wet_overlay, TRUE)
 
-	if(unwet_task)
-		// Space lube dries a lot.
-		if (wet > 1)
-			unwet_task.trigger_task_in(120 SECONDS)
-		else
-			unwet_task.trigger_task_in(8 SECONDS)
-	else
-		unwet_task = schedule_task_in(wet > 1 ? 120 SECONDS : 8 SECONDS)
-		task_triggered_event.register(unwet_task, src, /turf/simulated/proc/task_unwet_floor)
-
-/turf/simulated/proc/task_unwet_floor(var/triggered_task)
-	if(triggered_task == unwet_task)
-		unwet_task = null
-		unwet_floor()
+	unwet_timer = addtimer(CALLBACK(src, .proc/unwet_floor), 120 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_STOPPABLE)
 
 /turf/simulated/proc/unwet_floor()
-	wet = 0
-	if(wet_overlay)
-		overlays -= wet_overlay
-		wet_overlay = null
+	--wet
+	if (wet < 1)
+		wet = 0
+		if(wet_overlay)
+			cut_overlay(wet_overlay, TRUE)
+			wet_overlay = null
+	else
+		unwet_timer = addtimer(CALLBACK(src, .proc/unwet_floor), 120 SECONDS, TIMER_UNIQUE | TIMER_STOPPABLE)
 
 /turf/simulated/clean_blood()
 	for(var/obj/effect/decal/cleanable/blood/B in contents)
 		B.clean_blood()
 	..()
 
-/turf/simulated/New()
-	..()
-	if(istype(loc, /area/chapel))
-		holy = 1
-	levelupdate()
+/turf/simulated/Initialize(mapload)
+	if (mapload)
+		if(istype(loc, /area/chapel))
+			holy = 1
 
-/turf/simulated/Destroy()
-	qdel(unwet_task)
-	unwet_task = null
-	return ..()
-
-/turf/simulated/proc/initialize()
-	return
+	. = ..()
+	levelupdate(mapload)
+	if (!mapload)
+		updateVisibility(src)
 
 /turf/simulated/proc/AddTracks(var/typepath,var/bloodDNA,var/comingdir,var/goingdir,var/bloodcolor="#A10808")
 	var/obj/effect/decal/cleanable/blood/tracks/tracks = locate(typepath) in src
@@ -100,23 +88,28 @@
 		if(istype(M, /mob/living/carbon/human))
 			var/mob/living/carbon/human/H = M
 			// Tracking blood
-			var/list/bloodDNA = null
+			var/list/bloodDNA = list()
+			var/will_track = 0
 			var/bloodcolor=""
 			if(H.shoes)
 				var/obj/item/clothing/shoes/S = H.shoes
 				if(istype(S))
 					S.handle_movement(src,(H.m_intent == "run" ? 1 : 0))
-					if(S.track_blood && S.blood_DNA)
-						bloodDNA = S.blood_DNA
+					if(S.track_blood)
+						if(S.blood_DNA)
+							bloodDNA = S.blood_DNA
 						bloodcolor=S.blood_color
 						S.track_blood--
+						will_track = 1
 			else
-				if(H.track_blood && H.feet_blood_DNA)
-					bloodDNA = H.feet_blood_DNA
+				if(H.track_blood)
+					if(H.feet_blood_DNA)
+						bloodDNA = H.feet_blood_DNA
 					bloodcolor = H.feet_blood_color
 					H.track_blood--
+					will_track = 1
 
-			if (bloodDNA)
+			if(will_track)
 				src.AddTracks(/obj/effect/decal/cleanable/blood/tracks/footprints,bloodDNA,H.dir,0,bloodcolor) // Coming
 				var/turf/simulated/from = get_step(H,reverse_direction(H.dir))
 				if(istype(from) && from)
@@ -177,3 +170,19 @@
 		this.blood_DNA["UNKNOWN BLOOD"] = "X*"
 	else if( istype(M, /mob/living/silicon/robot ))
 		new /obj/effect/decal/cleanable/blood/oil(src)
+
+/turf/simulated/Destroy()
+	if (zone)
+		// Try to remove it gracefully first.
+		if (can_safely_remove_from_zone())
+			c_copy_air()
+			zone.remove(src)
+		else	// Can't remove it safely, just rebuild the entire thing.
+			zone.rebuild()
+
+	// Letting this timer continue to exist can cause runtimes, so we delete it.
+	if (unwet_timer)
+		// deltimer will no-op if the timer is already deleted, so we don't need to check the timer still exists.
+		deltimer(unwet_timer)
+
+	return ..()

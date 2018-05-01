@@ -21,7 +21,7 @@
 			B.health -= damage
 			B.update_icon()
 
-		new/obj/effect/sparks(src.loc)
+		single_spark(src.loc)
 		new/obj/effect/effect/smoke/illumination(src.loc, brightness=15)
 		qdel(src)
 		return
@@ -33,13 +33,13 @@
 				S.icon_state = "shield0"
 
 		M << "<span class='danger'>BANG</span>"
-		playsound(src.loc, 'sound/effects/bang.ogg', 50, 1, 5)
+		playsound(src.loc, 'sound/weapons/flashbang.ogg', 50, 1, 5)
 
 //Checking for protections
 		var/eye_safety = 0
 		var/ear_safety = 0
 		if(iscarbon(M))
-			eye_safety = M.eyecheck()
+			eye_safety = M.eyecheck(TRUE)
 			if(ishuman(M))
 				if(istype(M:l_ear, /obj/item/clothing/ears/earmuffs) || istype(M:r_ear, /obj/item/clothing/ears/earmuffs))
 					ear_safety += 2
@@ -56,7 +56,7 @@
 				//Vaurca damage 15/01/16
 			var/mob/living/carbon/human/H = M
 			if(isvaurca(H))
-				var/obj/item/organ/eyes/E = H.internal_organs_by_name["eyes"]
+				var/obj/item/organ/eyes/E = H.get_eyes()
 				if(!E)
 					return
 				usr << span("alert", "Your eyes burn with the intense light of the flash!.")
@@ -90,6 +90,7 @@
 
 		else if(get_dist(M, T) <= 5)
 			if(!ear_safety)
+				M << sound('sound/weapons/flash_ring.ogg',0,1,0,100)
 				M.Stun(8)
 				M.ear_damage += rand(0, 3)
 				M.ear_deaf = max(M.ear_deaf,10)
@@ -102,7 +103,7 @@
 //This really should be in mob not every check
 		if(ishuman(M))
 			var/mob/living/carbon/human/H = M
-			var/obj/item/organ/eyes/E = H.internal_organs_by_name["eyes"]
+			var/obj/item/organ/eyes/E = H.get_eyes(no_synthetic = TRUE)
 			if (E && E.damage >= E.min_bruised_damage)
 				M << "<span class='danger'>Your eyes start to burn badly!</span>"
 				if(!banglet && !(istype(src , /obj/item/weapon/grenade/flashbang/clusterbang)))
@@ -120,7 +121,6 @@
 		M.update_icons()
 
 /obj/item/weapon/grenade/flashbang/clusterbang//Created by Polymorph, fixed by Sieve
-	desc = "Use of this weapon may constiute a war crime in your area, consult your local captain."
 	name = "clusterbang"
 	icon = 'icons/obj/grenade.dmi'
 	icon_state = "clusterbang"
@@ -143,8 +143,7 @@
 		spawn(0)
 			new /obj/item/weapon/grenade/flashbang/clusterbang/segment(A)//Creates a 'segment' that launches a few more flashbangs
 			playsound(src.loc, 'sound/weapons/armbomb.ogg', 75, 1, -3)
-	spawn(1)
-		qdel(src)
+	QDEL_IN(src, 1)
 
 /obj/item/weapon/grenade/flashbang/clusterbang/segment
 	desc = "A smaller segment of a clusterbang. Better run."
@@ -161,8 +160,7 @@
 	var/temploc = src.loc//Saves the current location to know where to step away from
 	walk_away(src,temploc,stepdist)//I must go, my people need me
 	var/dettime = rand(15,60)
-	spawn(dettime)
-		prime()
+	addtimer(CALLBACK(src, .proc/prime), dettime)
 	..()
 
 /obj/item/weapon/grenade/flashbang/clusterbang/segment/prime()
@@ -176,18 +174,16 @@
 			new /obj/item/weapon/grenade/flashbang/cluster(A)
 			playsound(src.loc, 'sound/weapons/armbomb.ogg', 75, 1, -3)
 
-	spawn(1)
-		qdel(src)
+	QDEL_IN(src, 1)
 
 /obj/item/weapon/grenade/flashbang/cluster/New()//Same concept as the segments, so that all of the parts don't become reliant on the clusterbang
-	spawn(0)
-		icon_state = "flashbang_active"
-		active = 1
-		banglet = 1
-		var/stepdist = rand(1,3)
-		var/temploc = src.loc
-		walk_away(src,temploc,stepdist)
-		var/dettime = rand(15,60)
-		spawn(dettime)
-			prime()
-		..()
+	set waitfor = FALSE
+	icon_state = "flashbang_active"
+	active = 1
+	banglet = 1
+	var/stepdist = rand(1,3)
+	var/temploc = src.loc
+	walk_away(src,temploc,stepdist)
+	var/dettime = rand(15,60)
+	addtimer(CALLBACK(src, .proc/prime), dettime)
+	..()

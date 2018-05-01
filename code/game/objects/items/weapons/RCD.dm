@@ -15,7 +15,7 @@
 	w_class = 3.0
 	origin_tech = list(TECH_ENGINEERING = 4, TECH_MATERIAL = 2)
 	matter = list(DEFAULT_WALL_MATERIAL = 50000)
-	var/datum/effect/effect/system/spark_spread/spark_system
+	var/datum/effect_system/sparks/spark_system
 	var/stored_matter = 0
 	var/working = 0
 	var/mode = 1
@@ -36,9 +36,7 @@
 
 /obj/item/weapon/rcd/New()
 	..()
-	src.spark_system = new /datum/effect/effect/system/spark_spread
-	spark_system.set_up(5, 0, src)
-	spark_system.attach(src)
+	src.spark_system = bind_spark(src, 5)
 
 /obj/item/weapon/rcd/Destroy()
 	qdel(spark_system)
@@ -64,7 +62,7 @@
 	if(++mode > 3) mode = 1
 	user << "<span class='notice'>Changed mode to '[modes[mode]]'</span>"
 	playsound(src.loc, 'sound/effects/pop.ogg', 50, 0)
-	if(prob(20)) src.spark_system.start()
+	if(prob(20)) src.spark_system.queue()
 
 /obj/item/weapon/rcd/afterattack(atom/A, mob/user, proximity)
 	if(!proximity) return
@@ -100,7 +98,7 @@
 		build_delay = 50
 		build_type = "airlock"
 		build_other = /obj/machinery/door/airlock
-	else if(!deconstruct && (istype(T,/turf/space) || istype(T,get_base_turf_by_area(T))))
+	else if(!deconstruct && (istype(T,/turf/space) || istype(T,T.baseturf)))
 		build_cost =  1
 		build_type =  "floor"
 		build_turf =  /turf/simulated/floor/airless
@@ -114,7 +112,7 @@
 		build_delay = deconstruct ? 50 : 20
 		build_cost =  deconstruct ? 10 : 3
 		build_type =  deconstruct ? "floor" : "wall"
-		build_turf =  deconstruct ? get_base_turf(T.z) : /turf/simulated/wall
+		build_turf =  deconstruct ? T.baseturf : /turf/simulated/wall
 	else
 		return 0
 

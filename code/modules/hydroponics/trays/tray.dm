@@ -26,6 +26,7 @@
 	var/harvest = 0            // Is it ready to harvest?
 	var/age = 0                // Current plant age
 	var/sampled = 0            // Have we taken a sample?
+	var/last_biolum			   // What was the bioluminescence last tick?
 
 	// Harvest/mutation mods.
 	var/yield_mod = 0          // Modifier to yield
@@ -145,7 +146,7 @@
 		return 1
 	return ..()
 
-/obj/machinery/portable_atmospherics/hydroponics/attack_ghost(var/mob/dead/observer/user)
+/obj/machinery/portable_atmospherics/hydroponics/attack_ghost(var/mob/abstract/observer/user)
 
 	if(!(harvest && seed && seed.has_mob_product))
 		return
@@ -232,6 +233,10 @@
 	harvest = 0
 	weedlevel += 1 * HYDRO_SPEED_MULTIPLIER
 	pestlevel = 0
+	if(prob(min(25,max(1,seed.get_trait(TRAIT_POTENCY/2)))))
+		if(seed.get_trait(TRAIT_SPOROUS) && !closed_system)
+			seed.create_spores(get_turf(src))
+			visible_message("<span class='danger'>\The [src] releases its spores!</span>")
 
 //Process reagents being input into the tray.
 /obj/machinery/portable_atmospherics/hydroponics/proc/process_reagents()
@@ -300,6 +305,9 @@
 	else
 		seed.harvest(get_turf(src),yield_mod)
 	// Reset values.
+	if(seed.get_trait(TRAIT_SPOROUS))
+		seed.create_spores(get_turf(src))
+		visible_message("<span class='danger'>\The [src] releases its spores!</span>")
 	harvest = 0
 	lastproduce = age
 
@@ -339,7 +347,7 @@
 
 	//Remove the seed if something is already planted.
 	if(seed) seed = null
-	seed = plant_controller.seeds[pick(list("reishi","nettles","amanita","mushrooms","plumphelmet","towercap","harebells","weeds"))]
+	seed = SSplants.seeds[pick(list("reishi","nettles","amanita","mushrooms","plumphelmet","towercap","harebells","weeds"))]
 	if(!seed) return //Weed does not exist, someone fucked up.
 
 	dead = 0
@@ -369,27 +377,17 @@
 	// We need to make sure we're not modifying one of the global seed datums.
 	// If it's not in the global list, then no products of the line have been
 	// harvested yet and it's safe to assume it's restricted to this tray.
-	if(!isnull(plant_controller.seeds[seed.name]))
+	if(!isnull(SSplants.seeds[seed.name]))
 		seed = seed.diverge()
 	seed.mutate(severity,get_turf(src))
 
 	return
 
-/obj/machinery/portable_atmospherics/hydroponics/verb/remove_label()
+/obj/machinery/portable_atmospherics/hydroponics/remove_label()
+	if(..())
+		labelled = null
+		update_icon()
 
-	set name = "Remove Label"
-	set category = "Object"
-	set src in view(1)
-
-	if(usr.incapacitated())
-		return
-	if(ishuman(usr) || istype(usr, /mob/living/silicon/robot))
-		if(labelled)
-			usr << "You remove the label."
-			labelled = null
-			update_icon()
-		else
-			usr << "There is no label to remove."
 	return
 
 /obj/machinery/portable_atmospherics/hydroponics/verb/setlight()
@@ -425,8 +423,8 @@
 
 	var/previous_plant = seed.display_name
 	var/newseed = seed.get_mutant_variant()
-	if(newseed in plant_controller.seeds)
-		seed = plant_controller.seeds[newseed]
+	if(newseed in SSplants.seeds)
+		seed = SSplants.seeds[newseed]
 	else
 		return
 
@@ -462,7 +460,7 @@
 	if (O.is_open_container())
 		return 0
 
-	if(istype(O, /obj/item/weapon/wirecutters) || istype(O, /obj/item/weapon/scalpel))
+	if(iswirecutter(O) || istype(O, /obj/item/weapon/scalpel))
 
 		if(!seed)
 			user << "There is nothing to take a sample from in \the [src]."
@@ -567,7 +565,7 @@
 		qdel(O)
 		check_health()
 
-	else if(mechanical && istype(O, /obj/item/weapon/wrench))
+	else if(mechanical && iswrench(O))
 
 		//If there's a connector here, the portable_atmospherics setup can handle it.
 		if(locate(/obj/machinery/atmospherics/portables_connector/) in loc)
@@ -581,7 +579,10 @@
 		user.setClickCooldown(DEFAULT_ATTACK_COOLDOWN)
 		user.visible_message("<span class='danger'>\The [seed.display_name] has been attacked by [user] with \the [O]!</span>")
 		if(!dead)
-			health -= O.force
+			var/total_damage = O.force
+			if ((O.sharp) || (O.damtype == "fire")) //fire and sharp things are more effective when dealing with plants
+				total_damage = 2*O.force
+			health -= total_damage
 			check_health()
 	return
 
@@ -645,12 +646,12 @@
 		if(closed_system && mechanical)
 			light_string = "that the internal lights are set to [tray_light] lumens"
 		else
-			var/atom/movable/lighting_overlay/L = locate(/atom/movable/lighting_overlay) in T
 			var/light_available
-			if(L)
-				light_available = max(0,min(10,L.lum_r + L.lum_g + L.lum_b)-5)
+			if(TURF_IS_DYNAMICALLY_LIT(T))
+				light_available = T.get_lumcount(0, 3) * 10
 			else
-				light_available =  5
+				light_available = 5
+
 			light_string = "a light level of [light_available] lumens"
 
 		usr << "The tray's sensor suite is reporting [light_string] and a temperature of [environment.temperature]K."

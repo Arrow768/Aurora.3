@@ -21,15 +21,15 @@
 //set del_on_fail to have it delete W if it fails to equip
 //set disable_warning to disable the 'you are unable to equip that' warning.
 //unset redraw_mob to prevent the mob from being redrawn at the end.
-/mob/proc/equip_to_slot_if_possible(obj/item/W as obj, slot, del_on_fail = 0, disable_warning = 0, redraw_mob = 1)
+/mob/proc/equip_to_slot_if_possible(obj/item/W as obj, slot, del_on_fail = FALSE, disable_warning = FALSE, redraw_mob = TRUE, ignore_blocked = FALSE)
 	if(!istype(W)) return 0
 
-	if(!W.mob_can_equip(src, slot))
+	if(!W.mob_can_equip(src, slot, disable_warning, ignore_blocked))
 		if(del_on_fail)
 			qdel(W)
 		else
 			if(!disable_warning)
-				src << "\red You are unable to equip that." //Only print if del_on_fail is false
+				src << "<span class='warning'>You are unable to equip that.</span>" //Only print if del_on_fail is false
 		return 0
 
 	equip_to_slot(W, slot, redraw_mob) //This proc should not ever fail.
@@ -38,11 +38,12 @@
 //This is an UNSAFE proc. It merely handles the actual job of equipping. All the checks on whether you can or can't eqip need to be done before! Use mob_can_equip() for that task.
 //In most cases you will want to use equip_to_slot_if_possible()
 /mob/proc/equip_to_slot(obj/item/W as obj, slot)
+	W.on_slotmove(src)
 	return
 
 //This is just a commonly used configuration for the equip_to_slot_if_possible() proc, used to equip people when the rounds tarts and when events happen and such.
 /mob/proc/equip_to_slot_or_del(obj/item/W as obj, slot)
-	return equip_to_slot_if_possible(W, slot, 1, 1, 0)
+	. = equip_to_slot_if_possible(W, slot, TRUE, TRUE, FALSE, ignore_blocked = TRUE)
 
 //The list of slots by priority. equip_to_appropriate_slot() uses this list. Doesn't matter if a mob type doesn't have a slot.
 var/list/slot_equipment_priority = list( \
@@ -224,8 +225,6 @@ var/list/slot_equipment_priority = list( \
 //This function is an unsafe proc used to prepare an item for being moved to a slot, or from a mob to a container
 //It should be equipped to a new slot or forcemoved somewhere immediately after this is called
 /mob/proc/prepare_for_slotmove(obj/item/I)
-
-
 	if(!canUnEquip(I))
 		return 0
 
@@ -234,6 +233,8 @@ var/list/slot_equipment_priority = list( \
 		src.client.screen -= I
 	I.layer = initial(I.layer)
 	I.screen_loc = null
+
+	I.on_slotmove(src)
 
 	return 1
 
@@ -262,8 +263,14 @@ var/list/slot_equipment_priority = list( \
 	return null
 
 //Outdated but still in use apparently. This should at least be a human proc.
-/mob/proc/get_equipped_items()
-	return list()
+/mob/proc/get_equipped_items(var/include_carried = 0)
+	. = list()
+	if(slot_back) . += back
+	if(slot_wear_mask) . += wear_mask
+
+	if(include_carried)
+		if(slot_l_hand) . += l_hand
+		if(slot_r_hand) . += r_hand
 
 
 
@@ -289,12 +296,19 @@ var/list/slot_equipment_priority = list( \
 			var/turf/end_T = get_turf(target)
 			if(start_T && end_T)
 				var/mob/M = item
+				if(disabilities & PACIFIST)
+					to_chat(src, "<span class='notice'>You gently let go of [M].</span>")
+					src.remove_from_mob(item)
+					item.loc = src.loc
+					return
 				var/start_T_descriptor = "<font color='#6b5d00'>tile at [start_T.x], [start_T.y], [start_T.z] in area [get_area(start_T)]</font>"
 				var/end_T_descriptor = "<font color='#6b4400'>tile at [end_T.x], [end_T.y], [end_T.z] in area [get_area(end_T)]</font>"
 
 				M.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been thrown by [usr.name] ([usr.ckey]) from [start_T_descriptor] with the target [end_T_descriptor]</font>")
 				usr.attack_log += text("\[[time_stamp()]\] <font color='red'>Has thrown [M.name] ([M.ckey]) from [start_T_descriptor] with the target [end_T_descriptor]</font>")
-				msg_admin_attack("[usr.name] ([usr.ckey]) has thrown [M.name] ([M.ckey]) from [start_T_descriptor] with the target [end_T_descriptor] (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[usr.x];Y=[usr.y];Z=[usr.z]'>JMP</a>)")
+				msg_admin_attack("[usr.name] ([usr.ckey]) has thrown [M.name] ([M.ckey]) from [start_T_descriptor] with the target [end_T_descriptor] (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[usr.x];Y=[usr.y];Z=[usr.z]'>JMP</a>)",ckey=key_name(usr),ckey_target=key_name(M))
+
+			qdel(G)
 
 	if(!item) return //Grab processing has a chance of returning null
 
@@ -302,13 +316,18 @@ var/list/slot_equipment_priority = list( \
 	src.remove_from_mob(item)
 	item.loc = src.loc
 
+	if(disabilities & PACIFIST)
+		to_chat(src, "<span class='notice'>You set [item] down gently on the ground.</span>")
+		return
+
+
 	//actually throw it!
 	if (item)
-		src.visible_message("\red [src] has thrown [item].")
+		src.visible_message("<span class='warning'>[src] has thrown [item].</span>")
 
 		if(!src.lastarea)
 			src.lastarea = get_area(src.loc)
-		if((istype(src.loc, /turf/space)) || (src.lastarea.has_gravity == 0))
+		if((istype(src.loc, /turf/space)) || (src.lastarea.has_gravity() == 0))
 			src.inertia_dir = get_dir(target, src)
 			step(src, inertia_dir)
 
@@ -321,3 +340,10 @@ var/list/slot_equipment_priority = list( \
 
 
 		item.throw_at(target, item.throw_range, item.throw_speed, src)
+
+/mob/proc/delete_inventory(var/include_carried = FALSE)
+	for(var/entry in get_equipped_items(include_carried))
+		drop_from_inventory(entry)
+		qdel(entry)
+
+

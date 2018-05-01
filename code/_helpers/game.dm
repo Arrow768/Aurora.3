@@ -12,28 +12,27 @@
 /proc/is_on_same_plane_or_station(var/z1, var/z2)
 	if(z1 == z2)
 		return 1
-	if((z1 in config.station_levels) &&	(z2 in config.station_levels))
+	if((z1 in current_map.station_levels) &&	(z2 in current_map.station_levels))
 		return 1
 	return 0
 
 /proc/max_default_z_level()
 	var/max_z = 0
-	for(var/z in config.station_levels)
+	for(var/z in current_map.station_levels)
 		max_z = max(z, max_z)
-	for(var/z in config.admin_levels)
+	for(var/z in current_map.admin_levels)
 		max_z = max(z, max_z)
-	for(var/z in config.player_levels)
+	for(var/z in current_map.player_levels)
 		max_z = max(z, max_z)
 	return max_z
 
 /proc/get_area(O)
 	var/turf/loc = get_turf(O)
 	if(loc)
-		var/area/res = loc.loc
-		.= res
+		.= loc.loc
 
 /proc/get_area_name(N) //get area by its name
-	for(var/area/A in world)
+	for(var/area/A in all_areas)
 		if(A.name == N)
 			return A
 	return 0
@@ -61,17 +60,11 @@
 
 	return heard
 
-/proc/isStationLevel(var/level)
-	return level in config.station_levels
-
-/proc/isNotStationLevel(var/level)
-	return !isStationLevel(level)
-
 /proc/isPlayerLevel(var/level)
-	return level in config.player_levels
+	return level in current_map.player_levels
 
 /proc/isAdminLevel(var/level)
-	return level in config.admin_levels
+	return level in current_map.admin_levels
 
 /proc/isNotAdminLevel(var/level)
 	return !isAdminLevel(level)
@@ -105,14 +98,6 @@
 
 	//turfs += centerturf
 	return atoms
-
-/proc/trange(rad = 0, turf/centre = null) //alternative to range (ONLY processes turfs and thus less intensive)
-	if(!centre)
-		return
-
-	var/turf/x1y1 = locate(((centre.x-rad)<1 ? 1 : centre.x-rad),((centre.y-rad)<1 ? 1 : centre.y-rad),centre.z)
-	var/turf/x2y2 = locate(((centre.x+rad)>world.maxx ? world.maxx : centre.x+rad),((centre.y+rad)>world.maxy ? world.maxy : centre.y+rad),centre.z)
-	return block(x1y1,x2y2)
 
 /proc/get_dist_euclidian(atom/Loc1 as turf|mob|obj,atom/Loc2 as turf|mob|obj)
 	var/dx = Loc1.x - Loc2.x
@@ -241,9 +226,42 @@
 			var/turf/ear = get_turf(M)
 			if(ear)
 				// Ghostship is magic: Ghosts can hear radio chatter from anywhere
-				if(speaker_coverage[ear] || (istype(M, /mob/dead/observer) && (M.client) && (M.client.prefs.toggles & CHAT_GHOSTRADIO)))
+				if(speaker_coverage[ear] || (istype(M, /mob/abstract/observer) && (M.client) && (M.client.prefs.toggles & CHAT_GHOSTRADIO)))
 					. += M
 	return .
+
+/proc/get_mobs_and_objs_in_view_fast(turf/T, range, list/mobs, list/objs, checkghosts = GHOSTS_ALL_HEAR)
+	var/list/hear = list()
+	DVIEW(hear, range, T, INVISIBILITY_MAXIMUM)
+	var/list/hearturfs = list()
+
+	for(var/am in hear)
+		var/atom/movable/AM = am
+		if (!AM.loc)
+			continue
+
+		if(ismob(AM))
+			mobs[AM] = TRUE
+			hearturfs[AM.locs[1]] = TRUE
+		else if(isobj(AM))
+			objs[AM] = TRUE
+			hearturfs[AM.locs[1]] = TRUE
+
+	for(var/m in player_list)
+		var/mob/M = m
+		if(checkghosts == GHOSTS_ALL_HEAR && M.stat == DEAD && !isnewplayer(M) && (M.client && M.client.prefs.toggles & CHAT_GHOSTEARS))
+			if (!mobs[M])
+				mobs[M] = TRUE
+			continue
+		if(M.loc && hearturfs[M.locs[1]])
+			if (!mobs[M])
+				mobs[M] = TRUE
+
+	for(var/o in listening_objects)
+		var/obj/O = o
+		if(O && O.loc && hearturfs[O.locs[1]])
+			if (!objs[O])
+				objs[O] = TRUE
 
 #define SIGN(X) ((X<0)?-1:1)
 
@@ -320,7 +338,7 @@ proc/isInSight(var/atom/A, var/atom/B)
 	var/list/candidates = list() //List of candidate KEYS to assume control of the new larva ~Carn
 	var/i = 0
 	while(candidates.len <= 0 && i < 5)
-		for(var/mob/dead/observer/G in player_list)
+		for(var/mob/abstract/observer/G in player_list)
 			if(((G.client.inactivity/10)/60) <= buffer + i) // the most active players are more likely to become an alien
 				if(!(G.mind && G.mind.current && G.mind.current.stat != DEAD))
 					candidates += G.key
@@ -333,7 +351,7 @@ proc/isInSight(var/atom/A, var/atom/B)
 	var/list/candidates = list() //List of candidate KEYS to assume control of the new larva ~Carn
 	var/i = 0
 	while(candidates.len <= 0 && i < 5)
-		for(var/mob/dead/observer/G in player_list)
+		for(var/mob/abstract/observer/G in player_list)
 			if(MODE_XENOMORPH in G.client.prefs.be_special_role)
 				if(((G.client.inactivity/10)/60) <= ALIEN_SELECT_AFK_BUFFER + i) // the most active players are more likely to become an alien
 					if(!(G.mind && G.mind.current && G.mind.current.stat != DEAD))
@@ -358,13 +376,6 @@ proc/isInSight(var/atom/A, var/atom/B)
 		spawn(delay)
 			for(var/client/C in group)
 				C.screen -= O
-
-/proc/flick_overlay(image/I, list/show_to, duration)
-	for(var/client/C in show_to)
-		C.images += I
-	spawn(duration)
-		for(var/client/C in show_to)
-			C.images -= I
 
 datum/projectile_data
 	var/src_x
@@ -531,3 +542,20 @@ datum/projectile_data
 
 /proc/round_is_spooky(var/spookiness_threshold = config.cult_ghostwriter_req_cultists)
 	return (cult.current_antagonists.len > spookiness_threshold)
+
+/proc/remove_images_from_clients(image/I, list/show_to)
+	for(var/client/C in show_to)
+		C.images -= I
+
+/proc/flick_overlay(image/I, list/show_to, duration)
+	for(var/client/C in show_to)
+		C.images += I
+	addtimer(CALLBACK(GLOBAL_PROC, /.proc/remove_images_from_clients, I, show_to), duration)
+
+/proc/flick_overlay_view(image/I, atom/target, duration) //wrapper for the above, flicks to everyone who can see the target atom
+	var/list/viewing = list()
+	for(var/m in viewers(target))
+		var/mob/M = m
+		if(M.client)
+			viewing += M.client
+	flick_overlay(I, viewing, duration)

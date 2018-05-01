@@ -40,23 +40,43 @@
 	var/nearest_beacon				// Tag of the beakon that we assume to be the closest one
 
 	var/bot_version = 1.4
-	var/list/threat_found_sounds = new('sound/voice/bcriminal.ogg', 'sound/voice/bjustice.ogg', 'sound/voice/bfreeze.ogg')
-	var/list/preparing_arrest_sounds = new('sound/voice/bgod.ogg', 'sound/voice/biamthelaw.ogg', 'sound/voice/bsecureday.ogg', 'sound/voice/bradio.ogg', 'sound/voice/binsult.ogg', 'sound/voice/bcreep.ogg')
+	var/list/threat_found_sounds = list(
+		'sound/voice/bcriminal.ogg',
+		'sound/voice/bjustice.ogg',
+		'sound/voice/bfreeze.ogg'
+	)
+	var/list/preparing_arrest_sounds = list(
+		'sound/voice/bgod.ogg',
+		'sound/voice/biamthelaw.ogg',
+		'sound/voice/bsecureday.ogg',
+		'sound/voice/bradio.ogg',
+		'sound/voice/binsult.ogg',
+		'sound/voice/bcreep.ogg'
+	)
+
+	var/datum/callback/patrol_callback	// this is here so we don't constantly recreate this datum, it being identical each time.
 
 /mob/living/bot/secbot/beepsky
 	name = "Officer Beepsky"
 	desc = "It's Officer Beep O'sky! Powered by a potato and a shot of whiskey."
 	auto_patrol = 1
 
-/mob/living/bot/secbot/New()
-	..()
+/mob/living/bot/secbot/Initialize()
+	. = ..()
 	listener = new /obj/secbot_listener(src)
 	listener.secbot = src
 
-	spawn(5) // Since beepsky is made on the start... this delay is necessary
-		if(radio_controller)
-			radio_controller.add_object(listener, control_freq, filter = RADIO_SECBOT)
-			radio_controller.add_object(listener, beacon_freq, filter = RADIO_NAVBEACONS)
+	if(SSradio)
+		SSradio.add_object(listener, control_freq, filter = RADIO_SECBOT)
+		SSradio.add_object(listener, beacon_freq, filter = RADIO_NAVBEACONS)
+
+	if (!patrol_callback)
+		patrol_callback = CALLBACK(src, .proc/patrol_step)
+
+/mob/living/bot/secbot/Destroy()
+	QDEL_NULL(listener)
+	target = null
+	return ..()
 
 /mob/living/bot/secbot/turn_off()
 	..()
@@ -71,7 +91,7 @@
 		icon_state = "secbot[on]"
 
 	if(on)
-		set_light(2, 1, "#FF6A00")
+		set_light(1.4, 1, "#FF6A00")
 	else
 		set_light(0)
 
@@ -141,14 +161,12 @@
 		awaiting_surrender = 5
 		mode = SECBOT_HUNT
 
-/mob/living/bot/secbot/Life()
+/mob/living/bot/secbot/think()
 	..()
 	if(!on)
 		return
-	if(client)
-		return
 
-	if(!target)
+	if(QDELETED(target))
 		scan_view()
 
 	if(!locked && (mode == SECBOT_START_PATROL || mode == SECBOT_PATROL)) // Stop running away when we set you up
@@ -185,12 +203,10 @@
 						RangedAttack(target)
 					else
 						step_towards(src, target) // Melee bots chase a bit faster
-					spawn(8)
-						if(!Adjacent(target))
-							step_towards(src, target)
-					spawn(16)
-						if(!Adjacent(target))
-							step_towards(src, target)
+
+					var/cb = CALLBACK(src, .proc/step_nonadjacent, target)
+					addtimer(cb, 8)
+					addtimer(cb, 16)
 
 		if(SECBOT_ARREST) // Target is next to us - attack it
 			if(!target)
@@ -249,17 +265,18 @@
 
 		if(SECBOT_PATROL)
 			patrol_step()
-			spawn(10)
-				patrol_step()
+			addtimer(patrol_callback, 10)
 			return
 
 		if(SECBOT_SUMMON)
 			patrol_step()
-			spawn(8)
-				patrol_step()
-			spawn(16)
-				patrol_step()
+			addtimer(patrol_callback, 8)
+			addtimer(patrol_callback, 16)
 			return
+
+/mob/living/bot/secbot/proc/step_nonadjacent(target)
+	if (!Adjacent(target))
+		step_towards(src, target)
 
 /mob/living/bot/secbot/UnarmedAttack(var/mob/M, var/proximity)
 	if(!..())
@@ -283,9 +300,7 @@
 			do_attack_animation(C)
 			is_attacking = 1
 			update_icons()
-			spawn(2)
-				is_attacking = 0
-				update_icons()
+			addtimer(CALLBACK(src, .proc/stop_attacking_cb), 2)
 			visible_message("<span class='warning'>[C] was prodded by [src] with a stun baton!</span>")
 		else
 			playsound(loc, 'sound/weapons/handcuffs.ogg', 30, 1, -2)
@@ -296,18 +311,19 @@
 					C.update_inv_handcuffed()
 				if(preparing_arrest_sounds.len)
 					playsound(loc, pick(preparing_arrest_sounds), 50, 0)
-	else if(istype(M, /mob/living/simple_animal))
+	else if(istype(M, /mob/living/simple_animal) && !istype(M, /mob/living/simple_animal/hostile/commanded))
 		var/mob/living/simple_animal/S = M
-		S.AdjustStunned(10)
 		S.adjustBruteLoss(15)
 		do_attack_animation(M)
 		playsound(loc, "swing_hit", 50, 1, -1)
 		is_attacking = 1
 		update_icons()
-		spawn(2)
-			is_attacking = 0
-			update_icons()
+		addtimer(CALLBACK(src, .proc/stop_attacking_cb), 2)
 		visible_message("<span class='warning'>[M] was beaten by [src] with a stun baton!</span>")
+
+/mob/living/bot/secbot/proc/stop_attacking_cb()
+	is_attacking = FALSE
+	update_icons()
 
 /mob/living/bot/secbot/explode()
 	visible_message("<span class='warning'>[src] blows apart!</span>")
@@ -315,21 +331,26 @@
 
 	var/obj/item/weapon/secbot_assembly/Sa = new /obj/item/weapon/secbot_assembly(Tsec)
 	Sa.build_step = 1
-	Sa.overlays += image('icons/obj/aibots.dmi', "hs_hole")
+	Sa.add_overlay("hs_hole")
 	Sa.created_name = name
 	new /obj/item/device/assembly/prox_sensor(Tsec)
 	new /obj/item/weapon/melee/baton(Tsec)
 	if(prob(50))
 		new /obj/item/robot_parts/l_arm(Tsec)
 
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-	s.set_up(3, 1, src)
-	s.start()
+	spark(src, 3, alldirs)
 
 	new /obj/effect/decal/cleanable/blood/oil(Tsec)
 	qdel(src)
 
+/mob/living/bot/secbot/emag_act(var/remaining_charges, var/mob/user, var/feedback)
+	if(!emagged)
+		emagged = 1
+		user << (feedback ? feedback : "You short out the lock of \the [src].")
+		return 1
+
 /mob/living/bot/secbot/proc/scan_view()
+	target = null
 	for(var/mob/living/M in view(7, src))
 		if(M.invisibility >= INVISIBILITY_LEVEL_ONE)
 			continue
@@ -407,11 +428,15 @@
 /obj/secbot_listener
 	var/mob/living/bot/secbot/secbot = null
 
+/obj/secbot_listener/Destroy()
+	secbot = null
+	return ..()
+
 /obj/secbot_listener/proc/post_signal(var/freq, var/key, var/value) // send a radio signal with a single data key/value pair
 	post_signal_multiple(freq, list("[key]" = value))
 
 /obj/secbot_listener/proc/post_signal_multiple(var/freq, var/list/keyval) // send a radio signal with multiple data key/values
-	var/datum/radio_frequency/frequency = radio_controller.return_frequency(freq)
+	var/datum/radio_frequency/frequency = SSradio.return_frequency(freq)
 	if(!frequency)
 		return
 
@@ -518,11 +543,11 @@
 
 /obj/item/weapon/secbot_assembly/attackby(var/obj/item/O, var/mob/user)
 	..()
-	if(istype(O, /obj/item/weapon/weldingtool) && !build_step)
+	if(iswelder(O) && !build_step)
 		var/obj/item/weapon/weldingtool/WT = O
 		if(WT.remove_fuel(0, user))
 			build_step = 1
-			overlays += image('icons/obj/aibots.dmi', "hs_hole")
+			add_overlay("hs_hole")
 			user << "You weld a hole in \the [src]."
 			return 1
 
@@ -530,7 +555,7 @@
 		user.drop_item()
 		build_step = 2
 		user << "You add \the [O] to [src]."
-		overlays += image('icons/obj/aibots.dmi', "hs_eye")
+		add_overlay("hs_eye")
 		name = "helmet/signaler/prox sensor assembly"
 		qdel(O)
 		return 1
@@ -540,7 +565,7 @@
 		build_step = 3
 		user << "You add \the [O] to [src]."
 		name = "helmet/signaler/prox sensor/robot arm assembly"
-		overlays += image('icons/obj/aibots.dmi', "hs_arm")
+		add_overlay("hs_arm")
 		qdel(O)
 		return 1
 

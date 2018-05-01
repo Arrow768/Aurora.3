@@ -35,6 +35,7 @@
 	heat_damage_per_tick = 20
 	mob_size = 10
 
+	tameable = FALSE
 
 /mob/living/simple_animal/hostile/alien/drone
 	name = "alien drone"
@@ -89,11 +90,6 @@
 /obj/item/projectile/neurotox
 	damage = 30
 	icon_state = "toxin"
-
-/mob/living/simple_animal/hostile/alien/death()
-	..()
-	visible_message("[src] lets out a waning guttural screech, green blood bubbling from its maw...")
-	playsound(src, 'sound/voice/hiss6.ogg', 100, 1)
 
 // Xenoarch aliens.
 /mob/living/simple_animal/hostile/samak

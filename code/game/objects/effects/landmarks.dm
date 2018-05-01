@@ -1,6 +1,6 @@
 /obj/effect/landmark
 	name = "landmark"
-	icon = 'icons/mob/screen1.dmi'
+	icon = 'icons/mob/screen/generic.dmi'
 	icon_state = "x2"
 	anchored = 1.0
 	unacidable = 1
@@ -18,11 +18,15 @@
 			delete_me = 1
 			return
 		if("start")
-			newplayer_start += loc
+			newplayer_start = get_turf(loc)
 			delete_me = 1
 			return
 		if("JoinLate")
 			latejoin += loc
+			delete_me = 1
+			return
+		if("KickoffLocation")
+			kickoffsloc += loc
 			delete_me = 1
 			return
 		if("JoinLateGateway")
@@ -35,6 +39,10 @@
 			return
 		if("JoinLateCyborg")
 			latejoin_cyborg += loc
+			delete_me = 1
+			return
+		if("JoinLateMerchant")
+			latejoin_merchant += loc
 			delete_me = 1
 			return
 		if("prisonwarp")
@@ -74,8 +82,8 @@
 /obj/effect/landmark/proc/delete()
 	delete_me = 1
 
-/obj/effect/landmark/initialize()
-	..()
+/obj/effect/landmark/Initialize()
+	. = ..()
 	if(delete_me)
 		qdel(src)
 
@@ -85,7 +93,7 @@
 
 /obj/effect/landmark/start
 	name = "start"
-	icon = 'icons/mob/screen1.dmi'
+	icon = 'icons/mob/screen/generic.dmi'
 	icon_state = "x"
 	anchored = 1.0
 	invisibility = 101

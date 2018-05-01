@@ -37,7 +37,8 @@
 	return
 
 
-/obj/effect/accelerated_particle/Bump(atom/A)
+/obj/effect/accelerated_particle/Collide(atom/A)
+	. = ..()
 	if (A)
 		if(ismob(A))
 			toxmob(A)
@@ -45,11 +46,10 @@
 			A:energy += energy
 	return
 
-
-/obj/effect/accelerated_particle/Bumped(atom/A)
+/obj/effect/accelerated_particle/CollidedWith(atom/A)
+	. = ..()
 	if(ismob(A))
-		Bump(A)
-	return
+		toxmob(A)
 
 
 /obj/effect/accelerated_particle/ex_act(severity)
@@ -60,7 +60,7 @@
 
 /obj/effect/accelerated_particle/proc/toxmob(var/mob/living/M)
 	var/radiation = (energy*2)
-	M.apply_effect((radiation*3),IRRADIATE,0)
+	M.apply_effect((radiation*3),IRRADIATE,blocked = M.getarmor(null, "rad"))
 	M.updatehealth()
 	//M << "\red You feel odd."
 	return

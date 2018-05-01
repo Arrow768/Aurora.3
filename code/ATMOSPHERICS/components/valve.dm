@@ -37,13 +37,13 @@
 /obj/machinery/atmospherics/valve/hide(var/i)
 	update_underlays()
 
-/obj/machinery/atmospherics/valve/New()
+/obj/machinery/atmospherics/valve/Initialize()
 	switch(dir)
 		if(NORTH || SOUTH)
 			initialize_directions = NORTH|SOUTH
 		if(EAST || WEST)
 			initialize_directions = EAST|WEST
-	..()
+	. = ..()
 
 /obj/machinery/atmospherics/valve/network_expand(datum/pipe_network/new_network, obj/machinery/atmospherics/pipe/reference)
 	if(reference == node1)
@@ -83,7 +83,7 @@
 	node1 = null
 	node2 = null
 
-	..()
+	return ..()
 
 /obj/machinery/atmospherics/valve/proc/open()
 	if(open) return 0
@@ -136,13 +136,11 @@
 	else
 		src.open()
 
-/obj/machinery/atmospherics/valve/process()
+/obj/machinery/atmospherics/valve/machinery_process()
 	..()
-	. = PROCESS_KILL
+	return PROCESS_KILL
 
-	return
-
-/obj/machinery/atmospherics/valve/initialize()
+/obj/machinery/atmospherics/valve/atmos_init()
 	normalize_dir()
 
 	var/node1_dir
@@ -168,7 +166,7 @@
 
 	build_network()
 
-	update_icon()
+	queue_icon_update()
 	update_underlays()
 
 	if(openDuringInit)
@@ -242,9 +240,9 @@
 		return
 	..()
 
-	log_and_message_admins("has [open ? "<font color='red'>OPENED</font>" : "closed"] [name]. (<a href='?_src_=holder;adminplayerobservecoodjump=1;X=[x];Y=[y];Z=[z]'>JMP</a>)", user)
+	log_and_message_admins("has [open ? "<font color='red'>OPENED</font>" : "closed"] [name].", user)
 
-/obj/machinery/atmospherics/valve/digital/AltClick(var/mob/dead/observer/admin)
+/obj/machinery/atmospherics/valve/digital/AltClick(var/mob/abstract/observer/admin)
 	if (istype(admin))
 		if (admin.client && admin.client.holder && ((R_MOD|R_ADMIN) & admin.client.holder.rights))
 			if (open)
@@ -254,7 +252,7 @@
 					return
 				open()
 
-			log_and_message_admins("has [open ? "opened" : "closed"] [name]. (<a href='?_src_=holder;adminplayerobservecoodjump=1;X=[x];Y=[y];Z=[z]'>JMP</a>)", admin)
+			log_and_message_admins("has [open ? "opened" : "closed"] [name].", admin)
 
 /obj/machinery/atmospherics/valve/digital/open
 	open = 1
@@ -264,7 +262,7 @@
 	var/old_stat = stat
 	..()
 	if(old_stat != stat)
-		update_icon()
+		queue_icon_update()
 
 /obj/machinery/atmospherics/valve/digital/update_icon()
 	..()
@@ -272,12 +270,12 @@
 		icon_state = "valve[open]nopower"
 
 /obj/machinery/atmospherics/valve/digital/proc/set_frequency(new_frequency)
-	radio_controller.remove_object(src, frequency)
+	SSradio.remove_object(src, frequency)
 	frequency = new_frequency
 	if(frequency)
-		radio_connection = radio_controller.add_object(src, frequency, RADIO_ATMOSIA)
+		radio_connection = SSradio.add_object(src, frequency, RADIO_ATMOSIA)
 
-/obj/machinery/atmospherics/valve/digital/initialize()
+/obj/machinery/atmospherics/valve/digital/atmos_init()
 	..()
 	if(frequency)
 		set_frequency(frequency)
@@ -302,7 +300,7 @@
 				open()
 
 /obj/machinery/atmospherics/valve/attackby(var/obj/item/weapon/W as obj, var/mob/user as mob)
-	if (!istype(W, /obj/item/weapon/wrench))
+	if (!iswrench(W))
 		return ..()
 	if (istype(src, /obj/machinery/atmospherics/valve/digital))
 		user << "<span class='warning'>You cannot unwrench \the [src], it's too complicated.</span>"
@@ -315,7 +313,7 @@
 		return 1
 	playsound(src.loc, 'sound/items/Ratchet.ogg', 50, 1)
 	user << "<span class='notice'>You begin to unfasten \the [src]...</span>"
-	if (do_after(user, 40))
+	if (do_after(user, 40, act_target = src))
 		user.visible_message( \
 			"<span class='notice'>\The [user] unfastens \the [src].</span>", \
 			"<span class='notice'>You have unfastened \the [src].</span>", \

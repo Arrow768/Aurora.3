@@ -2,7 +2,7 @@ var/list/obj/machinery/photocopier/faxmachine/allfaxes = list()
 var/list/arrived_faxes = list()	//cache for faxes that have been sent to the admins
 var/list/sent_faxes = list()	//cache for faxes that have been sent by the admins
 var/list/alldepartments = list()
-var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply")
+var/list/admin_departments
 
 /obj/machinery/photocopier/faxmachine
 	name = "fax machine"
@@ -20,8 +20,6 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 	var/static/const/broadcastfax_cooldown = 3000
 
 	var/static/const/broadcast_departments = "Stationwide broadcast (WARNING)"
-	var/static/list/admin_departments = list("Central Command", "Tau Ceti Government")
-
 	var/obj/item/weapon/card/id/scan = null // identification
 	var/authenticated = 0
 	var/sendtime = 0		// Time when fax was sent
@@ -32,16 +30,17 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 
 	var/list/obj/item/device/pda/alert_pdas = list() //A list of PDAs to alert upon arrival of the fax.
 
-/obj/machinery/photocopier/faxmachine/New()
-	..()
+/obj/machinery/photocopier/faxmachine/Initialize()
+	. = ..()
 	allfaxes += src
-	if(!destination) destination = "[boss_name]"
+	if(!destination) destination = "[current_map.boss_name]"
 	if( !(("[department]" in alldepartments) || ("[department]" in admin_departments)) )
 		alldepartments |= department
 
 /obj/machinery/photocopier/faxmachine/attack_hand(mob/user as mob)
 	user.set_machine(src)
 
+	var/remaining_cooldown = get_remaining_cooldown()
 	var/dat = "Fax Machine<BR>"
 
 	var/scan_name
@@ -60,13 +59,13 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 	dat += "<hr>"
 
 	if(authenticated)
-		dat += "<b>Logged in to:</b> [boss_name] Quantum Entanglement Network<br><br>"
+		dat += "<b>Logged in to:</b> [current_map.boss_name] Quantum Entanglement Network<br><br>"
 
 		if(copyitem)
 			dat += "<a href='byond://?src=\ref[src];remove=1'>Remove Item</a><br><br>"
 
-			if(sendcooldown)
-				dat += "<b>Transmitter arrays realigning. Please stand by. [round(get_remaining_cooldown() / 10)] seconds remaining.</b><br>"
+			if(remaining_cooldown > 0)
+				dat += "<b>Transmitter arrays realigning. Please stand by. [round(remaining_cooldown / 10)] seconds remaining.</b><br>"
 
 			else
 
@@ -75,9 +74,9 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 				dat += "<b>Sending to:</b> <a href='byond://?src=\ref[src];dept=1'>[destination]</a><br>"
 
 		else
-			if(sendcooldown)
+			if(remaining_cooldown > 0)
 				dat += "Please insert paper to send via secure connection.<br><br>"
-				dat += "<b>Transmitter arrays realigning. Please stand by. [round(get_remaining_cooldown() / 10)] seconds remaining.</b><br>"
+				dat += "<b>Transmitter arrays realigning. Please stand by. [round(remaining_cooldown / 10)] seconds remaining.</b><br>"
 			else
 				dat += "Please insert paper to send via secure connection.<br><br>"
 
@@ -98,7 +97,7 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 	user << browse(dat, "window=copier")
 	onclose(user, "copier")
 
-	if (sendcooldown != 0)
+	if (remaining_cooldown > 0)
 		spawn(50)
 			// Auto-refresh every 5 seconds, if cooldown is active
 			updateUsrDialog()
@@ -107,7 +106,7 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 
 /obj/machinery/photocopier/faxmachine/Topic(href, href_list)
 	if(href_list["send"])
-		if (sendcooldown > 0)
+		if (get_remaining_cooldown() > 0)
 			// Rate-limit sending faxes
 			usr << "<span class='warning'>The fax machine isn't ready, yet!</span>"
 			updateUsrDialog()
@@ -185,12 +184,11 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 
 	updateUsrDialog()
 
-/obj/machinery/photocopier/faxmachine/process()
+/obj/machinery/photocopier/faxmachine/machinery_process()
 	.=..()
 	var/static/ui_update_delay = 0
 
-	var/current_time = world.time
-	if (current_time > sendtime + sendcooldown)
+	if ((sendtime + sendcooldown) < world.time)
 		sendcooldown = 0
 
 /*
@@ -231,11 +229,13 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 		if( F.department == destination )
 			success = F.recievefax(copyitem)
 
+	if (success)
+		set_cooldown(normalfax_cooldown)
+
 	if (display_message)
 		// Normal fax
 		if (success)
 			visible_message("[src] beeps, \"Message transmitted successfully.\"")
-			sendcooldown = normalfax_cooldown
 		else
 			visible_message("[src] beeps, \"Error transmitting message.\"")
 	return success
@@ -299,16 +299,14 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 		visible_message("[src] beeps, \"Error transmitting message.\"")
 		return
 
-	rcvdcopy.loc = null //hopefully this shouldn't cause trouble
+	rcvdcopy.forceMove(null)  //hopefully this shouldn't cause trouble
 	arrived_faxes += rcvdcopy
 
 	//message badmins that a fax has arrived
-	switch(destination)
-		if (boss_name)
-			message_admins(sender, "[uppertext(boss_short)] FAX", rcvdcopy, "CentcommFaxReply", "#006100")
-		if ("Tau Ceti Government")
-			message_admins(sender, "TAU CETI GOVERNMENT FAX", rcvdcopy, "CentcommFaxReply", "#1F66A0")
-			//message_admins(sender, "TAU CETi GOVERNMENT FAX", rcvdcopy, "TauCetiGovFaxReply", "#1F66A0")
+	if (destination == current_map.boss_name)
+		message_admins(sender, "[uppertext(current_map.boss_short)] FAX", rcvdcopy, "CentcommFaxReply", "#006100")
+	else if (destination == "[current_map.system_name] Government")
+		message_admins(sender, "[uppertext(current_map.system_name)] GOVERNMENT FAX", rcvdcopy, "CentcommFaxReply", "#1F66A0")
 
 	set_cooldown(adminfax_cooldown)
 	spawn(50)
@@ -316,13 +314,29 @@ var/list/admin_departments = list("[boss_name]", "Tau Ceti Government", "Supply"
 
 
 /obj/machinery/photocopier/faxmachine/proc/message_admins(var/mob/sender, var/faxname, var/obj/item/sent, var/reply_type, font_colour="#006100")
-	var/msg = "\blue <b><font color='[font_colour]'>[faxname]: </font>[key_name(sender, 1)] (<A HREF='?_src_=holder;adminplayeropts=\ref[sender]'>PP</A>) (<A HREF='?_src_=vars;Vars=\ref[sender]'>VV</A>) (<A HREF='?_src_=holder;subtlemessage=\ref[sender]'>SM</A>) (<A HREF='?_src_=holder;adminplayerobservejump=\ref[sender]'>JMP</A>) (<A HREF='?_src_=holder;secretsadmin=check_antagonist'>CA</A>) (<a href='?_src_=holder;[reply_type]=\ref[src];faxMachine=\ref[src]'>REPLY</a>)</b>: Receiving '[sent.name]' via secure connection ... <a href='?_src_=holder;AdminFaxView=\ref[sent]'>view message</a>"
+	var/msg = "<span class='notice'> <b><font color='[font_colour]'>[faxname]: </font>[key_name(sender, 1)] (<A HREF='?_src_=holder;adminplayeropts=\ref[sender]'>PP</A>) (<A HREF='?_src_=vars;Vars=\ref[sender]'>VV</A>) (<A HREF='?_src_=holder;subtlemessage=\ref[sender]'>SM</A>) (<A HREF='?_src_=holder;adminplayerobservejump=\ref[sender]'>JMP</A>) (<A HREF='?_src_=holder;secretsadmin=check_antagonist'>CA</A>) (<a href='?_src_=holder;[reply_type]=\ref[src];faxMachine=\ref[src]'>REPLY</a>)</b>: Receiving '[sent.name]' via secure connection ... <a href='?_src_=holder;AdminFaxView=\ref[sent]'>view message</a></span>"
 
+	var/cciaa_present = 0
+	var/cciaa_afk = 0
 	for(var/client/C in admins)
-		if((R_ADMIN|R_CCIAA) & C.holder.rights)
+		var/flags = C.holder.rights & (R_ADMIN|R_CCIAA)
+		if(flags)
 			C << msg
+		if (flags == R_CCIAA) // Admins sometimes get R_CCIAA, but CCIAA never get R_ADMIN
+			cciaa_present++
+			if (C.is_afk())
+				cciaa_afk++
 
-	discord_bot.send_to_cciaa("New fax arrived! [faxname]: \"[sent.name]\" by [sender].")
+	var/discord_msg = "New fax arrived! [faxname]: \"[sent.name]\" by [sender]. ([cciaa_present] agents online"
+	if (cciaa_present)
+		if ((cciaa_present - cciaa_afk) <= 0)
+			discord_msg += ", **all AFK!**)"
+		else
+			discord_msg += ", [cciaa_afk] AFK.)"
+	else
+		discord_msg += ".)"
+
+	discord_bot.send_to_cciaa(discord_msg)
 
 /obj/machinery/photocopier/faxmachine/proc/do_pda_alerts()
 	if (!alert_pdas || !alert_pdas.len)

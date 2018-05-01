@@ -6,6 +6,8 @@
 // controlled they use buttons or other means of remote control. This is why they cannot be emagged
 // as they lack any ID scanning system, they just handle remote control signals. Subtypes have
 // different icons, which are defined by set of variables. Subtypes are on bottom of this file.
+#define BLAST_DOOR_CRUSH_DAMAGE 40
+#define SHUTTER_CRUSH_DAMAGE 10
 
 /obj/machinery/door/blast
 	name = "Blast Door"
@@ -18,6 +20,7 @@
 	var/icon_state_opening = null
 	var/icon_state_closed = null
 	var/icon_state_closing = null
+	var/damage = BLAST_DOOR_CRUSH_DAMAGE
 
 	closed_layer = 3.4 // Above airlocks when closed
 	var/id = 1.0
@@ -31,8 +34,8 @@
 	var/_wifi_id
 	var/datum/wifi/receiver/button/door/wifi_receiver
 
-/obj/machinery/door/blast/initialize()
-	..()
+/obj/machinery/door/blast/Initialize()
+	. = ..()
 	if(_wifi_id)
 		wifi_receiver = new(_wifi_id, src)
 
@@ -44,12 +47,11 @@
 // Proc: Bumped()
 // Parameters: 1 (AM - Atom that tried to walk through this object)
 // Description: If we are open returns zero, otherwise returns result of parent function.
-/obj/machinery/door/blast/Bumped(atom/AM)
+/obj/machinery/door/blast/CollidedWith(atom/AM)
 	if(!density)
 		return ..()
 	else
 		return 0
-
 // Proc: update_icon()
 // Parameters: None
 // Description: Updates icon of this object. Uses icon state variables.
@@ -103,7 +105,7 @@
 // This only works on broken doors or doors without power. Also allows repair with Plasteel.
 /obj/machinery/door/blast/attackby(obj/item/weapon/C as obj, mob/user as mob)
 	src.add_fingerprint(user)
-	if(istype(C, /obj/item/weapon/crowbar) || (istype(C, /obj/item/weapon/material/twohanded/fireaxe) && C:wielded == 1) || (istype(C, /obj/item/weapon/melee/hammer)))
+	if(iscrowbar(C) || (istype(C, /obj/item/weapon/material/twohanded/fireaxe) && C:wielded == 1) || (istype(C, /obj/item/weapon/melee/hammer)))
 		if (((stat & NOPOWER) || 	(stat & BROKEN)) && !( src.operating ))
 			force_toggle()
 		else
@@ -147,6 +149,10 @@
 	if (src.operating || (stat & BROKEN || stat & NOPOWER))
 		return
 	force_close()
+	for(var/turf/turf in locs)
+		for(var/atom/movable/AM in turf)
+			if(AM.airlock_crush(damage))
+				take_damage(damage*0.2)
 
 
 // Proc: repair()
@@ -188,3 +194,12 @@ obj/machinery/door/blast/regular/open
 	icon_state_closed = "shutter1"
 	icon_state_closing = "shutterc1"
 	icon_state = "shutter1"
+	damage = SHUTTER_CRUSH_DAMAGE
+
+/obj/machinery/door/blast/shutters/open
+	icon_state = "shutter0"
+	density = 0
+	opacity = 0
+
+#undef BLAST_DOOR_CRUSH_DAMAGE
+#undef SHUTTER_CRUSH_DAMAGE

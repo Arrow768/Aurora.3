@@ -10,8 +10,8 @@
 	throw_range = 20
 	origin_tech = list(TECH_BLUESPACE = 4)
 
-/obj/item/weapon/teleportation_scroll/attack_self(mob/user as mob)
-	if(!(user.mind.assigned_role == "Space Wizard"))
+/obj/item/weapon/teleportation_scroll/attack_self(mob/living/user as mob)
+	if(!user.is_wizard())
 		if(istype(user, /mob/living/carbon/human))
 			var/mob/living/carbon/human/H = user
 			var/obj/item/organ/O = H.internal_organs_by_name[pick("eyes","appendix","kidneys","liver", "heart", "lungs", "brain")]
@@ -75,7 +75,7 @@
 	smoke.start()
 	var/list/L = list()
 	for(var/turf/T in get_area_turfs(thearea.type))
-		if(!T.density)
+		if(!T.density && !T.is_hole)
 			var/clear = 1
 			for(var/obj/O in T)
 				if(O.density)

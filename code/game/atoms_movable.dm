@@ -16,64 +16,44 @@
 	var/item_state = null // Base name of the image used for when the item is worn. Suffixes are added to this.
 	//Also used on holdable mobs for the same info related to their held version
 
-	var/auto_init = 1
+	var/can_hold_mob = FALSE
+	var/list/contained_mobs
 
-/atom/movable/New()
-	..()
-	if (objects_initialized)
-		if (auto_init)
-			initialize()
-	else
-		objects_init_list += src
-
-/atom/movable/Del()
-	if(isnull(gcDestroyed) && loc)
+// We don't really need this, and apparently defining it slows down GC.
+/*/atom/movable/Del()
+	if(!QDELING(src) && loc)
 		testing("GC: -- [type] was deleted via del() rather than qdel() --")
 		crash_with("GC: -- [type] was deleted via del() rather than qdel() --") // stick a stack trace in the runtime logs
-//	else if(isnull(gcDestroyed))
-//		testing("GC: [type] was deleted via GC without qdel()") //Not really a huge issue but from now on, please qdel()
-//	else
-//		testing("GC: [type] was deleted via GC with qdel()")
-	..()
+	..()*/
 
 /atom/movable/Destroy()
 	. = ..()
-	if(reagents)
-		qdel(reagents)
-		reagents = null
 	for(var/atom/movable/AM in contents)
 		qdel(AM)
 	loc = null
+	screen_loc = null
 	if (pulledby)
 		if (pulledby.pulling == src)
 			pulledby.pulling = null
 		pulledby = null
 
-/atom/movable/proc/initialize()
-	if(!isnull(gcDestroyed))
-		crash_with("GC: -- [type] had initialize() called after qdel() --")
+// This is called when this atom is prevented from moving by atom/A.
+/atom/movable/proc/Collide(atom/A)
+	if(airflow_speed > 0 && airflow_dest)
+		airflow_hit(A)
+	else
+		airflow_speed = 0
+		airflow_time = 0
 
-/atom/movable/Bump(var/atom/A, yes)
-	if(src.throwing)
-		src.throw_impact(A)
-		src.throwing = 0
+	if (throwing)
+		throwing = FALSE
+		. = TRUE
+		if (!QDELETED(A))
+			throw_impact(A)
+			A.CollidedWith(src)
 
-	spawn(0)
-		if ((A && yes))
-			A.last_bumped = world.time
-			A.Bumped(src)
-		return
-	..()
-	return
-
-/atom/movable/proc/forceMove(atom/destination)
-	if(destination)
-		if(loc)
-			loc.Exited(src)
-		loc = destination
-		loc.Entered(src)
-		return 1
-	return 0
+	else if (!QDELETED(A))
+		A.CollidedWith(src)
 
 //called when src is thrown into hit_atom
 /atom/movable/proc/throw_impact(atom/hit_atom, var/speed)
@@ -143,7 +123,7 @@
 
 
 
-		while(src && target &&((((src.x < target.x && dx == EAST) || (src.x > target.x && dx == WEST)) && dist_travelled < range) || (a && a.has_gravity == 0)  || istype(src.loc, /turf/space)) && src.throwing && istype(src.loc, /turf))
+		while(src && target &&((((src.x < target.x && dx == EAST) || (src.x > target.x && dx == WEST)) && dist_travelled < range) || (a && a.has_gravity() == 0)  || istype(src.loc, /turf/space)) && src.throwing && istype(src.loc, /turf))
 			// only stop when we've gone the whole distance (or max throw range) and are on a non-space tile, or hit something, or hit the end of the map, or someone picks it up
 			if(error < 0)
 				var/atom/step = get_step(src, dy)
@@ -172,7 +152,7 @@
 			a = get_area(src.loc)
 	else
 		var/error = dist_y/2 - dist_x
-		while(src && target &&((((src.y < target.y && dy == NORTH) || (src.y > target.y && dy == SOUTH)) && dist_travelled < range) || (a && a.has_gravity == 0)  || istype(src.loc, /turf/space)) && src.throwing && istype(src.loc, /turf))
+		while(src && target &&((((src.y < target.y && dy == NORTH) || (src.y > target.y && dy == SOUTH)) && dist_travelled < range) || (a && a.has_gravity() == 0)  || istype(src.loc, /turf/space)) && src.throwing && istype(src.loc, /turf))
 			// only stop when we've gone the whole distance (or max throw range) and are on a non-space tile, or hit something, or hit the end of the map, or someone picks it up
 			if(error < 0)
 				var/atom/step = get_step(src, dx)
@@ -207,6 +187,10 @@
 	src.thrower = null
 	src.throw_source = null
 
+	if (isturf(loc))
+		var/turf/Tloc = loc
+		Tloc.Entered(src)
+
 
 //Overlays
 /atom/movable/overlay
@@ -214,8 +198,7 @@
 	anchored = 1
 
 /atom/movable/overlay/New()
-	for(var/x in src.verbs)
-		src.verbs -= x
+	verbs.Cut()
 	..()
 
 /atom/movable/overlay/attackby(a, b)
@@ -229,7 +212,7 @@
 	return
 
 /atom/movable/proc/touch_map_edge()
-	if(z in config.sealed_levels)
+	if(z in current_map.sealed_levels)
 		return
 
 	if(config.use_overmap)
@@ -256,21 +239,72 @@
 			y = TRANSITIONEDGE + 1
 			x = rand(TRANSITIONEDGE + 2, world.maxx - TRANSITIONEDGE - 2)
 
-		if(ticker && istype(ticker.mode, /datum/game_mode/nuclear)) //only really care if the game mode is nuclear
-			var/datum/game_mode/nuclear/G = ticker.mode
+		if(istype(SSticker.mode, /datum/game_mode/nuclear)) //only really care if the game mode is nuclear
+			var/datum/game_mode/nuclear/G = SSticker.mode
 			G.check_nuke_disks()
 
 		spawn(0)
 			if(loc) loc.Entered(src)
 
-//This list contains the z-level numbers which can be accessed via space travel and the percentile chances to get there.
-var/list/accessible_z_levels = list("1" = 5, "3" = 10, "4" = 15, "6" = 60)
-
 //by default, transition randomly to another zlevel
 /atom/movable/proc/get_transit_zlevel()
-	var/list/candidates = accessible_z_levels.Copy()
-	candidates.Remove("[src.z]")
+	return current_map.get_transit_zlevel()
 
-	if(!candidates.len)
-		return null
-	return text2num(pickweight(candidates))
+// Parallax stuff.
+
+/atom/movable/proc/update_client_hook(atom/destination)
+	. = isturf(destination)
+	if (.)
+		for (var/thing in contained_mobs)
+			var/mob/M = thing
+			if (!M.client || !M.hud_used)
+				continue
+
+			if (get_turf(M.client.eye) == destination)
+				M.hud_used.update_parallax_values()
+
+/mob/update_client_hook(atom/destination)
+	. = ..()
+	if (. && hud_used && client && get_turf(client.eye) == destination)
+		hud_used.update_parallax_values()
+
+// Core movement hooks & procs.
+/atom/movable/proc/forceMove(atom/destination)
+	if(destination)
+		if(loc)
+			loc.Exited(src)
+		loc = destination
+		loc.Entered(src)
+		if (contained_mobs)
+			update_client_hook(loc)
+		return 1
+	if (contained_mobs)
+		update_client_hook(loc)
+	return 0
+
+/atom/movable/Move()
+	var/old_loc = loc
+	. = ..()
+	if (.)
+		// Events.
+		if (moved_event.listeners_assoc[src])
+			moved_event.raise_event(src, old_loc, loc)
+
+		// Parallax.
+		if (contained_mobs)
+			update_client_hook(loc)
+
+		// Lighting.
+		if (light_sources)
+			var/datum/light_source/L
+			var/thing
+			for (thing in light_sources)
+				L = thing
+				L.source_atom.update_light()
+
+		// Openturf.
+		if (bound_overlay)
+			// The overlay will handle cleaning itself up on non-openspace turfs.
+			bound_overlay.forceMove(get_step(src, UP))
+			if (bound_overlay.dir != dir)
+				bound_overlay.set_dir(dir)

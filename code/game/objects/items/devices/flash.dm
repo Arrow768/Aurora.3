@@ -37,7 +37,7 @@
 
 	M.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been flashed (attempt) with [src.name]  by [user.name] ([user.ckey])</font>")
 	user.attack_log += text("\[[time_stamp()]\] <font color='red'>Used the [src.name] to flash [M.name] ([M.ckey])</font>")
-	msg_admin_attack("[user.name] ([user.ckey]) Used the [src.name] to flash [M.name] ([M.ckey]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)")
+	msg_admin_attack("[user.name] ([user.ckey]) Used the [src.name] to flash [M.name] ([M.ckey]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)",ckey=key_name(user),ckey_target=key_name(M))
 
 	user.setClickCooldown(DEFAULT_ATTACK_COOLDOWN)
 	user.do_attack_animation(M)
@@ -76,17 +76,17 @@
 			M.eye_blind = 5
 			return
 
-		var/safety = M:eyecheck()
+		var/safety = M:eyecheck(TRUE)
 		if(safety <= 0)
 			M.Weaken(10)
 			flick("e_flash", M.flash)
 				//Vaurca damage 15/01/16
 			var/mob/living/carbon/human/H = M
 			if(isvaurca(H))
-				var/obj/item/organ/eyes/E = H.internal_organs_by_name["eyes"]
+				var/obj/item/organ/eyes/E = H.get_eyes()
 				if(!E)
 					return
-				usr << "\red Your eyes burn with the intense light of the flash!."
+				usr << span("alert", "Your eyes burn with the intense light of the flash!.")
 				E.damage += rand(10, 11)
 				if(E.damage > 12)
 					M.eye_blurry += rand(3,6)
@@ -96,8 +96,7 @@
 					M.eye_blind = 5
 					M.eye_blurry = 5
 					M.disabilities |= NEARSIGHTED
-					spawn(100)
-						M.disabilities &= ~NEARSIGHTED
+					addtimer(CALLBACK(M, /mob/.proc/reset_nearsighted), 100)
 
 /*			if(ishuman(M) && ishuman(user) && M.stat!=DEAD)	//why is this even a thing
 				if(user.mind && user.mind in revs.current_antagonists)
@@ -120,6 +119,10 @@
 			flashfail = 1
 
 	else if(issilicon(M))
+		if(isrobot(M))
+			var/mob/living/silicon/robot/R = M
+			if(R.overclocked)
+				return
 		M.Weaken(rand(5,10))
 	else
 		flashfail = 1
@@ -195,7 +198,7 @@
 				for(var/obj/item/weapon/cloaking_device/S in M)
 					S.active = 0
 					S.icon_state = "shield0"
-		var/safety = M.eyecheck()
+		var/safety = M.eyecheck(TRUE)
 		if(safety < FLASH_PROTECTION_MODERATE)
 			if(!M.blinded)
 				flick("flash", M.flash)
@@ -214,7 +217,7 @@
 			times_used++
 			if(istype(loc, /mob/living/carbon))
 				var/mob/living/carbon/M = loc
-				var/safety = M.eyecheck()
+				var/safety = M.eyecheck(TRUE)
 				if(safety < FLASH_PROTECTION_MODERATE)
 					M.Weaken(10)
 					flick("e_flash", M.flash)

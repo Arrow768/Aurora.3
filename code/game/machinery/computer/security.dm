@@ -5,8 +5,8 @@
 	desc = "Used to view, edit and maintain security records"
 
 	icon_screen = "security"
-	light_color = "#a91515"
-	req_one_access = list(access_security, access_forensics_lockers, access_lawyer)
+	light_color = LIGHT_COLOR_ORANGE
+	req_one_access = list(access_security, access_forensics_lockers, access_lawyer, access_hop)
 	circuit = /obj/item/weapon/circuitboard/secure_data
 	var/obj/item/weapon/card/id/scan = null
 	var/authenticated = null
@@ -33,7 +33,7 @@
 	set name = "Eject ID Card"
 	set src in oview(1)
 
-	if(!usr || usr.stat || usr.lying)	return
+	if(!usr || usr.stat || usr.lying || usr.restrained() || !Adjacent(usr))	return
 
 	if(scan)
 		usr << "You remove \the [scan] from \the [src]."
@@ -104,6 +104,8 @@
 							switch(crimstat)
 								if("*Arrest*")
 									background = "'background-color:#DC143C;'"
+								if("Search")
+									background = "'background-color:#FFAE00;'"
 								if("Incarcerated")
 									background = "'background-color:#CD853F;'"
 								if("Parolled")
@@ -203,6 +205,8 @@
 							switch(crimstat)
 								if("*Arrest*")
 									background = "'background-color:#DC143C;'"
+								if("Search")
+									background = "'background-color:#FFAE00;'"
 								if("Incarcerated")
 									background = "'background-color:#CD853F;'"
 								if("Parolled")
@@ -515,6 +519,7 @@ What a mess.*/
 							temp += "<ul>"
 							temp += "<li><a href='?src=\ref[src];choice=Change Criminal Status;criminal2=none'>None</a></li>"
 							temp += "<li><a href='?src=\ref[src];choice=Change Criminal Status;criminal2=arrest'>*Arrest*</a></li>"
+							temp += "<li><a href='?src=\ref[src];choice=Change Criminal Status;criminal2=search'>Search</a></li>"
 							temp += "<li><a href='?src=\ref[src];choice=Change Criminal Status;criminal2=incarcerated'>Incarcerated</a></li>"
 							temp += "<li><a href='?src=\ref[src];choice=Change Criminal Status;criminal2=parolled'>Parolled</a></li>"
 							temp += "<li><a href='?src=\ref[src];choice=Change Criminal Status;criminal2=released'>Released</a></li>"
@@ -565,6 +570,8 @@ What a mess.*/
 									active2.fields["criminal"] = "None"
 								if("arrest")
 									active2.fields["criminal"] = "*Arrest*"
+								if("search")
+									active2.fields["criminal"] = "Search"
 								if("incarcerated")
 									active2.fields["criminal"] = "Incarcerated"
 								if("parolled")
@@ -620,7 +627,7 @@ What a mess.*/
 				if(3)
 					R.fields["age"] = rand(5, 85)
 				if(4)
-					R.fields["criminal"] = pick("None", "*Arrest*", "Incarcerated", "Parolled", "Released")
+					R.fields["criminal"] = pick("None", "*Arrest*", "Search", "Incarcerated", "Parolled", "Released")
 				if(5)
 					R.fields["p_stat"] = pick("*Unconcious*", "Active", "Physically Unfit")
 					if(PDA_Manifest.len)

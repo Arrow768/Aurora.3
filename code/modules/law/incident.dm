@@ -8,6 +8,7 @@
 
 	var/list/arbiters = list( "Witness" = list() ) // The person or list of people who were involved in the conviction of the criminal
 	var/mob/living/carbon/human/criminal // The person who committed the crimes
+	var/datum/weakref/card // The ID of the criminal
 
 	var/datetime = "" //When the crime has been commited
 
@@ -133,14 +134,25 @@
 
 	return max
 
-/datum/crime_incident/proc/renderGuilty( var/mob/living/user )
+//type: 0 - brig sentence, 1 - fine, 2 - prison sentence
+/datum/crime_incident/proc/renderGuilty( var/mob/living/user, var/type=0 )
 	if( !criminal )
 		return
 
 	created_by = "[user.ckey] - [user.real_name]"
 
+	if(type == 0)
+		prison_sentence = 0
+		fine = 0
+	else if(type == 1)
+		brig_sentence = 0
+		prison_sentence = 0
+	else if(type == 2)
+		brig_sentence = 0
+		fine = 0
+
 	saveCharInfraction()
-	generateReport()
+	return generateReport()
 
 /datum/crime_incident/proc/generateReport()
 	. = "<center>Security Incident Report</center><hr>"
@@ -148,18 +160,18 @@
 	. += "<br>"
 	. += "<b>CRIMINAL</b>: <i>[criminal]</i><br><br>"
 
-	. += "[criminal] was found guilty of the following crimes on [time2text(world.realtime, "DD/MMM")]/[game_year]. "
+	. += "[criminal] was found guilty of the following crimes on [game_year]-[time2text(world.realtime, "MMM-DD")].<br>"
 
-	if( !brig_sentence && !prison_sentence )
-		. += "As decided by the arbiter(s), they will serve no time for their crimes."
-	else
+	if( brig_sentence != 0 )
 		. += "As decided by the arbiter(s), they will serve the following sentence:<br>"
-		if( brig_sentence )
-			if( brig_sentence >= PERMABRIG_SENTENCE )
-				. += "\t<b>BRIG</b>: <i>Holding until transfer</i><br>"
-			else
-				. += "\t<b>BRIG</b>: <i>[brig_sentence] minutes</i><br>"
-
+		if( brig_sentence >= PERMABRIG_SENTENCE )
+			. += "\t<b>BRIG</b>: <i>Holding until transfer</i><br>"
+		else
+			. += "\t<b>BRIG</b>: <i>[brig_sentence] minutes</i><br>"
+	else if ( fine != 0 )
+		. += "As decided by the arbiter(s), they have been fined [fine] credits.<br>"
+	else
+		. += "As decided by the arbiter(s), they will serve no time for their crimes.<br>"
 	. += "<br><table>"
 	. += "<tr><th colspan='2'>CHARGES</th></tr>"
 	for( var/datum/law/L in charges )
@@ -235,34 +247,34 @@
 			return
 
 	var/list/sql_args[] = list(
-		":char_id" = char_id,
-		":uid" = UID,
-		":datetime" = datetime,
-		":notes" = notes,
-		":charges" = json_encode(charges),
-		":evidence" = json_encode(evidence),
-		":arbiters" = json_encode(arbiters),
-		":brig_sentence" = brig_sentence,
-		":fine" = fine,
-		":felony" = felony,
-		":created_by" = created_by,
-		":game_id" = game_id
+		"char_id" = char_id,
+		"uid" = UID,
+		"datetime" = datetime,
+		"notes" = notes,
+		"charges" = json_encode(charges),
+		"evidence" = json_encode(evidence),
+		"arbiters" = json_encode(arbiters),
+		"brig_sentence" = brig_sentence,
+		"fine" = fine,
+		"felony" = felony,
+		"created_by" = created_by,
+		"game_id" = game_id
 	)
 	//Insert a new entry into the db. Upate if a entry with the same chard_id and UID already exists
 	var/DBQuery/infraction_insert_query = dbcon.NewQuery({"INSERT INTO ss13_character_incidents
 		(char_id,  UID, datetime, notes, charges, evidence, arbiters, brig_sentence, fine, felony, created_by, game_id)
 	VALUES
-		(:char_id, :uid, :datetime, :notes, :charges, :evidence, :arbiters, :brig_sentence, :fine, :felony, :created_by, :game_id)
+		(:char_id:, :uid:, :datetime:, :notes:, :charges:, :evidence:, :arbiters:, :brig_sentence:, :fine:, :felony:, :created_by:, :game_id:)
 	ON DUPLICATE KEY UPDATE
-		notes = :notes,
-		charges = :charges,
-		evidence = :evidence,
-		arbiters = :arbiters,
-		brig_sentence = :brig_sentence,
-		fine = :fine,
-		felony = :felony,
-		created_by = :created_by,
-		game_id = :game_id
+		notes = :notes:,
+		charges = :charges:,
+		evidence = :evidence:,
+		arbiters = :arbiters:,
+		brig_sentence = :brig_sentence:,
+		fine = :fine:,
+		felony = :felony:,
+		created_by = :created_by:,
+		game_id = :game_id:
 	"})
 	infraction_insert_query.Execute(sql_args)
 
@@ -282,14 +294,14 @@
 		log_debug("Infraction: Not deleted from the db - db_id 0")
 
 	var/list/sql_args[] = list(
-		":id" = db_id,
-		":deleted_by" = deleted_by
+		"id" = db_id,
+		"deleted_by" = deleted_by
 	)
 	//Insert a new entry into the db. Upate if a entry with the same chard_id and UID already exists
 	var/DBQuery/infraction_delete_query = dbcon.NewQuery({"UPDATE ss13_character_incidents
 	SET
-		deleted_by=:deleted_by,
+		deleted_by=:deleted_by:,
 		deleted_at=NOW()
 	WHERE
-		id = :id"})
+		id = :id:"})
 	infraction_delete_query.Execute(sql_args)

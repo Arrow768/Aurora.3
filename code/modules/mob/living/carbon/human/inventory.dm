@@ -19,7 +19,7 @@ This saves us from having to call add_fingerprint() any time something is put in
 			else
 				update_inv_r_hand(0)
 		else
-			H << "\red You are unable to equip that."
+			H << "<span class='warning'>You are unable to equip that.</span>"
 
 /mob/living/carbon/human/proc/equip_in_one_of_slots(obj/item/W, list/slots, del_on_fail = 1)
 	for (var/slot in slots)
@@ -129,6 +129,7 @@ This saves us from having to call add_fingerprint() any time something is put in
 	else if (W == shoes)
 		shoes = null
 		update_inv_shoes()
+		update_noise_level()
 	else if (W == belt)
 		belt = null
 		update_inv_belt()
@@ -184,7 +185,7 @@ This saves us from having to call add_fingerprint() any time something is put in
 //This is an UNSAFE proc. Use mob_can_equip() before calling this one! Or rather use equip_to_slot_if_possible() or advanced_equip_to_slot_if_possible()
 //set redraw_mob to 0 if you don't wish the hud to be updated - if you're doing it manually in your own proc.
 /mob/living/carbon/human/equip_to_slot(obj/item/W as obj, slot, redraw_mob = 1)
-
+	..()
 	if(!slot) return
 	if(!istype(W)) return
 	if(!has_organ_for_slot(slot)) return
@@ -257,14 +258,13 @@ This saves us from having to call add_fingerprint() any time something is put in
 				update_hair(redraw_mob)	//rebuild hair
 				update_inv_ears(0)
 				update_inv_wear_mask(0)
-			if(istype(W,/obj/item/clothing/head/kitty))
-				W.update_icon(src)
 			W.equipped(src, slot)
 			update_inv_head(redraw_mob)
 		if(slot_shoes)
 			src.shoes = W
 			W.equipped(src, slot)
 			update_inv_shoes(redraw_mob)
+			update_noise_level()
 		if(slot_wear_suit)
 			src.wear_suit = W
 			if(wear_suit.flags_inv & HIDESHOES)
@@ -426,3 +426,13 @@ This saves us from having to call add_fingerprint() any time something is put in
 	W.add_fingerprint(src)
 	update_inv_r_hand()
 	return 1
+
+/mob/living/carbon/human/proc/update_noise_level()
+	is_noisy = FALSE
+	if (lying || !shoes || !istype(shoes, /obj/item/clothing/shoes))
+		return
+
+	if (shoes:silent)
+		return
+
+	is_noisy = TRUE

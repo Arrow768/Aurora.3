@@ -40,13 +40,14 @@
 
 //hit other people with it
 /obj/item/device/holowarrant/attack(mob/living/carbon/M as mob, mob/living/carbon/user as mob)
-	user.visible_message("<span class='notice'>You show the warrant to [M]. </span>", \
-			"<span class='notice'>[user] holds up a warrant projector and shows the contents to [M]. </span>")
+	user.visible_message("<span class='notice'>[user] holds up a warrant projector and shows the contents to [M]. </span>", \
+			"<span class='notice'>You show the warrant to [M]. </span>")
 	M.examinate(src)
 
 //sync with database
 /obj/item/device/holowarrant/proc/sync(var/mob/user)
 	if(!isnull(data_core.general))
+		storedwarrant = list()
 		for(var/datum/data/record/warrant/W in data_core.warrants)
 			storedwarrant += W.fields["namewarrant"]
 		to_chat(user, "<span class='notice'>The device hums faintly as it syncs with the station database</span>")
@@ -62,7 +63,11 @@
 		<br>
 		<br><b>DIGITAL ARREST WARRANT</b></center>
 		<hr>
+<<<<<<< HEAD
 		<b>Facility:</b>__<u>[station_name]</u>__<b>Date:</b>__<u>[worlddate2text()]__</u>
+=======
+		<b>Facility:</b>__<u>[current_map.station_name]</u>__<b>Date:</b>__<u>[worlddate2text()]__</u>
+>>>>>>> development-upstream
 		<br>
 		<br><small><i>This document serves as a notice and permits the sanctioned arrest of
 		the denoted employee of the NanoTrasen Civilian Branch of Operation by the
@@ -98,7 +103,11 @@
 		<br>
 		<br><b>DIGITAL SEARCH WARRANT</b></center>
 		<hr>
+<<<<<<< HEAD
 		<b>Facility:</b>__<u>[station_name]</u>__<b>Date:</b>__<u>[worlddate2text()]__</u></br>
+=======
+		<b>Facility:</b>__<u>[current_map.station_name]</u>__<b>Date:</b>__<u>[worlddate2text()]__</u></br>
+>>>>>>> development-upstream
 		<br>
 		<small><i>This document serves as notice and permits the sanctioned search of
 		the Suspect's person/belongings/premises and/or Department for any items and materials

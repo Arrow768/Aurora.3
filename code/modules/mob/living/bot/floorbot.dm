@@ -106,7 +106,6 @@
 
 /mob/living/bot/floorbot/Life()
 	..()
-
 	if(!on)
 		return
 
@@ -115,17 +114,13 @@
 		tilemake = 0
 		addTiles(1)
 
-	if(client)
-		return
-
 	if(prob(5))
 		custom_emote(2, "makes an excited booping beeping sound!")
 
-	if(ignorelist.len) // Don't stick forever
-		for(var/T in ignorelist)
-			if(prob(1))
-				ignorelist -= T
-
+/mob/living/bot/floorbot/think()
+	..()
+	if (!on)
+		return
 	if(amount && !emagged)
 		if(!target && targetdirection) // Building a bridge
 			var/turf/T = get_step(src, targetdirection)
@@ -137,7 +132,7 @@
 
 		if(!target) // Fixing floors
 			for(var/turf/T in view(src))
-				if(T.loc.name == "Space")
+				if (istype(T.loc, /area/space))
 					continue
 				if(T in ignorelist)
 					continue
@@ -151,7 +146,7 @@
 
 	if(emagged) // Time to griff
 		for(var/turf/simulated/floor/D in view(src))
-			if(D.loc.name == "Space")
+			if (istype(D.loc, /area/space))
 				continue
 			if(D in ignorelist)
 				continue
@@ -173,7 +168,7 @@
 				break
 
 	if(target && get_turf(target) == loc)
-		UnarmedAttack(target)
+		INVOKE_ASYNC(src, .proc/UnarmedAttack, target)
 
 	if(target && get_turf(target) != loc && !path.len)
 		spawn(0)
@@ -186,6 +181,17 @@
 	if(path.len)
 		step_to(src, path[1])
 		path -= path[1]
+
+	if(ignorelist.len) // Don't stick forever
+		for(var/T in ignorelist)
+			if(prob(1))
+				ignorelist -= T
+
+/mob/living/bot/floorbot/on_think_disabled()
+	..()
+	ignorelist.Cut()
+	path.Cut()
+	target = null
 
 /mob/living/bot/floorbot/UnarmedAttack(var/atom/A, var/proximity)
 	if(!..())
@@ -229,7 +235,7 @@
 				if(building == 1)
 					I = new /obj/item/stack/tile/floor(src)
 				else
-					I = PoolOrNew(/obj/item/stack/rods, src)
+					I = new /obj/item/stack/rods(src)
 				A.attackby(I, src)
 		target = null
 		repairing = 0
@@ -283,9 +289,7 @@
 		new /obj/item/robot_parts/l_arm(Tsec)
 	var/obj/item/stack/tile/floor/T = new /obj/item/stack/tile/floor(Tsec)
 	T.amount = amount
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-	s.set_up(3, 1, src)
-	s.start()
+	spark(src, 3, alldirs)
 	qdel(src)
 
 /mob/living/bot/floorbot/proc/addTiles(var/am)
@@ -377,3 +381,20 @@
 		if(!in_range(src, user) && loc != user)
 			return
 		created_name = t
+
+/mob/living/bot/floorbot/floorbob
+	name = "B.O.B."
+	desc = "A little floor repairing robot, he can build it!"
+	icon_state = "floorbob0"
+	req_one_access = list(access_construction, access_robotics)
+
+	amount = 120 // 1 for tile, 2 for lattice
+	maxAmount = 120
+
+/mob/living/bot/floorbot/floorbob/update_icons()
+	if(repairing)
+		icon_state = "floorbob-c"
+	else if(amount > 0)
+		icon_state = "floorbob[on]"
+	else
+		icon_state = "floorbob[on]e"

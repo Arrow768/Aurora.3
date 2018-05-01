@@ -7,6 +7,7 @@
 	reagent_state = LIQUID
 	color = "#888888"
 	overdose = 5
+	taste_description = "the back of class"
 
 /datum/reagent/crayon_dust/red
 	name = "Red crayon dust"
@@ -56,17 +57,32 @@
 	color = "#808080"
 	overdose = REAGENTS_OVERDOSE * 0.5
 	color_weight = 20
+	taste_description = "chalk"
 
 /datum/reagent/paint/touch_turf(var/turf/T)
 	if(istype(T) && !istype(T, /turf/space))
 		T.color = color
 
 /datum/reagent/paint/touch_obj(var/obj/O)
-	if(istype(O))
+	//special checks for special items
+	if(istype(O, /obj/item/weapon/reagent_containers))
+		return
+	else if(istype(O, /obj/item/weapon/light))
+		var/obj/item/weapon/light/L = O
+		L.brightness_color = color
+		L.update()
+	else if(istype(O, /obj/machinery/light))
+		var/obj/machinery/light/L = O
+		L.brightness_color = color
+		L.update()
+	else if(istype(O, /obj/item/clothing/suit/storage/toggle/det_trench/technicolor) || istype(O, /obj/item/clothing/head/det/technicolor))
+		return
+
+	else if(istype(O))
 		O.color = color
 
 /datum/reagent/paint/touch_mob(var/mob/M)
-	if(istype(M) && !istype(M, /mob/dead)) //painting ghosts: not allowed
+	if(istype(M) && !istype(M, /mob/abstract)) //painting ghosts: not allowed
 		M.color = color //maybe someday change this to paint only clothes and exposed body parts for human mobs.
 
 /datum/reagent/paint/get_data()
@@ -111,6 +127,7 @@
 	reagent_state = LIQUID
 	color = "#C8A5DC"
 	affects_dead = 1 //This can even heal dead people.
+	taste_description = "100% abuse"
 
 	glass_icon_state = "golden_cup"
 	glass_name = "golden cup"
@@ -141,6 +158,7 @@
 	M.confused = 0
 	M.sleeping = 0
 	M.jitteriness = 0
+	M.intoxication = 0
 	for(var/datum/disease/D in M.viruses)
 		D.spread = "Remissive"
 		D.stage--
@@ -153,6 +171,7 @@
 	description = "Gold is a dense, soft, shiny metal and the most malleable and ductile metal known."
 	reagent_state = SOLID
 	color = "#F7C430"
+	taste_description = "expensive metal"
 
 /datum/reagent/silver
 	name = "Silver"
@@ -160,6 +179,7 @@
 	description = "A soft, white, lustrous transition metal, it has the highest electrical conductivity of any element and the highest thermal conductivity of any metal."
 	reagent_state = SOLID
 	color = "#D0D0D0"
+	taste_description = "expensive yet reasonable metal"
 
 /datum/reagent/uranium
 	name ="Uranium"
@@ -167,12 +187,13 @@
 	description = "A silvery-white metallic chemical element in the actinide series, weakly radioactive."
 	reagent_state = SOLID
 	color = "#B8B8C0"
+	taste_description = "the inside of a reactor"
 
 /datum/reagent/uranium/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
 	affect_ingest(M, alien, removed)
 
 /datum/reagent/uranium/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	M.apply_effect(5 * removed, IRRADIATE, 0)
+	M.apply_effect(5 * removed, IRRADIATE, blocked = 0)
 
 /datum/reagent/uranium/touch_turf(var/turf/T)
 	if(volume >= 3)
@@ -182,19 +203,26 @@
 				new /obj/effect/decal/cleanable/greenglow(T)
 			return
 
+/datum/reagent/platinum
+	name ="Platinum"
+	id = "platinum"
+	description = "Platinum is a naturally occuring silvery metalic element."
+	reagent_state = SOLID
+	color = "#E0E0E0"
+	taste_description = "salty metalic miner tears"
+
 /datum/reagent/adrenaline
 	name = "Adrenaline"
 	id = "adrenaline"
 	description = "Adrenaline is a hormone used as a drug to treat cardiac arrest and other cardiac dysrhythmias resulting in diminished or absent cardiac output."
 	reagent_state = LIQUID
 	color = "#C8A5DC"
+	taste_description = "bitterness"
 
 /datum/reagent/adrenaline/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
-		return
 	M.SetParalysis(0)
 	M.SetWeakened(0)
-	M.adjustToxLoss(rand(3))
+	M.adjustToxLoss(rand(3)*removed)
 
 /datum/reagent/water/holywater
 	name = "Holy Water"
@@ -214,11 +242,19 @@
 			vampire.frenzy += removed * 5
 		else if(M.mind && cult.is_antagonist(M.mind) && prob(10))
 			cult.remove_antagonist(M.mind)
+	if(alien && alien == IS_UNDEAD)
+		M.adjust_fire_stacks(10)
+		M.IgniteMob()
 
 /datum/reagent/water/holywater/touch_turf(var/turf/T)
 	if(volume >= 5)
 		T.holy = 1
 	return
+
+/datum/reagent/water/holywater/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
+	if(alien && alien == IS_UNDEAD)
+		M.adjust_fire_stacks(5)
+		M.IgniteMob()
 
 /datum/reagent/diethylamine
 	name = "Diethylamine"
@@ -226,6 +262,7 @@
 	description = "A secondary amine, mildly corrosive."
 	reagent_state = LIQUID
 	color = "#604030"
+	taste_description = "iron"
 
 /datum/reagent/surfactant // Foam precursor
 	name = "Azosurfactant"
@@ -233,6 +270,7 @@
 	description = "A isocyanate liquid that forms a foam when mixed with water."
 	reagent_state = LIQUID
 	color = "#9E6B38"
+	taste_description = "metal"
 
 /datum/reagent/foaming_agent // Metal foaming agent. This is lithium hydride. Add other recipes (e.g. LiH + H2O -> LiOH + H2) eventually.
 	name = "Foaming agent"
@@ -240,6 +278,7 @@
 	description = "A agent that yields metallic foam when mixed with light metal and a strong acid."
 	reagent_state = SOLID
 	color = "#664B63"
+	taste_description = "metal"
 
 /datum/reagent/thermite
 	name = "Thermite"
@@ -248,13 +287,14 @@
 	reagent_state = SOLID
 	color = "#673910"
 	touch_met = 50
+	taste_description = "sweet tasting metal"
 
 /datum/reagent/thermite/touch_turf(var/turf/T)
 	if(volume >= 5)
 		if(istype(T, /turf/simulated/wall))
 			var/turf/simulated/wall/W = T
 			W.thermite = 1
-			W.overlays += image('icons/effects/effects.dmi',icon_state = "#673910")
+			W.add_overlay(image('icons/effects/effects.dmi',icon_state = "#673910"))
 			remove_self(5)
 	return
 
@@ -272,6 +312,7 @@
 	reagent_state = LIQUID
 	color = "#A5F0EE"
 	touch_met = 50
+	taste_description = "sourness"
 
 /datum/reagent/space_cleaner/touch_obj(var/obj/O)
 	O.clean_blood()
@@ -319,6 +360,7 @@
 	description = "Lubricant is a substance introduced between two moving surfaces to reduce the friction and wear between them. giggity."
 	reagent_state = LIQUID
 	color = "#009CA8"
+	taste_description = "cherry"
 
 /datum/reagent/lube/touch_turf(var/turf/simulated/T)
 	if(!istype(T))
@@ -326,12 +368,37 @@
 	if(volume >= 1)
 		T.wet_floor(2)
 
+/datum/reagent/cardox
+	name = "Cardox"
+	id = "cardox"
+	description = "Cardox is an expensive, NanoTrasen designed cleaner intended to eliminate liquid phoron stains from suits."
+	reagent_state = LIQUID
+	color = "#EEEEEE"
+	taste_description = "cherry"
+
+/datum/reagent/toxin/cardox/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
+	.. ()
+	if(alien == IS_VAURCA)
+		affect_blood(M, alien, removed * 0.25)
+
+/datum/reagent/cardox/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
+	if(alien == IS_VAURCA)
+		M.adjustToxLoss(removed * 5)
+	else
+		M.adjustToxLoss(removed * 2)
+
+/datum/reagent/cardox/touch_turf(var/turf/T)
+	if(volume >= 1)
+		for(var/mob/living/carbon/slime/M in T)
+			M.adjustToxLoss(rand(10, 20))
+
 /datum/reagent/silicate
 	name = "Silicate"
 	id = "silicate"
 	description = "A compound that can be used to reinforce glass."
 	reagent_state = LIQUID
 	color = "#C7FFFF"
+	taste_description = "plastic"
 
 /datum/reagent/silicate/touch_obj(var/obj/O)
 	if(istype(O, /obj/structure/window))
@@ -346,6 +413,7 @@
 	description = "Glycerol is a simple polyol compound. Glycerol is sweet-tasting and of low toxicity."
 	reagent_state = LIQUID
 	color = "#808080"
+	taste_description = "sweetness"
 
 /datum/reagent/nitroglycerin
 	name = "Nitroglycerin"
@@ -353,6 +421,7 @@
 	description = "Nitroglycerin is a heavy, colorless, oily, explosive liquid obtained by nitrating glycerol."
 	reagent_state = LIQUID
 	color = "#808080"
+	taste_description = "oil"
 
 /datum/reagent/coolant
 	name = "Coolant"
@@ -360,12 +429,15 @@
 	description = "Industrial cooling substance."
 	reagent_state = LIQUID
 	color = "#C8A5DC"
+	taste_description = "sourness"
+	taste_mult = 1.1
 
 /datum/reagent/ultraglue
 	name = "Ultra Glue"
 	id = "glue"
 	description = "An extremely powerful bonding agent."
 	color = "#FFFFCC"
+	taste_description = "a special education class"
 
 /datum/reagent/woodpulp
 	name = "Wood Pulp"
@@ -373,6 +445,7 @@
 	description = "A mass of wood fibers."
 	reagent_state = LIQUID
 	color = "#B97A57"
+	taste_description = "wood"
 
 /datum/reagent/luminol
 	name = "Luminol"
@@ -380,9 +453,106 @@
 	description = "A compound that interacts with blood on the molecular level."
 	reagent_state = LIQUID
 	color = "#F2F3F4"
+	taste_description = "metal"
 
 /datum/reagent/luminol/touch_obj(var/obj/O)
 	O.reveal_blood()
 
 /datum/reagent/luminol/touch_mob(var/mob/living/L)
 	L.reveal_blood()
+
+/datum/reagent/estus
+	name = "liquid light"
+	id = "estus"
+	description = "This impossible substance slowly converts from a liquid into actual light."
+	reagent_state = LIQUID
+	color = "#ffff40"
+	scannable = 1
+	metabolism = REM * 0.25
+	taste_description = "bottled fire"
+	var/datum/modifier/modifier
+
+/datum/reagent/estus/affect_blood(var/mob/living/carbon/M, var/removed)
+	if (!modifier)
+		modifier = M.add_modifier(/datum/modifier/luminous, MODIFIER_REAGENT, src, _strength = 4, override = MODIFIER_OVERRIDE_STRENGTHEN)
+	if(isskeleton(M))
+		M.heal_organ_damage(10 * removed, 15 * removed)
+
+/datum/reagent/estus/affect_ingest(var/mob/living/carbon/M, var/removed)
+	if (!modifier)
+		modifier = M.add_modifier(/datum/modifier/luminous, MODIFIER_REAGENT, src, _strength = 4, override = MODIFIER_OVERRIDE_STRENGTHEN)
+	if(isskeleton(M))
+		M.heal_organ_damage(10 * removed, 15 * removed)
+
+/datum/reagent/estus/affect_touch(var/mob/living/carbon/M, var/removed)
+	if (!modifier)
+		modifier = M.add_modifier(/datum/modifier/luminous, MODIFIER_REAGENT, src, _strength = 4, override = MODIFIER_OVERRIDE_STRENGTHEN)
+	if(isskeleton(M))
+		M.heal_organ_damage(10 * removed, 15 * removed)
+
+/datum/reagent/liquid_fire
+	name = "Liquid Fire"
+	id = "liquid_fire"
+	description = "A dangerous flammable chemical, capable of causing fires when in contact with organic matter."
+	reagent_state = LIQUID
+	color = "#E25822"
+	touch_met = 5
+	taste_description = "metal"
+
+/datum/reagent/liquid_fire/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
+	if(istype(M))
+		M.adjust_fire_stacks(10)
+		M.IgniteMob()
+
+/datum/reagent/liquid_fire/touch_mob(var/mob/living/L, var/amount)
+	if(istype(L))
+		L.adjust_fire_stacks(10)
+		L.IgniteMob()
+
+/datum/reagent/black_matter
+	name = "Unstable Black Matter"
+	id = "black_matter"
+	description = "A pitch black blend of cosmic origins, handle with care."
+	color = "#000000"
+	taste_description = "emptyness"
+
+/datum/reagent/black_matter/touch_turf(var/turf/T)
+	var/obj/effect/portal/P = new /obj/effect/portal(T)
+	P.creator = null
+	P.icon = 'icons/obj/objects.dmi'
+	P.failchance = 0
+	P.icon_state = "anom"
+	P.name = "wormhole"
+	var/list/pick_turfs = list()
+	for(var/turf/simulated/floor/exit in turfs)
+		if(exit.z in current_map.station_levels)
+			pick_turfs += exit
+	P.target = pick(pick_turfs)
+	QDEL_IN(P, rand(150,300))
+	remove_self(volume)
+	return
+
+/datum/reagent/bluespace_dust
+	name = "Bluespace Dust"
+	id = "bluespace_dust"
+	description = "A dust composed of microscopic bluespace crystals."
+	color = "#1f8999"
+	taste_description = "fizzling blue"
+
+/datum/reagent/bluespace_dust/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
+	if(prob(25))
+		M.make_jittery(5)
+		M << "<span class='warning'>You feel unstable...</span>"
+
+	if(prob(10))
+		do_teleport(M, get_turf(M), 5, asoundin = 'sound/effects/phasein.ogg')
+
+/datum/reagent/bluespace_dust/touch_mob(var/mob/living/L, var/amount)
+	do_teleport(L, get_turf(L), amount, asoundin = 'sound/effects/phasein.ogg')
+
+/datum/reagent/philosopher_stone
+	name = "Philosopher's Stone"
+	id = "philosopher_stone"
+	description = "A mythical compound, rumored to be the catalyst of fantastic reactions."
+	color = "#f4c430"
+	taste_description = "heavenly knowledge"

@@ -21,16 +21,9 @@ datum/event/viral_infection/setup()
 		viruses += D
 
 datum/event/viral_infection/announce()
-	var/level
-	if (severity == EVENT_LEVEL_MUNDANE)
-		return
-	else if (severity == EVENT_LEVEL_MODERATE)
-		level = pick("one", "two", "three", "four")
-	else
-		level = "five"
 
 	if (severity == EVENT_LEVEL_MAJOR || prob(60))
-		command_announcement.Announce("Confirmed outbreak of level [level] biohazard aboard [station_name()]. All personnel must contain the outbreak.", "Biohazard Alert", new_sound = 'sound/AI/outbreak5.ogg')
+		command_announcement.Announce("Confirmed outbreak of level 5 biohazard aboard [station_name()]. All personnel must contain the outbreak.", "Biohazard Alert", new_sound = 'sound/AI/outbreak5.ogg')
 
 datum/event/viral_infection/start()
 	if(!viruses.len) return
@@ -39,7 +32,7 @@ datum/event/viral_infection/start()
 	for(var/mob/living/carbon/human/G in player_list)
 		if(G.mind && G.stat != DEAD && G.is_client_active(5) && !player_is_antag(G.mind))
 			var/turf/T = get_turf(G)
-			if(T.z in config.station_levels)
+			if(T.z in current_map.station_levels)
 				candidates += G
 	if(!candidates.len)	return
 	candidates = shuffle(candidates)//Incorporating Donkie's list shuffle

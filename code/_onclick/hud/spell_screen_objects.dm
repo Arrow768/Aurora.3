@@ -1,6 +1,6 @@
 /obj/screen/movable/spell_master
 	name = "Spells"
-	icon = 'icons/mob/screen_spells.dmi'
+	icon = 'icons/mob/screen/spells.dmi'
 	icon_state = "wiz_spell_ready"
 	var/list/obj/screen/spell/spell_objects = list()
 	var/showing = 0
@@ -13,7 +13,7 @@
 	var/mob/spell_holder
 
 /obj/screen/movable/spell_master/Destroy()
-	..()
+	. = ..()
 	for(var/obj/screen/spell/spells in spell_objects)
 		spells.spellmaster = null
 	spell_objects.Cut()
@@ -22,10 +22,6 @@
 		if(spell_holder.client && spell_holder.client.screen)
 			spell_holder.client.screen -= src
 		spell_holder = null
-
-/obj/screen/movable/spell_master/ResetVars(var/list/exclude = list())
-	exclude += "spell_objects"
-	..(exclude)
 
 /obj/screen/movable/spell_master/MouseDrop()
 	if(showing)
@@ -47,14 +43,14 @@
 				spell_holder.client.screen -= O
 			O.handle_icon_updates = 0
 		showing = 0
-		overlays.len = 0
-		overlays.Add(closed_state)
+		cut_overlays()
+		add_overlay(closed_state)
 	else if(forced_state != 1)
 		open_spellmaster()
 		update_spells(1)
 		showing = 1
-		overlays.len = 0
-		overlays.Add(open_state)
+		cut_overlays()
+		add_overlay(open_state)
 
 /obj/screen/movable/spell_master/proc/open_spellmaster()
 	var/list/screen_loc_xy = text2list(screen_loc,",")
@@ -93,7 +89,7 @@
 	if(spell.spell_flags & NO_BUTTON) //no button to add if we don't get one
 		return
 
-	var/obj/screen/spell/newscreen = PoolOrNew(/obj/screen/spell)
+	var/obj/screen/spell/newscreen = new /obj/screen/spell
 	newscreen.spellmaster = src
 	newscreen.spell = spell
 
@@ -125,6 +121,7 @@
 /obj/screen/movable/spell_master/proc/silence_spells(var/amount)
 	for(var/obj/screen/spell/spell in spell_objects)
 		spell.spell.silenced = amount
+		spell.spell.process()
 		spell.update_charge(1)
 
 /obj/screen/movable/spell_master/proc/update_spells(forced = 0, mob/user)
@@ -148,7 +145,7 @@
 //This is what you click to cast things//
 /////////////////////////////////////////
 /obj/screen/spell
-	icon = 'icons/mob/screen_spells.dmi'
+	icon = 'icons/mob/screen/spells.dmi'
 	icon_state = "wiz_spell_base"
 	var/spell_base = "wiz"
 	var/last_charge = 0 //not a time, but the last remembered charge value
@@ -160,7 +157,7 @@
 	var/icon/last_charged_icon
 
 /obj/screen/spell/Destroy()
-	..()
+	. = ..()
 	spell = null
 	last_charged_icon = null
 	if(spellmaster)
@@ -179,7 +176,7 @@
 	if((last_charge == spell.charge_counter || !handle_icon_updates) && !forced_update)
 		return //nothing to see here
 
-	overlays -= spell.hud_state
+	cut_overlay(spell.hud_state)
 
 	if(spell.charge_type == Sp_RECHARGE || spell.charge_type == Sp_CHARGES)
 		if(spell.charge_counter < spell.charge_max)
@@ -187,27 +184,27 @@
 			if(spell.charge_counter > 0)
 				var/icon/partial_charge = icon(src.icon, "[spell_base]_spell_ready")
 				partial_charge.Crop(1, 1, partial_charge.Width(), round(partial_charge.Height() * spell.charge_counter / spell.charge_max))
-				overlays += partial_charge
+				add_overlay(partial_charge)
 				if(last_charged_icon)
-					overlays -= last_charged_icon
+					cut_overlay(last_charged_icon)
 				last_charged_icon = partial_charge
 			else if(last_charged_icon)
-				overlays -= last_charged_icon
+				cut_overlay(last_charged_icon)
 				last_charged_icon = null
 		else
 			icon_state = "[spell_base]_spell_ready"
 			if(last_charged_icon)
-				overlays -= last_charged_icon
+				cut_overlay(last_charged_icon)
 	else
 		icon_state = "[spell_base]_spell_ready"
 
-	overlays += spell.hud_state
+	add_overlay(spell.hud_state)
 
 	last_charge = spell.charge_counter
 
-	overlays -= "silence"
+	cut_overlay("silence")
 	if(spell.silenced)
-		overlays += "silence"
+		add_overlay("silence")
 
 /obj/screen/spell/Click()
 	if(!usr || !spell)

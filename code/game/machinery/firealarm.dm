@@ -3,6 +3,8 @@
 	desc = "<i>\"Pull this in case of emergency\"</i>. Thus, keep pulling it forever."
 	icon = 'icons/obj/monitors.dmi'
 	icon_state = "fire0"
+	var/previous_state = 0
+	var/previous_fire_state = FALSE
 	var/detecting = 1
 	var/working = 1
 	var/time = 10
@@ -19,7 +21,7 @@
 	var/seclevel
 
 /obj/machinery/firealarm/update_icon()
-	overlays.Cut()
+	cut_overlays()
 
 	if(wiresexposed)
 		switch(buildstage)
@@ -29,7 +31,6 @@
 				icon_state="fire_b1"
 			if(0)
 				icon_state="fire_b0"
-		set_light(0)
 		return
 
 	if(stat & BROKEN)
@@ -42,16 +43,27 @@
 		var/area/A = get_area(src)
 		if(A.fire)
 			icon_state = "fire1"
-			set_light(l_range = 4, l_power = 2, l_color = COLOR_RED)
+			set_light(l_range = L_WALLMOUNT_HI_RANGE, l_power = L_WALLMOUNT_HI_POWER, l_color = COLOR_RED)
 		else
 			icon_state = "fire0"
 			switch(seclevel)
-				if("green")	set_light(l_range = 2, l_power = 0.5, l_color = COLOR_LIME)
-				if("blue")	set_light(l_range = 2, l_power = 0.5, l_color = "#1024A9")
-				if("red")	set_light(l_range = 4, l_power = 2, l_color = COLOR_RED)
-				if("delta")	set_light(l_range = 4, l_power = 2, l_color = "#FF6633")
+				if("green")
+					previous_state = icon_state
+					set_light(l_range = L_WALLMOUNT_RANGE, l_power = L_WALLMOUNT_POWER, l_color = LIGHT_COLOR_GREEN)
+				if("blue")
+					previous_state = icon_state
+					set_light(l_range = L_WALLMOUNT_RANGE, l_power = L_WALLMOUNT_POWER, l_color = LIGHT_COLOR_BLUE)
+				if("yellow")
+					previous_state = icon_state
+					set_light(l_range = L_WALLMOUNT_HI_RANGE, l_power = L_WALLMOUNT_HI_POWER, l_color = LIGHT_COLOR_YELLOW)
+				if("red")
+					previous_state = icon_state
+					set_light(l_range = L_WALLMOUNT_HI_RANGE, l_power = L_WALLMOUNT_HI_POWER, l_color = LIGHT_COLOR_RED)
+				if("delta")
+					previous_state = icon_state
+					set_light(l_range = L_WALLMOUNT_HI_RANGE, l_power = L_WALLMOUNT_HI_POWER, l_color = LIGHT_COLOR_ORANGE)
 
-		src.overlays += image('icons/obj/monitors.dmi', "overlay_[seclevel]")
+		add_overlay("overlay_[seclevel]")
 
 /obj/machinery/firealarm/fire_act(datum/gas_mixture/air, temperature, volume)
 	if(src.detecting)
@@ -73,28 +85,31 @@
 /obj/machinery/firealarm/attackby(obj/item/W as obj, mob/user as mob)
 	src.add_fingerprint(user)
 
-	if (istype(W, /obj/item/weapon/screwdriver) && buildstage == 2)
+	if (isscrewdriver(W) && buildstage == 2)
+		if(!wiresexposed)
+			set_light(0)
 		wiresexposed = !wiresexposed
 		update_icon()
 		return
 
 	if(wiresexposed)
+		set_light(0)
 		switch(buildstage)
 			if(2)
-				if (istype(W, /obj/item/device/multitool))
+				if (ismultitool(W))
 					src.detecting = !( src.detecting )
 					if (src.detecting)
 						user.visible_message("<span class='notice'>\The [user] has reconnected [src]'s detecting unit!</span>", "<span class='notice'>You have reconnected [src]'s detecting unit.</span>")
 					else
 						user.visible_message("<span class='notice'>\The [user] has disconnected [src]'s detecting unit!</span>", "<span class='notice'>You have disconnected [src]'s detecting unit.</span>")
-				else if (istype(W, /obj/item/weapon/wirecutters))
+				else if (iswirecutter(W))
 					user.visible_message("<span class='notice'>\The [user] has cut the wires inside \the [src]!</span>", "<span class='notice'>You have cut the wires inside \the [src].</span>")
 					new/obj/item/stack/cable_coil(get_turf(src), 5)
 					playsound(src.loc, 'sound/items/Wirecutter.ogg', 50, 1)
 					buildstage = 1
 					update_icon()
 			if(1)
-				if(istype(W, /obj/item/stack/cable_coil))
+				if(iscoil(W))
 					var/obj/item/stack/cable_coil/C = W
 					if (C.use(5))
 						user << "<span class='notice'>You wire \the [src].</span>"
@@ -103,7 +118,7 @@
 					else
 						user << "<span class='warning'>You need 5 pieces of cable to wire \the [src].</span>"
 						return
-				else if(istype(W, /obj/item/weapon/crowbar))
+				else if(iscrowbar(W))
 					user << "You pry out the circuit!"
 					playsound(src.loc, 'sound/items/Crowbar.ogg', 50, 1)
 					spawn(20)
@@ -118,7 +133,7 @@
 					buildstage = 1
 					update_icon()
 
-				else if(istype(W, /obj/item/weapon/wrench))
+				else if(iswrench(W))
 					user << "You remove the fire alarm assembly from the wall!"
 					new /obj/item/frame/fire_alarm(get_turf(user))
 					playsound(src.loc, 'sound/items/Ratchet.ogg', 50, 1)
@@ -128,11 +143,18 @@
 	src.alarm()
 	return
 
-/obj/machinery/firealarm/process()//Note: this processing was mostly phased out due to other code, and only runs when needed
+/obj/machinery/firealarm/machinery_process()//Note: this processing was mostly phased out due to other code, and only runs when needed
+	var/area/A = get_area(src)
+	if (A.fire != previous_fire_state)
+		update_icon()
+		previous_fire_state = A.fire
+
+	if (stat != previous_state)
+		update_icon()
+		previous_state = stat
+
 	if(stat & (NOPOWER|BROKEN))
 		return
-
-	update_icon()
 
 	if(src.timing)
 		if(src.time > 0)
@@ -141,7 +163,6 @@
 			src.alarm()
 			src.time = 0
 			src.timing = 0
-			processing_objects.Remove(src)
 		src.updateDialog()
 	last_process = world.timeofday
 
@@ -152,8 +173,7 @@
 
 /obj/machinery/firealarm/power_change()
 	..()
-	spawn(rand(0,15))
-		update_icon()
+	queue_icon_update()
 
 /obj/machinery/firealarm/ui_interact(mob/user, ui_key = "main", var/datum/nanoui/ui = null, var/force_open = 1, var/datum/topic_state/state = default_state)
 	var/data[0]
@@ -162,7 +182,7 @@
 	var/area/A = get_area(src)
 	data["active"] = A.fire
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "firealarm.tmpl", "Fire Alarm", 325, 325, state = state)
 		ui.set_initial_data(data)
@@ -205,34 +225,46 @@
 	var/area/area = get_area(src)
 	for(var/obj/machinery/firealarm/FA in area)
 		fire_alarm.triggerAlarm(loc, FA, duration)
+		playsound(FA.loc, 'sound/ambience/firealarm.ogg', 75, 0)
 	update_icon()
-	//playsound(src.loc, 'sound/ambience/signal.ogg', 75, 0)
 	return
-
-/obj/machinery/firealarm/New(loc, dir, building)
-	..()
-
-	if(loc)
-		src.loc = loc
-
-	if(dir)
-		src.set_dir(dir)
-
-	if(building)
-		buildstage = 0
-		wiresexposed = 1
-		icon_state = "fire_b0"
-		pixel_x = (dir & 3)? 0 : (dir == 4 ? -24 : 24)
-		pixel_y = (dir & 3)? (dir ==1 ? -24 : 24) : 0
 
 /obj/machinery/firealarm/proc/set_security_level(var/newlevel)
 	if(seclevel != newlevel)
 		seclevel = newlevel
 		update_icon()
 
-/obj/machinery/firealarm/initialize()
-	if(z in config.contact_levels)
-		set_security_level(security_level? get_security_level() : "green")
+/obj/machinery/firealarm/Initialize(mapload, ndir = 0, building)
+	. = ..(mapload, ndir)
+
+	if(building)
+		buildstage = 0
+		wiresexposed = 1
+		icon_state = "fire_b0"
+
+	// Overwrite the mapped in values.
+	pixel_x = DIR2PIXEL_X(dir)
+	pixel_y = DIR2PIXEL_Y(dir)
+
+	if(z in current_map.contact_levels)
+		set_security_level(security_level ? get_security_level() : "green")
+
+// Convenience subtypes for mappers.
+/obj/machinery/firealarm/north
+	dir = NORTH
+	pixel_y = 28
+
+/obj/machinery/firealarm/east
+	dir = EAST
+	pixel_x = 28
+
+/obj/machinery/firealarm/west
+	dir = WEST
+	pixel_x = -28
+
+/obj/machinery/firealarm/south
+	dir = SOUTH
+	pixel_y = -28
 
 /*
 FIRE ALARM CIRCUIT
@@ -274,7 +306,7 @@ Just a object used in constructing fire alarms
 	var/area/A = get_area(src)
 	data["active"] = A.party
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "partyalarm.tmpl", "PARTY ALARM", 325, 325, state = state)
 		ui.set_initial_data(data)

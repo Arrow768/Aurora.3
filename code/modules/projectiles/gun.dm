@@ -63,6 +63,9 @@
 	var/scoped_accuracy = null
 	var/list/burst_accuracy = list(0) //allows for different accuracies for each shot in a burst. Applied on top of accuracy
 	var/list/dispersion = list(0)
+	var/reliability = 100
+
+	var/obj/item/device/firing_pin/pin = /obj/item/device/firing_pin//standard firing pin for most guns.
 
 
 	var/next_fire_time = 0
@@ -75,24 +78,31 @@
 	var/recoil_wielded = 0
 	var/accuracy_wielded = 0
 	var/wielded = 0
+	var/needspin = TRUE
 
 
 	//aiming system stuff
-	var/keep_aim = 1 	//1 for keep shooting until aim is lowered
-						//0 for one bullet after tarrget moves and aim is lowered
 	var/multi_aim = 0 //Used to determine if you can target multiple people.
 	var/tmp/list/mob/living/aim_targets //List of who yer targeting.
 	var/tmp/mob/living/last_moved_mob //Used to fire faster at more than one person.
-	var/tmp/told_cant_shoot = 0 //So that it doesn't spam them with the fact they cannot hit them.
 	var/tmp/lock_time = -100
 
-/obj/item/weapon/gun/New()
-	..()
+/obj/item/weapon/gun/Initialize(mapload)
+	. = ..()
 	for(var/i in 1 to firemodes.len)
 		firemodes[i] = new /datum/firemode(src, firemodes[i])
 
 	if(isnull(scoped_accuracy))
 		scoped_accuracy = accuracy
+
+	if (!pin && needspin)
+		pin = /obj/item/device/firing_pin
+
+	if(pin && needspin)
+		pin = new pin(src)
+
+	queue_icon_update()
+
 
 //Checks whether a given mob can use the gun
 //Any checks that shouldn't result in handle_click_empty() being called if they fail should go here.
@@ -103,11 +113,22 @@
 	if(!user.IsAdvancedToolUser())
 		return 0
 
+	if(user.disabilities & PACIFIST)
+		to_chat(user, "<span class='notice'>You don't want to risk harming anyone!</span>")
+		return 0
+
 	var/mob/living/M = user
 
 	if(HULK in M.mutations)
 		M << "<span class='danger'>Your fingers are much too large for the trigger guard!</span>"
 		return 0
+
+	if(ishuman(M))
+		var/mob/living/carbon/human/A = M
+		if(A.martial_art && A.martial_art.no_guns)
+			to_chat(A, "<span class='warning'>[A.martial_art.no_guns_message]</span>")
+			return 0
+
 	if((CLUMSY in M.mutations) && prob(40)) //Clumsy handling
 		var/obj/P = consume_next_projectile()
 		if(P)
@@ -121,6 +142,20 @@
 		else
 			handle_click_empty(user)
 		return 0
+
+	if(pin && needspin)
+		if(pin.pin_auth(user) || pin.emagged)
+			return 1
+		else
+			pin.auth_fail(user)
+			return 0
+	else
+		if(needspin)
+			to_chat(user, "<span class='warning'>[src]'s trigger is locked. This weapon doesn't have a firing pin installed!</span>")
+			return 0
+		else
+			return 1
+
 	return 1
 
 /obj/item/weapon/gun/emp_act(severity)
@@ -152,8 +187,16 @@
 	if(!user || !target) return
 
 	add_fingerprint(user)
+	if(user.client && (user.client.prefs.toggles_secondary & SAFETY_CHECK) && user.a_intent != I_HURT) //Check this first to save time.
+		user << "You refrain from firing, as you aren't on harm intent."
+		return
 
 	if(!special_check(user))
+		return
+
+	var/failure_chance = 100 - reliability
+	if(failure_chance && prob(failure_chance))
+		handle_reliability_fail(user)
 		return
 
 	if(world.time < next_fire_time)
@@ -199,8 +242,58 @@
 	user.setMoveCooldown(move_delay)
 	next_fire_time = world.time + fire_delay
 
-	if(muzzle_flash)
-		set_light(0)
+// Similar to the above proc, but does not require a user, which is ideal for things like turrets.
+/obj/item/weapon/gun/proc/Fire_userless(atom/target)
+	if(!target)
+		return
+
+	if(world.time < next_fire_time)
+		return
+
+	var/shoot_time = (burst - 1)* burst_delay
+	next_fire_time = world.time + shoot_time
+
+	var/turf/targloc = get_turf(target) //cache this in case target gets deleted during shooting, e.g. if it was a securitron that got destroyed.
+	for(var/i in 1 to burst)
+		var/obj/projectile = consume_next_projectile()
+		if(!projectile)
+			handle_click_empty()
+			break
+
+		if(istype(projectile, /obj/item/projectile))
+			var/obj/item/projectile/P = projectile
+
+			var/acc = burst_accuracy[min(i, burst_accuracy.len)]
+			var/disp = dispersion[min(i, dispersion.len)]
+
+			P.accuracy = accuracy + acc
+			P.dispersion = disp
+
+			P.shot_from = src.name
+			P.silenced = silenced
+
+			P.launch_projectile(target)
+
+			if(silenced)
+				playsound(src, fire_sound, 10, 1)
+			else
+				playsound(src, fire_sound, 50, 1)
+
+			if (muzzle_flash)
+				set_light(muzzle_flash)
+				addtimer(CALLBACK(src, /atom/.proc/set_light, 0), 2, TIMER_UNIQUE | TIMER_OVERRIDE)
+			update_icon()
+
+		if(i < burst)
+			sleep(burst_delay)
+
+		if(!(target && target.loc))
+			target = targloc
+
+	//update timing
+	next_fire_time = world.time + fire_delay
+
+	accuracy = initial(accuracy)	//Reset the gun's accuracy
 
 //obtains the next projectile to fire
 /obj/item/weapon/gun/proc/consume_next_projectile()
@@ -212,7 +305,7 @@
 		return 2
 	//just assume we can shoot through glass and stuff. No big deal, the player can just choose to not target someone
 	//on the other side of a window if it makes a difference. Or if they run behind a window, too bad.
-	return check_trajectory(target, user)
+	return (target in check_trajectory(target, user))
 
 //called if there was no projectile to shoot
 /obj/item/weapon/gun/proc/handle_click_empty(mob/user)
@@ -245,6 +338,7 @@
 
 		if(muzzle_flash)
 			set_light(muzzle_flash)
+			addtimer(CALLBACK(src, /atom/.proc/set_light, 0), 2)
 
 	if(recoil)
 		spawn()
@@ -295,27 +389,21 @@
 		P.accuracy += 2
 
 //does the actual launching of the projectile
-/obj/item/weapon/gun/proc/process_projectile(obj/projectile, mob/user, atom/target, var/target_zone, var/params=null)
+/obj/item/weapon/gun/proc/process_projectile(obj/projectile, mob/user, atom/target, target_zone, params)
 	var/obj/item/projectile/P = projectile
 	if(!istype(P))
 		return 0 //default behaviour only applies to true projectiles
 
-	if(params)
-		P.set_clickpoint(params)
-
 	//shooting while in shock
-	var/x_offset = 0
-	var/y_offset = 0
+	var/added_spread = 0
 	if(istype(user, /mob/living/carbon))
 		var/mob/living/carbon/mob = user
 		if(mob.shock_stage > 120)
-			y_offset = rand(-2,2)
-			x_offset = rand(-2,2)
+			added_spread = 30
 		else if(mob.shock_stage > 70)
-			y_offset = rand(-1,1)
-			x_offset = rand(-1,1)
+			added_spread = 15
 
-	return !P.launch_from_gun(target, user, src, target_zone, x_offset, y_offset)
+	return !P.launch_from_gun(target, target_zone, user, params, null, added_spread, src)
 
 //Suicide handling.
 /obj/item/weapon/gun/var/mouthshoot = 0 //To stop people from suiciding twice... >.>
@@ -325,31 +413,40 @@
 	var/mob/living/carbon/human/M = user
 
 	mouthshoot = 1
-	M.visible_message("\red [user] sticks their gun in their mouth, ready to pull the trigger...")
+	M.visible_message("<span class='warning'>[user] sticks their gun in their mouth, ready to pull the trigger...</span>")
 	if(!do_after(user, 40))
-		M.visible_message("\blue [user] decided life was worth living")
+		M.visible_message("<span class='notice'>[user] decided life was worth living</span>")
 		mouthshoot = 0
 		return
 	var/obj/item/projectile/in_chamber = consume_next_projectile()
 	if (istype(in_chamber))
 		user.visible_message("<span class = 'warning'>[user] pulls the trigger.</span>")
+		if (!pin && needspin)//Checks the pin of the gun.
+			user.visible_message("<span class = 'warning'>*click click*</span>")
+			mouthshoot = 0
+			return
+		if (!pin.pin_auth() && needspin)
+			user.visible_message("<span class = 'warning'>*click click*</span>")
+			mouthshoot = 0
+			return
 		if(silenced)
 			playsound(user, fire_sound, 10, 1)
 		else
 			playsound(user, fire_sound, 50, 1)
-		if(istype(in_chamber, /obj/item/projectile/beam/lastertag))
+
+		in_chamber.on_hit(M)
+
+		if (in_chamber.damage == 0)
 			user.show_message("<span class = 'warning'>You feel rather silly, trying to commit suicide with a toy.</span>")
 			mouthshoot = 0
 			return
-
-		in_chamber.on_hit(M)
-		if (in_chamber.damage_type != HALLOSS)
+		else if (in_chamber.damage_type == HALLOSS)
+			user << "<span class = 'notice'>Ow...</span>"
+			user.apply_effect(110,AGONY,0)
+		else
 			log_and_message_admins("[key_name(user)] commited suicide using \a [src]")
 			user.apply_damage(in_chamber.damage*2.5, in_chamber.damage_type, "head", used_weapon = "Point blank shot in the mouth with \a [in_chamber]", sharp=1)
 			user.death()
-		else
-			user << "<span class = 'notice'>Ow...</span>"
-			user.apply_effect(110,AGONY,0)
 		qdel(in_chamber)
 		mouthshoot = 0
 		return
@@ -390,9 +487,14 @@
 
 /obj/item/weapon/gun/examine(mob/user)
 	..()
+	if(needspin)
+		if(pin)
+			to_chat(user, "\The [pin] is installed in the trigger mechanism.")
+		else
+			to_chat(user, "It doesn't have a firing pin installed, and won't fire.")
 	if(firemodes.len > 1)
 		var/datum/firemode/current_mode = firemodes[sel_mode]
-		user << "The fire selector is set to [current_mode.name]."
+		to_chat(user, "The fire selector is set to [current_mode.name].")
 
 /obj/item/weapon/gun/proc/switch_firemodes()
 	if(firemodes.len <= 1)
@@ -467,6 +569,9 @@
 	if(accuracy_wielded)
 		accuracy = initial(accuracy)
 
+	update_icon()
+	update_held_icon()
+
 /obj/item/weapon/gun/proc/wield()
 	wielded = 1
 	if(fire_delay_wielded)
@@ -475,6 +580,9 @@
 		recoil = recoil_wielded
 	if(accuracy_wielded)
 		accuracy = accuracy_wielded
+
+	update_icon()
+	update_held_icon()
 
 /obj/item/weapon/gun/mob_can_equip(M as mob, slot)
 	//Cannot equip wielded items.
@@ -507,12 +615,21 @@
 	icon_state = "offhand"
 	item_state = "nothing"
 	name = "offhand"
+	needspin = FALSE
 
 	unwield()
-		qdel(src)
+		if (ismob(loc))
+			var/mob/the_mob = loc
+			the_mob.drop_from_inventory(src)
+		else
+			qdel(src)
 
 	wield()
-		qdel(src)
+		if (ismob(loc))
+			var/mob/the_mob = loc
+			the_mob.drop_from_inventory(src)
+		else
+			qdel(src)
 
 	dropped(mob/living/user as mob)
 		if(user)
@@ -521,8 +638,58 @@
 				user << "<span class='notice'>You are no-longer stabilizing the [name] with both hands.</span>"
 				O.unwield()
 				unwield()
-		if(src)
+
+		if (!QDELETED(src))
 			qdel(src)
 
 	mob_can_equip(M as mob, slot)
 		return 0
+
+obj/item/weapon/gun/Destroy()
+	if (istype(pin))
+		QDEL_NULL(pin)
+	return ..()
+
+
+/obj/item/weapon/gun/proc/handle_reliability_fail(var/mob/user)
+	var/severity = 1
+	if(prob(100-reliability))
+		severity = 2
+		if(prob(100-reliability))
+			severity = 3
+	switch(severity)
+		if(1)
+			small_fail(user)
+		if(2)
+			medium_fail(user)
+		else
+			critical_fail(user)
+
+/obj/item/weapon/gun/proc/small_fail(var/mob/user)
+	return
+
+/obj/item/weapon/gun/proc/medium_fail(var/mob/user)
+	return
+
+/obj/item/weapon/gun/proc/critical_fail(var/mob/user)
+	return
+
+/obj/item/weapon/gun/attackby(var/obj/item/I as obj, var/mob/user as mob)
+	if(!pin)
+		return ..()
+
+	if(isscrewdriver(I))
+		visible_message("<span class = 'warning'>[user] begins to try and pry out [src]'s firing pin!</span>")
+		if(do_after(user,45 SECONDS,act_target = src))
+			if(pin.durable)
+				visible_message("<span class = 'notice'>[user] pops the [pin] out of [src]!</span>")
+				pin.forceMove(get_turf(src))
+				pin = null//clear it out.
+			else
+				user.visible_message(
+				"<span class='warning'>[user] breaks some electronics free from [src] with a crack.</span>",
+				"<span class='alert'>You apply a bit too much force to [pin], and it breaks in two. Oops.</span>",
+				"You hear a metallic crack.")
+				qdel(pin)
+				pin = null
+	.=..()

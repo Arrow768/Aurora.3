@@ -4,8 +4,13 @@
 	var/region = ACCESS_REGION_NONE
 	var/access_type = ACCESS_TYPE_STATION
 
-/datum/access/dd_SortValue()
-	return "[access_type][desc]"
+/datum/access/proc/get_info_list()
+	var/list/info = list()
+	info["id"] = id
+	info["desc"] = desc
+	info["region"] = region
+	info["access_type"] = access_type
+	return info
 
 /*****************
 * Station access *
@@ -390,6 +395,12 @@
 	desc = "Paramedic Equipment"
 	region = ACCESS_REGION_MEDBAY
 
+/var/const/access_detective = 68
+/datum/access/access_detective
+	id = access_detective
+	desc = "Detective Equipment"
+	region = ACCESS_REGION_SECURITY
+
 /******************
 * Central Command *
 ******************/
@@ -445,6 +456,12 @@
 /datum/access/cent_captain
 	id = access_cent_captain
 	desc = "Code Gold"
+	access_type = ACCESS_TYPE_CENTCOM
+
+/var/const/access_merchant = 110//merchant access
+/datum/access/merchant
+	id = access_merchant
+	desc = "Merchant Access"
 	access_type = ACCESS_TYPE_CENTCOM
 
 /***************

@@ -16,6 +16,8 @@ var/datum/antagonist/raider/raiders
 	initial_spawn_req = 4
 	initial_spawn_target = 6
 
+	faction = "syndicate"
+
 	id_type = /obj/item/weapon/card/id/syndicate
 
 	// Heist overrides check_victory() and doesn't need victory or loss strings/tags.
@@ -39,7 +41,7 @@ var/datum/antagonist/raider/raiders
 
 	var/list/raider_glasses = list(
 		/obj/item/clothing/glasses/thermal,
-		/obj/item/clothing/glasses/thermal/plain/eyepatch,
+		/obj/item/clothing/glasses/eyepatch/hud/thermal,
 		/obj/item/clothing/glasses/thermal/plain/monocle
 		)
 
@@ -97,8 +99,11 @@ var/datum/antagonist/raider/raiders
 		/obj/item/weapon/gun/projectile/revolver,
 		/obj/item/weapon/gun/projectile/revolver/deckard,
 		/obj/item/weapon/gun/projectile/revolver/derringer,
+		/obj/item/weapon/gun/projectile/revolver/lemat,
+		/obj/item/weapon/gun/projectile/contender,
 		/obj/item/weapon/gun/projectile/pirate,
-		/obj/item/weapon/gun/projectile/tanto
+		/obj/item/weapon/gun/projectile/tanto,
+		/obj/item/weapon/gun/projectile/boltaction/vintage
 		)
 
 
@@ -241,7 +246,9 @@ var/datum/antagonist/raider/raiders
 	W.handle_item_insertion(id)
 	player.equip_to_slot_or_del(W, slot_wear_id)
 	spawn_money(rand(50,150)*10,W)
-	create_radio(SYND_FREQ, player)
+	create_radio(RAID_FREQ, player)
+
+	give_codewords(player)
 
 	return 1
 

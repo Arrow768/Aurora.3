@@ -4,7 +4,7 @@
 // parent_type is here because it's pointless to show in VV.
 /var/list/view_variables_hide_vars = list("bound_x", "bound_y", "bound_height", "bound_width", "bounds", "parent_type", "step_x", "step_y", "step_size")
 // Variables not to expand the lists of. Vars is pointless to expand, and overlays/underlays cannot be expanded.
-/var/list/view_variables_dont_expand = list("overlays", "underlays", "vars")
+/var/list/view_variables_dont_expand = list("overlays", "underlays", "vars", "screen", "our_overlays", "priority_overlays", "queued_overlays")
 // Variables that runtime if you try to test associativity of the lists they contain by indexing
 /var/list/view_variables_no_assoc = list("verbs", "contents")
 
@@ -150,7 +150,7 @@
 	else
 		vtext = "[value]"
 
-	return "<span class=value>[vtext]</span>[list2text(extra)]"
+	return "<span class=value>[vtext]</span>[jointext(extra, "")]"
 
 /proc/make_view_variables_var_entry(datum/D, varname, value, level=0)
 	var/ecm = null

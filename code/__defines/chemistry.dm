@@ -1,10 +1,9 @@
-
-
 #define REM 0.2 // Means 'Reagent Effect Multiplier'. This is how many units of reagent are consumed per tick
 
 #define CHEM_TOUCH 1
 #define CHEM_INGEST 2
 #define CHEM_BLOOD 3
+#define CHEM_BREATHE 4
 
 #define MINIMUM_CHEMICAL_VOLUME 0.01
 
@@ -19,11 +18,13 @@
 // Some on_mob_life() procs check for alien races.
 #define IS_DIONA   1
 #define IS_VOX     2
-#define IS_SKRELL  3
-#define IS_UNATHI  4
-#define IS_TAJARA  5
-#define IS_XENOS   6
-#define IS_MACHINE 7
+#define IS_SKRELL  4
+#define IS_UNATHI  8
+#define IS_TAJARA  16
+#define IS_XENOS   32
+#define IS_MACHINE 64
+#define IS_VAURCA  128
+#define IS_UNDEAD  256
 
 #define CE_STABLE "stable" // Inaprovaline
 #define CE_ANTIBIOTIC "antibiotic" // Spaceacilin

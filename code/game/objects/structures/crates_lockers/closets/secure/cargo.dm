@@ -8,15 +8,15 @@
 	icon_broken = "securecargobroken"
 	icon_off = "securecargooff"
 
-	New()
+	fill()
 		..()
 		new /obj/item/clothing/under/rank/cargotech(src)
 		new /obj/item/clothing/shoes/black(src)
 		new /obj/item/device/radio/headset/headset_cargo(src)
 		new /obj/item/clothing/gloves/black(src)
 		new /obj/item/clothing/head/soft(src)
+		new /obj/item/modular_computer/tablet/preset/custom_loadout/advanced/cargo_delivery(src)
 //		new /obj/item/weapon/cartridge/quartermaster(src)
-		return
 
 /obj/structure/closet/secure_closet/quartermaster
 	name = "quartermaster's locker"
@@ -28,8 +28,7 @@
 	icon_broken = "secureqmbroken"
 	icon_off = "secureqmoff"
 
-	New()
-		..()
+	fill()
 		new /obj/item/clothing/under/rank/cargo(src)
 		new /obj/item/clothing/shoes/brown(src)
 		new /obj/item/device/radio/headset/headset_cargo(src)
@@ -40,4 +39,8 @@
 		new /obj/item/clothing/mask/gas(src)
 		new /obj/item/clothing/glasses/meson(src)
 		new /obj/item/clothing/head/soft(src)
-		return
+		new /obj/item/modular_computer/tablet/preset/custom_loadout/advanced/cargo_delivery(src)
+
+/obj/structure/closet/secure_closet/merchant
+	name = "merchant locker"
+	req_access = list(access_merchant)

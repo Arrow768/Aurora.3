@@ -9,7 +9,7 @@
 	item_flags = THICKMATERIAL
 	body_parts_covered = HEAD
 	armor = list(melee = 50, bullet = 15, laser = 50,energy = 10, bomb = 25, bio = 0, rad = 0)
-	flags_inv = HIDEEARS|HIDEEYES
+	flags_inv = HIDEEARS|BLOCKHEADHAIR
 	cold_protection = HEAD
 	min_cold_protection_temperature = HELMET_MIN_COLD_PROTECTION_TEMPERATURE
 	heat_protection = HEAD
@@ -28,6 +28,19 @@
 	name = "commissar's cap"
 	desc = "A security commissar's cap."
 	icon_state = "commissarcap"
+
+/obj/item/clothing/head/helmet/HoS
+	name = "head of security hat"
+	desc = "The hat of the Head of Security. For showing the officers who's in charge."
+	icon_state = "hoscap"
+	armor = list(melee = 65, bullet = 30, laser = 50, energy = 10, bomb = 25, bio = 0, rad = 0)
+	flags_inv = HIDEEARS
+	body_parts_covered = 0
+
+/obj/item/clothing/head/helmet/HoS/dermal
+	name = "dermal armour patch"
+	desc = "You're not quite sure how you manage to take it on and off, but it implants nicely in your head."
+	icon_state = "dermal"
 
 /obj/item/clothing/head/helmet/hop
 	name = "crew resource's hat"
@@ -48,9 +61,42 @@
 	desc = "It's a helmet specifically designed to protect against close range attacks."
 	icon_state = "riot"
 	body_parts_covered = HEAD|FACE|EYES //face shield
-	armor = list(melee = 82, bullet = 15, laser = 5,energy = 5, bomb = 5, bio = 2, rad = 0)
+	armor = list(melee = 80, bullet = 20, laser = 25, energy = 10, bomb = 0, bio = 0, rad = 0)
 	flags_inv = HIDEEARS
-	siemens_coefficient = 0.5
+	action_button_name = "Toggle Visor"
+
+/obj/item/clothing/head/helmet/riot/attack_self(mob/user as mob)
+	if (use_check(user))
+		return
+
+	if(src.icon_state == initial(icon_state))
+		src.icon_state = "[icon_state]-up"
+		user << "You raise the visor on \the [src]."
+		body_parts_covered = HEAD
+	else
+		src.icon_state = initial(icon_state)
+		user << "You lower the visor on \the [src]."
+		body_parts_covered = HEAD|FACE|EYES
+	update_clothing_icon()
+
+/obj/item/clothing/head/helmet/ablative
+	name = "ablative helmet"
+	desc = "A helmet made from advanced materials which protects against concentrated energy weapons."
+	icon_state = "helmet_reflect"
+	armor = list(melee = 25, bullet = 25, laser = 80, energy = 10, bomb = 0, bio = 0, rad = 0)
+	siemens_coefficient = 0
+
+/obj/item/clothing/head/helmet/ballistic
+	name = "ballistic helmet"
+	desc = "A helmet with reinforced plating to protect against ballistic projectiles."
+	icon_state = "helmet_bulletproof"
+	armor = list(melee = 25, bullet = 80, laser = 25, energy = 10, bomb = 0, bio = 0, rad = 0)
+
+/obj/item/clothing/head/helmet/merc
+	name = "combat helmet"
+	desc = "A tan helmet made from advanced ceramic."
+	icon_state = "helmet_tac"
+	armor = list(melee = 60, bullet = 60, laser = 60, energy = 40, bomb = 40, bio = 0, rad = 0)
 
 /obj/item/clothing/head/helmet/swat
 	name = "\improper SWAT helmet"
@@ -61,7 +107,12 @@
 	flags_inv = HIDEEARS|HIDEEYES|HIDEFACE
 	cold_protection = HEAD
 	min_cold_protection_temperature = SPACE_HELMET_MIN_COLD_PROTECTION_TEMPERATURE
-	siemens_coefficient = 0.5
+
+/obj/item/clothing/head/helmet/swat/peacekeeper
+	name = "\improper ERT civil protection helmet"
+	desc = "A full helmet made of highly advanced ceramic materials, complete with a jetblack visor. Shines with a mirror sheen."
+	icon_state = "erthelmet_peacekeeper"
+	item_state = "erthelmet_peacekeeper"
 
 /obj/item/clothing/head/helmet/thunderdome
 	name = "\improper Thunderdome helmet"
@@ -91,10 +142,9 @@
 
 	armor = list(melee = 62, bullet = 50, laser = 50,energy = 35, bomb = 10, bio = 2, rad = 0)
 	flags_inv = HIDEEARS
-	siemens_coefficient = 0.5
 
 /obj/item/clothing/head/helmet/augment
-	name = "Augment Array"
+	name = "augment array"
 	desc = "A helmet with optical and cranial augments coupled to it."
 	icon_state = "v62"
 	armor = list(melee = 80, bullet = 60, laser = 50,energy = 25, bomb = 50, bio = 10, rad = 0)
@@ -102,7 +152,6 @@
 	body_parts_covered = HEAD|EYES
 	cold_protection = HEAD
 	min_cold_protection_temperature = SPACE_HELMET_MIN_COLD_PROTECTION_TEMPERATURE
-	siemens_coefficient = 0.5
 
 //Non-hardsuit ERT helmets.
 /obj/item/clothing/head/helmet/ert

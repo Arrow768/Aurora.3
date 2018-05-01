@@ -4,13 +4,6 @@
  *		Classic Baton
  */
 
-/*
- * Banhammer
- */
-/obj/item/weapon/banhammer/attack(mob/M as mob, mob/user as mob)
-	M << "<font color='red'><b> You have been banned FOR NO REISIN by [user]</b></font>"
-	user << "<font color='red'> You have <b>BANNED</b> [M]</font>"
-	playsound(loc, 'sound/effects/adminhelp.ogg', 15)
 
 /*
  * Classic Baton
@@ -79,13 +72,13 @@
 	add_fingerprint(user)
 
 	if(blood_overlay && blood_DNA && (blood_DNA.len >= 1)) //updates blood overlay, if any
-		overlays.Remove(blood_overlay)
+		cut_overlay(blood_overlay, TRUE)
 		var/icon/I = new /icon(src.icon, src.icon_state)
 		I.Blend(new /icon('icons/effects/blood.dmi', rgb(255,255,255)),ICON_ADD)
 		I.Blend(new /icon('icons/effects/blood.dmi', "itemblood"),ICON_MULTIPLY)
 		blood_overlay = image(I)
 		blood_overlay.color = blood_color
-		overlays += blood_overlay
+		add_overlay(blood_overlay, TRUE)
 		update_icon()
 
 	return
@@ -103,8 +96,21 @@
 			return
 		if(..() == 1)
 			playsound(src.loc, "swing_hit", 50, 1, -1)
-			if(target_zone == "r_leg" || target_zone == "l_leg")
-				target.Weaken(5) //nerfed, because yes.
+			if (target_zone == "r_leg" || target_zone == "l_leg")
+				var/stun_chance = 100
+				if(ishuman(target))
+					var/mob/living/carbon/human/T = target
+					var/armor = T.run_armor_check(target_zone,"melee")
+					stun_chance -= armor
+
+					if(T.shoes && (T.shoes.item_flags & NOSLIP) && istype(T.shoes, /obj/item/clothing/shoes/magboots))
+						stun_chance -= 10
+
+					if(T.species.brute_mod<0.8)
+						stun_chance -= 10
+
+					if(prob(stun_chance))
+						T.Weaken(5) //nerfed, because yes.
 			return
 	else
 		return ..()

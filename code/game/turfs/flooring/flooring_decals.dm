@@ -1,7 +1,6 @@
 // These are objects that destroy themselves and add themselves to the
 // decal list of the floor under them. Use them rather than distinct icon_states
 // when mapping in interesting floor designs.
-var/list/floor_decals = list()
 
 /obj/effect/floor_decal
 	name = "floor decal"
@@ -9,38 +8,48 @@ var/list/floor_decals = list()
 	layer = TURF_LAYER + 0.01
 	var/supplied_dir
 
-/obj/effect/floor_decal/New(var/newloc, var/newdir, var/newcolour)
-	supplied_dir = newdir
-	if(newcolour) color = newcolour
-	..(newloc)
-
-/obj/effect/floor_decal/initialize()
-	if(supplied_dir) set_dir(supplied_dir)
+/obj/effect/floor_decal/LateInitialize()
 	var/turf/T = get_turf(src)
+	var/list/floor_decals = SSicon_cache.floor_decals
 	if(istype(T, /turf/simulated/floor) || istype(T, /turf/unsimulated/floor))
 		var/cache_key = "[alpha]-[color]-[dir]-[icon_state]-[layer]"
 		if(!floor_decals[cache_key])
 			var/image/I = image(icon = src.icon, icon_state = src.icon_state, dir = src.dir)
-			I.layer = T.layer
 			I.color = src.color
 			I.alpha = src.alpha
 			floor_decals[cache_key] = I
 		if(!T.decals) T.decals = list()
 		T.decals |= floor_decals[cache_key]
-		T.overlays |= floor_decals[cache_key]
+		T.add_overlay(floor_decals[cache_key])
+
 	qdel(src)
-	return
+
+/obj/effect/floor_decal/Initialize(mapload, var/newdir, var/newcolour, bypass = FALSE)
+	if (bypass && !mapload)
+		return ..(mapload)
+
+	if (newdir)
+		supplied_dir = newdir
+
+	if(newcolour)
+		color = newcolour
+
+	if (supplied_dir)
+		set_dir(supplied_dir)
+
+	..()
+	return INITIALIZE_HINT_LATELOAD
 
 /obj/effect/floor_decal/reset
 	name = "reset marker"
 
-/obj/effect/floor_decal/reset/initialize()
+/obj/effect/floor_decal/reset/Initialize(mapload)
+	..(mapload, bypass = TRUE)
 	var/turf/T = get_turf(src)
-	if(T.decals && T.decals.len)
+	if(LAZYLEN(T.decals))
 		T.decals.Cut()
 		T.update_icon()
 	qdel(src)
-	return
 
 /obj/effect/floor_decal/corner
 	icon_state = "corner_white"
@@ -244,13 +253,16 @@ var/list/floor_decals = list()
 /obj/effect/floor_decal/industrial/hatch/yellow
 	color = "#CFCF55"
 
+/obj/effect/floor_decal/industrial/hatch/red
+	color = "#990C0C"
+
 /obj/effect/floor_decal/industrial/outline
 	name = "white outline"
 	icon_state = "outline"
 
 /obj/effect/floor_decal/industrial/outline/blue
-	name = "blue outline"
-	color = "#00B8B2"
+	name = "cyan outline"
+	color = "#b6efe1"
 
 /obj/effect/floor_decal/industrial/outline/yellow
 	name = "yellow outline"
@@ -259,6 +271,10 @@ var/list/floor_decals = list()
 /obj/effect/floor_decal/industrial/outline/grey
 	name = "grey outline"
 	color = "#808080"
+
+/obj/effect/floor_decal/industrial/outline/red
+	name = "red outline"
+	color = "#990C0C"
 
 /obj/effect/floor_decal/industrial/loading
 	name = "loading area"
@@ -287,9 +303,9 @@ var/list/floor_decals = list()
 	name = "random asteroid rubble"
 	icon_state = "asteroid0"
 
-/obj/effect/floor_decal/asteroid/New()
-	icon_state = "asteroid[rand(0,9)]"
+/obj/effect/floor_decal/asteroid/Initialize()
 	..()
+	icon_state = "asteroid[rand(0,9)]"
 
 /obj/effect/floor_decal/chapel
 	name = "chapel"
@@ -359,6 +375,8 @@ var/list/floor_decals = list()
 	name = "L16"
 	icon_state = "L16"
 
+// Medbay floor signs
+
 /obj/effect/floor_decal/sign
 	name = "floor sign"
 	icon_state = "white_1"
@@ -392,3 +410,20 @@ var/list/floor_decals = list()
 
 /obj/effect/floor_decal/sign/p
 	icon_state = "white_p"
+
+// New signs (New-map)
+
+/obj/effect/floor_decal/sign/gtr
+	icon_state = "white_gtr"
+
+/obj/effect/floor_decal/sign/emt
+	icon_state = "white_emt"
+
+/obj/effect/floor_decal/sign/w
+	icon_state = "white_w"
+
+/obj/effect/floor_decal/sign/icu
+	icon_state = "white_icu"
+
+/obj/effect/floor_decal/sign/c2
+	icon_state = "white_c2"

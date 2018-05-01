@@ -27,7 +27,7 @@
 	var/types = target.find_type()
 	if(ismouse(target))
 		var/mob/living/simple_animal/mouse/M = target
-		visible_message("\red <b>SPLAT!</b>")
+		visible_message("<span class='danger'>SPLAT!</span>")
 		M.splat()
 	else
 		var/zone = "chest"
@@ -44,7 +44,8 @@
 					if(!H.gloves)
 						H.apply_effect(250/(target.mob_size*(target.mob_size*0.25)), AGONY)
 		if (!(types & TYPE_SYNTHETIC))
-			target.apply_damage(rand(6,14), BRUTE, def_zone = zone, used_weapon = src)
+			target.apply_damage(rand(6,14), AGONY, def_zone = zone, used_weapon = src)
+			target.apply_damage(rand(1,3), BRUTE, def_zone = zone, used_weapon = src)
 
 	playsound(target.loc, 'sound/effects/snap.ogg', 50, 1)
 	layer = MOB_LAYER - 0.2
@@ -57,7 +58,7 @@
 	if(!armed)
 		user << "<span class='notice'>You arm [src].</span>"
 	else
-		if(((user.getBrainLoss() >= 60 || (CLUMSY in user.mutations)) && prob(50)))
+		if(((CLUMSY in user.mutations) || (DUMB in user.mutations)) && prob(50))
 			var/which_hand = "l_hand"
 			if(!user.hand)
 				which_hand = "r_hand"
@@ -73,7 +74,7 @@
 
 /obj/item/device/assembly/mousetrap/attack_hand(mob/living/user as mob)
 	if(armed)
-		if(((user.getBrainLoss() >= 60 || CLUMSY in user.mutations)) && prob(50))
+		if(((CLUMSY in user.mutations) || (DUMB in user.mutations)) && prob(50))
 			var/which_hand = "l_hand"
 			if(!user.hand)
 				which_hand = "r_hand"

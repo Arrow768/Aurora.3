@@ -5,6 +5,7 @@
 	reagent_state = LIQUID
 	color = "#808080"
 	metabolism = REM * 0.2
+	taste_description = "acid"
 
 /datum/reagent/acetone/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	M.adjustToxLoss(removed * 3)
@@ -32,6 +33,8 @@
 	description = "A silvery white and ductile member of the boron group of chemical elements."
 	reagent_state = SOLID
 	color = "#A8A8A8"
+	taste_description = "metal"
+	taste_mult = 1.1
 
 /datum/reagent/ammonia
 	name = "Ammonia"
@@ -40,11 +43,13 @@
 	reagent_state = LIQUID
 	color = "#404030"
 	metabolism = REM * 0.5
+	taste_description = "mordant"
+	taste_mult = 2
 
 /datum/reagent/ammonia/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	if(alien == IS_VOX)
 		M.adjustOxyLoss(-removed * 10)
-	else if(alien != IS_DIONA)
+	else
 		M.adjustToxLoss(removed * 1.5)
 
 /datum/reagent/carbon
@@ -54,10 +59,10 @@
 	reagent_state = SOLID
 	color = "#1C1300"
 	ingest_met = REM * 5
+	taste_description = "sour chalk"
+	taste_mult = 1.5
 
 /datum/reagent/carbon/affect_ingest(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
-		return
 	if(M.ingested && M.ingested.reagent_list.len > 1) // Need to have at least 2 reagents - cabon and something to remove
 		var/effect = 1 / (M.ingested.reagent_list.len - 1)
 		for(var/datum/reagent/R in M.ingested.reagent_list)
@@ -79,14 +84,15 @@
 	id = "copper"
 	description = "A highly ductile metal."
 	color = "#6E3B08"
+	taste_description = "copper"
 
-/datum/reagent/ethanol
-	name = "Ethanol" //Parent class for all alcoholic reagents.
-	id = "ethanol"
-	description = "A well-known alcohol with a variety of applications."
+/datum/reagent/alcohol //Parent class for all alcoholic reagents, though this one shouldn't be used anywhere.
+	name = null	// This null name should prevent alcohol from being added to global lists.
+	id = "alcohol"
+	description = "An abstract type you shouldn't be able to see."
 	reagent_state = LIQUID
 	color = "#404030"
-	ingest_met = 0.5
+
 	var/nutriment_factor = 0.5
 	var/strength = 100 // This is the Alcohol By Volume of the drink, value is in the range 0-100 unless you wanted to create some bizarre bluespace alcohol with <100
 
@@ -97,20 +103,61 @@
 	var/datum/modifier/caffeine_mod
 	var/caffeine  = 0
 
+	var/flammability_divisor = 10
+
+	unaffected_species = IS_MACHINE
+
+	taste_description = "mistakes"
+
+	glass_icon_state = "glass_clear"
+	glass_name = "glass of coder fuckups"
+	glass_desc = "A glass of distilled maintainer tears."
+
+/datum/reagent/alcohol/Destroy()
+	if (caffeine_mod)
+		QDEL_NULL(caffeine_mod)
+
+	return ..()
+
+/datum/reagent/alcohol/touch_mob(mob/living/L, amount)
+	if (istype(L) && strength > 40)
+		L.adjust_fire_stacks((amount / (flammability_divisor || 1)) * (strength / 100))
+
+/datum/reagent/alcohol/affect_blood(mob/living/carbon/M, alien, removed)
+	M.adjustToxLoss(removed * 2)
+
+/datum/reagent/alcohol/affect_ingest(mob/living/carbon/M, alien, removed)
+	M.intoxication += (strength / 100) * removed
+
+	if (druggy != 0)
+		M.druggy = max(M.druggy, druggy)
+
+	if (adj_temp > 0 && M.bodytemperature < targ_temp) // 310 is the normal bodytemp. 310.055
+		M.bodytemperature = min(targ_temp, M.bodytemperature + (adj_temp * TEMPERATURE_DAMAGE_COEFFICIENT))
+	if (adj_temp < 0 && M.bodytemperature > targ_temp)
+		M.bodytemperature = min(targ_temp, M.bodytemperature - (adj_temp * TEMPERATURE_DAMAGE_COEFFICIENT))
+
+	if (halluci)
+		M.hallucination = max(M.hallucination, halluci)
+
+	if (caffeine && !caffeine_mod)
+		caffeine_mod = M.add_modifier(/datum/modifier/stimulant, MODIFIER_REAGENT, src, _strength = caffeine, override = MODIFIER_OVERRIDE_STRENGTHEN)
+
+/datum/reagent/alcohol/ethanol
+	name = "Ethanol"
+	id = "ethanol"
+	description = "A well-known alcohol with a variety of applications."
+	ingest_met = 0.5
+	flammability_divisor = 10
+
+	taste_description = "pure alcohol"
+
 	glass_icon_state = "glass_clear"
 	glass_name = "glass of ethanol"
 	glass_desc = "A well-known alcohol with a variety of applications."
 
-/datum/reagent/ethanol/touch_mob(var/mob/living/L, var/amount)
-	if(istype(L) && strength > 40)
-		L.adjust_fire_stacks((amount / 10) * (strength / 100))
-
-/datum/reagent/ethanol/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	M.adjustToxLoss(removed * 2)
-	return
-
-/datum/reagent/ethanol/affect_ingest(var/mob/living/carbon/M, var/alien, var/removed)
-	if(isvaurca(M))//Vaurca are damaged instead of getting nutrients, but they can still get drunk
+/datum/reagent/alcohol/ethanol/affect_ingest(var/mob/living/carbon/M, var/alien, var/removed)
+	if(alien == IS_VAURCA)//Vaurca are damaged instead of getting nutrients, but they can still get drunk
 		M.adjustToxLoss(1.5 * removed * (strength / 100))
 	else
 		M.nutrition += nutriment_factor * removed
@@ -118,28 +165,12 @@
 	if(alien == IS_DIONA)
 		return //Diona can gain nutrients, but don't get drunk or suffer other effects
 
+	if (alien == IS_UNATHI)//unathi are poisoned by alcohol as well
+		M.adjustToxLoss(1.5 * removed * (strength / 100))
 
-	var/quantity = (strength / 100) * removed
-	M.intoxication += quantity
+	..()
 
-
-	if(druggy != 0)
-		M.druggy = max(M.druggy, druggy)
-
-	if(adj_temp > 0 && M.bodytemperature < targ_temp) // 310 is the normal bodytemp. 310.055
-		M.bodytemperature = min(targ_temp, M.bodytemperature + (adj_temp * TEMPERATURE_DAMAGE_COEFFICIENT))
-	if(adj_temp < 0 && M.bodytemperature > targ_temp)
-		M.bodytemperature = min(targ_temp, M.bodytemperature - (adj_temp * TEMPERATURE_DAMAGE_COEFFICIENT))
-
-	if(halluci)
-		M.hallucination = max(M.hallucination, halluci)
-
-	if (caffeine && !caffeine_mod)
-		caffeine_mod = M.add_modifier(/datum/modifier/stimulant, MODIFIER_REAGENT, src, _strength = caffeine, override = MODIFIER_OVERRIDE_STRENGTHEN)
-
-
-
-/datum/reagent/ethanol/touch_obj(var/obj/O)
+/datum/reagent/alcohol/ethanol/touch_obj(var/obj/O)
 	if(istype(O, /obj/item/weapon/paper))
 		var/obj/item/weapon/paper/paperaffected = O
 		paperaffected.clearpaper()
@@ -156,6 +187,35 @@
 		usr << "<span class='notice'>The solution dissolves the ink on the book.</span>"
 	return
 
+
+// Butanol is a common alcohol that is fairly ineffective for humans and most other species, but highly intoxicating to unathi.
+// Most behavior is inherited from alcohol.
+/datum/reagent/alcohol/butanol
+	name = "Butanol"
+	id = "butanol"
+	description = "A fairly harmless alcohol that has intoxicating effects on certain species."
+	reagent_state = LIQUID
+	color = "#404030"
+	ingest_met = 0.17 //Extremely slow metabolic rate means the liver will generally purge it faster than it can intoxicate you
+	flammability_divisor = 7	//Butanol is a bit less flammable than ethanol
+
+	taste_description = "alcohol"
+
+	glass_icon_state = "glass_clear"
+	glass_name = "glass of butanol"
+	glass_desc = "A fairly harmless alcohol that has intoxicating effects on certain species."
+
+/datum/reagent/alcohol/butanol/affect_ingest(var/mob/living/carbon/M, var/alien, var/removed)
+	if (alien == IS_VAURCA)
+		M.adjustToxLoss(removed * (strength / 100))
+	else
+		M.nutrition += nutriment_factor * removed
+
+	if (alien == IS_UNATHI)
+		ingest_met = initial(ingest_met)*3
+
+	..()
+
 /datum/reagent/hydrazine
 	name = "Hydrazine"
 	id = "hydrazine"
@@ -164,6 +224,7 @@
 	color = "#808080"
 	metabolism = REM * 0.2
 	touch_met = 5
+	taste_description = "sweet tasting metal"
 
 /datum/reagent/hydrazine/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	M.adjustToxLoss(4 * removed)
@@ -183,10 +244,10 @@
 	description = "Pure iron is a metal."
 	reagent_state = SOLID
 	color = "#353535"
+	taste_description = "metal"
 
 /datum/reagent/iron/affect_ingest(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien != IS_DIONA)
-		M.add_chemical_effect(CE_BLOODRESTORE, 8 * removed)
+	M.add_chemical_effect(CE_BLOODRESTORE, 8 * removed)
 
 /datum/reagent/lithium
 	name = "Lithium"
@@ -194,13 +255,13 @@
 	description = "A chemical element, used as antidepressant."
 	reagent_state = SOLID
 	color = "#808080"
+	taste_description = "metal"
 
 /datum/reagent/lithium/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien != IS_DIONA)
-		if(M.canmove && !M.restrained() && !(istype(M.loc, /turf/space)))
-			step(M, pick(cardinal))
-		if(prob(5))
-			M.emote(pick("twitch", "drool", "moan"))
+	if(M.canmove && !M.restrained() && !(istype(M.loc, /turf/space)))
+		step(M, pick(cardinal))
+	if(prob(5))
+		M.emote(pick("twitch", "drool", "moan"))
 
 /datum/reagent/mercury
 	name = "Mercury"
@@ -208,14 +269,16 @@
 	description = "A chemical element."
 	reagent_state = LIQUID
 	color = "#484848"
+	ingest_met = REM*0.2
+	taste_mult = 0 //mercury apparently is tasteless
 
 /datum/reagent/mercury/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien != IS_DIONA)
-		if(M.canmove && !M.restrained() && !(istype(M.loc, /turf/space)))
-			step(M, pick(cardinal))
-		if(prob(5))
-			M.emote(pick("twitch", "drool", "moan"))
-		M.adjustBrainLoss(2)
+	if(M.canmove && !M.restrained() && !(istype(M.loc, /turf/space)))
+		step(M, pick(cardinal))
+	if(prob(5))
+		M.emote(pick("twitch", "drool", "moan"))
+
+	M.adjustBrainLoss(removed)
 
 /datum/reagent/phosphorus
 	name = "Phosphorus"
@@ -223,6 +286,7 @@
 	description = "A chemical element, the backbone of biological energy carriers."
 	reagent_state = SOLID
 	color = "#832828"
+	taste_description = "vinegar"
 
 /datum/reagent/potassium
 	name = "Potassium"
@@ -230,6 +294,7 @@
 	description = "A soft, low-melting solid that can easily be cut with a knife. Reacts violently with water."
 	reagent_state = SOLID
 	color = "#A0A0A0"
+	taste_description = "sweetness" //potassium is bitter in higher doses but sweet in lower ones.
 
 /datum/reagent/radium
 	name = "Radium"
@@ -237,16 +302,17 @@
 	description = "Radium is an alkaline earth metal. It is extremely radioactive."
 	reagent_state = SOLID
 	color = "#C7C7C7"
+	taste_description = "the color blue, and regret"
 
 /datum/reagent/radium/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	M.apply_effect(10 * removed, IRRADIATE, 0) // Radium may increase your chances to cure a disease
+	M.apply_effect(10 * removed, IRRADIATE, blocked = 0) // Radium may increase your chances to cure a disease
 	if(M.virus2.len)
 		for(var/ID in M.virus2)
 			var/datum/disease2/disease/V = M.virus2[ID]
 			if(prob(5))
 				M.antibodies |= V.antigen
 				if(prob(50))
-					M.apply_effect(50, IRRADIATE, check_protection = 0) // curing it that way may kill you instead
+					M.apply_effect(50, IRRADIATE, blocked = 0) // curing it that way may kill you instead
 					var/absorbed = 0
 					var/obj/item/organ/diona/nutrients/rad_organ = locate() in M.internal_organs
 					if(rad_organ && !rad_organ.is_broken())
@@ -270,11 +336,12 @@
 	color = "#DB5008"
 	metabolism = REM * 2
 	touch_met = 50 // It's acid!
-	var/power = 5
+	var/power = 4
 	var/meltdose = 10 // How much is needed to melt
+	taste_description = "acid"
 
 /datum/reagent/acid/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	M.take_organ_damage(0, removed * power * 2)
+	M.take_organ_damage(0, removed * power)
 
 /datum/reagent/acid/affect_touch(var/mob/living/carbon/M, var/alien, var/removed) // This is the most interesting
 	if(ishuman(M))
@@ -355,6 +422,7 @@
 	color = "#808080"
 	power = 3
 	meltdose = 8
+	taste_description = "stomach acid"
 
 /datum/reagent/silicon
 	name = "Silicon"
@@ -362,6 +430,7 @@
 	description = "A tetravalent metalloid, silicon is less reactive than its chemical analog carbon."
 	reagent_state = SOLID
 	color = "#A8A8A8"
+	taste_description = "metal"
 
 /datum/reagent/sodium
 	name = "Sodium"
@@ -369,6 +438,7 @@
 	description = "A chemical element, readily reacts with water."
 	reagent_state = SOLID
 	color = "#808080"
+	taste_description = "salty metal"
 
 /datum/reagent/sugar
 	name = "Sugar"
@@ -376,6 +446,9 @@
 	description = "The organic compound commonly known as table sugar and sometimes called saccharose. This white, odorless, crystalline powder has a pleasing, sweet taste."
 	reagent_state = SOLID
 	color = "#FFFFFF"
+	taste_description = "sugar"
+	taste_mult = 1.8
+
 	glass_icon_state = "iceglass"
 	glass_name = "glass of sugar"
 	glass_desc = "The organic compound commonly known as table sugar and sometimes called saccharose. This white, odorless, crystalline powder has a pleasing, sweet taste."
@@ -389,6 +462,7 @@
 	description = "A chemical element with a pungent smell."
 	reagent_state = SOLID
 	color = "#BF8C00"
+	taste_description = "old eggs"
 
 /datum/reagent/tungsten
 	name = "Tungsten"
@@ -396,3 +470,4 @@
 	description = "A chemical element, and a strong oxidising agent."
 	reagent_state = SOLID
 	color = "#DCDCDC"
+	taste_mult = 0 //no taste

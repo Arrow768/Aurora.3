@@ -11,7 +11,7 @@
 	var/heal_burn = 0
 
 /obj/item/stack/medical/attack(mob/living/M as mob, mob/user as mob)
-	if (!istype(M) || istype(M, /mob/living/silicon))
+	if (!istype(M) || istype(M, /mob/living/silicon) || istype(M, /mob/living/simple_animal/spiderbot))
 		user << "<span class='warning'>\The [src] cannot be applied to [M]!</span>"
 		return 1
 
@@ -64,6 +64,7 @@
 	icon_state = "brutepack"
 	origin_tech = list(TECH_BIO = 1)
 	heal_brute = 4
+	icon_has_variants = TRUE
 
 /obj/item/stack/medical/bruise_pack/attack(mob/living/carbon/M as mob, mob/user as mob)
 	if(..())
@@ -96,7 +97,7 @@
 						user.visible_message("<span class='notice'>\The [user] bandages \a [W.desc] on [M]'s [affecting.name].</span>", \
 						                              "<span class='notice'>You bandage \a [W.desc] on [M]'s [affecting.name].</span>" )
 						//H.add_side_effect("Itch")
-					else if (istype(W,/datum/wound/bruise))
+					else if (W.damage_type == BRUISE)
 						user.visible_message("<span class='notice'>\The [user] places a bruise patch over \a [W.desc] on [M]'s [affecting.name].</span>", \
 						                              "<span class='notice'>You place a bruise patch over \a [W.desc] on [M]'s [affecting.name].</span>" )
 					else
@@ -126,6 +127,7 @@
 	icon_state = "ointment"
 	heal_burn = 4
 	origin_tech = list(TECH_BIO = 1)
+	icon_has_variants = TRUE
 
 /obj/item/stack/medical/ointment/attack(mob/living/carbon/M as mob, mob/user as mob)
 	if(..())
@@ -169,7 +171,7 @@
 	if(..())
 		return 1
 
-	if (istype(M, /mob/living/carbon/human))
+	if (ishuman(M))
 		var/mob/living/carbon/human/H = M
 		var/obj/item/organ/external/affecting = H.get_organ(user.zone_sel.selecting)
 
@@ -196,7 +198,7 @@
 						user.visible_message("<span class='notice'>\The [user] cleans \a [W.desc] on [M]'s [affecting.name] and seals the edges with bioglue.</span>", \
 						                     "<span class='notice'>You clean and seal \a [W.desc] on [M]'s [affecting.name].</span>" )
 						//H.add_side_effect("Itch")
-					else if (istype(W,/datum/wound/bruise))
+					else if (W.damage_type == BRUISE)
 						user.visible_message("<span class='notice'>\The [user] places a medical patch over \a [W.desc] on [M]'s [affecting.name].</span>", \
 						                              "<span class='notice'>You place a medical patch over \a [W.desc] on [M]'s [affecting.name].</span>" )
 					else

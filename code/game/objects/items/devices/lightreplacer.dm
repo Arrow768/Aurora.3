@@ -32,11 +32,6 @@
 //
 // The explosion cannot insta-kill anyone with 30% or more health.
 
-#define LIGHT_OK 0
-#define LIGHT_EMPTY 1
-#define LIGHT_BROKEN 2
-#define LIGHT_BURNED 3
-
 
 /obj/item/device/lightreplacer
 
@@ -138,7 +133,7 @@
 				break
 
 		if (!bulb)
-			user << "\red There are no more working lights left in the box!"
+			user << "<span class='warning'>There are no more working lights left in the box!</span>"
 			return
 
 		if (do_after(user, load_interval, needhand = 0) && boxstartloc == box.loc && ourstartloc == src.loc)
@@ -148,7 +143,7 @@
 			box.remove_from_storage(bulb,get_turf(box))
 			qdel(bulb)
 		else
-			user << "\red You need to keep the [src] close to the box!"
+			user << "<span class='warning'>You need to keep the [src] close to the box!</span>"
 			return
 
 	user << "<span class='notice'>The [src]'s refill light shines a solid green, indicating it's full and ready to go!</span>"
@@ -228,11 +223,10 @@
 			target.brightness_range = L2.brightness_range
 			target.brightness_power = L2.brightness_power
 			target.brightness_color = L2.brightness_color
-			target.on = target.has_power()
 			target.update()
 			qdel(L2)
 
-			if(target.on && target.rigged)
+			if(!target.stat && target.rigged)
 				target.explode()
 			return
 
@@ -258,8 +252,3 @@
 		return 1
 	else
 		return 0
-
-#undef LIGHT_OK
-#undef LIGHT_EMPTY
-#undef LIGHT_BROKEN
-#undef LIGHT_BURNED

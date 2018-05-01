@@ -1,19 +1,42 @@
 /turf/space
 	icon = 'icons/turf/space.dmi'
 	name = "\proper space"
+	desc = "The final frontier."
 	icon_state = "0"
 	dynamic_lighting = 0
 	footstep_sound = null //Override to make sure because yeah
 
+	plane = PLANE_SPACE_BACKGROUND
+
 	temperature = T20C
 	thermal_conductivity = OPEN_HEAT_TRANSFER_COEFFICIENT
 //	heat_capacity = 700000 No.
+	is_hole = TRUE
 
-/turf/space/New()
-	if(!istype(src, /turf/space/transit))
-		icon_state = "[((x + y) ^ ~(x * y) + z) % 25]"
-	update_starlight()
-	..()
+	permit_ao = FALSE
+
+// Copypaste of parent for performance.
+/turf/space/Initialize()
+	appearance = SSicon_cache.space_cache["[((x + y) ^ ~(x * y) + z) % 25]"]
+	if (config.starlight)
+		update_starlight()
+
+	if (initialized)
+		crash_with("Warning: [src]([type]) initialized multiple times!")
+
+	initialized = TRUE
+
+	for(var/atom/movable/AM as mob|obj in src)
+		src.Entered(AM)
+
+	turfs += src
+
+	if(dynamic_lighting)
+		luminosity = 0
+	else
+		luminosity = 1
+
+	return INITIALIZE_HINT_NORMAL
 
 /turf/space/is_space()
 	return 1
@@ -23,13 +46,23 @@
 	for(var/obj/O in src)
 		O.hide(0)
 
+/turf/space/can_have_cabling()
+	if (locate(/obj/structure/lattice/catwalk) in src)
+		return 1
+
+	return 0
+
 /turf/space/proc/update_starlight()
-	if(!config.starlight)
-		return
-	if(locate(/turf/simulated) in orange(src,1))
-		set_light(config.starlight)
-	else
-		set_light(0)
+	if(config.starlight)
+		for (var/T in RANGE_TURFS(1, src))
+			if (istype(T, /turf/space))
+				continue
+
+			set_light(config.starlight)
+			return
+
+		if (light_range)
+			set_light(0)
 
 /turf/space/attackby(obj/item/C as obj, mob/user as mob)
 
@@ -57,8 +90,8 @@
 			return
 		else
 			user << "<span class='warning'>The plating is going to need some support.</span>"
-	return
 
+	..(C, user)
 
 // Ported from unstable r355
 
@@ -71,7 +104,7 @@
 
 	inertial_drift(A)
 
-	if(ticker && ticker.mode)
+	if(SSticker.mode)
 
 		// Okay, so let's make it so that people can travel z levels but not nuke disks!
 		// if(ticker.mode.name == "mercenary")	return

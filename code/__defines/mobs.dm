@@ -113,6 +113,10 @@
 
 #define COMPANY_ALIGNMENTS		list(COMPANY_LOYAL,COMPANY_SUPPORTATIVE,COMPANY_NEUTRAL,COMPANY_SKEPTICAL,COMPANY_OPPOSED)
 
+// Defines the argument used for get_mobs_and_objs_in_view_fast
+#define GHOSTS_ALL_HEAR 1
+#define ONLY_GHOSTS_IN_VIEW 0
+
 
 // Defines mob sizes, used by lockers and to determine what is considered a small sized mob, etc.
 #define MOB_LARGE  		16
@@ -120,11 +124,6 @@
 #define MOB_SMALL 		6
 #define MOB_TINY 		4
 #define MOB_MINISCULE	1
-
-// Gluttony levels.
-#define GLUT_TINY 1       // Eat anything tiny and smaller
-#define GLUT_SMALLER 2    // Eat anything smaller than we are
-#define GLUT_ANYTHING 3   // Eat anything, ever
 
 #define BASE_MAX_NUTRITION	400
 #define HUNGER_FACTOR		0.05 // Factor of how fast mob nutrition decreases. Moved here from chemistry define
@@ -138,8 +137,6 @@
 #define FLASH_PROTECTION_NONE 0
 #define FLASH_PROTECTION_MODERATE 1
 #define FLASH_PROTECTION_MAJOR 2
-#define ANIMAL_SPAWN_DELAY round(config.respawn_delay / 6)
-#define DRONE_SPAWN_DELAY  round(config.respawn_delay / 3)
 
 #define ANIMAL_SPAWN_DELAY round(config.respawn_delay / 6)
 #define DRONE_SPAWN_DELAY  round(config.respawn_delay / 3)
@@ -177,6 +174,45 @@
 #define TYPE_ORGANIC	1//Almost any creature under /mob/living/carbon and most simple animals
 #define	TYPE_SYNTHETIC	2//Everything under /mob/living/silicon, plus IPCs, viscerators
 #define TYPE_HUMANOID	4//Humans, skrell, unathi, tajara, vaurca, diona, IPC, vox
-#define TYPE_WIERD		8//Slimes, constructs, demons, and other creatures of a magical or bluespace nature.
+#define TYPE_WEIRD		8//Slimes, constructs, demons, and other creatures of a magical or bluespace nature.
 
+// Maximum number of chickens allowed at once.
+// If the number of chickens on the map exceeds this, laid eggs will not hatch.
+#define MAX_CHICKENS 50
 
+#define CREW_MINIMUM_NUTRITION 50	// The minimum amount of nutrition a crewmember will spawn with.
+#define CREW_MAXIMUM_NUTRITION 100	// Same as above, but maximum.
+
+//carbon taste sensitivity defines, used in mob/living/carbon/proc/ingest
+#define TASTE_HYPERSENSITIVE 3 //anything below 5%
+#define TASTE_SENSITIVE 2 //anything below 7%
+#define TASTE_NORMAL 1 //anything below 15%
+#define TASTE_DULL 0.5 //anything below 30%
+#define TASTE_NUMB 0.1 //anything below 150%
+
+//helper for inverting armor blocked values into a multiplier
+#define BLOCKED_MULT(blocked) max(1 - (blocked/100), 0)
+
+// Prosthetic organ defines.
+#define PROSTHETIC_IPC "Hephaestus Integrated Limb"
+#define PROSTHETIC_HK "Hephaestus Vulcanite Limb"
+#define PROSTHETIC_IND "Hephaestus Industrial Limb"
+#define PROSTHETIC_SYNTHSKIN "Human Synthskin"
+#define PROSTHETIC_BC "Bishop Cybernetics"
+#define PROSTHETIC_ZH "Zeng-Hu Pharmaceuticals"
+#define PROSTHETIC_HI "Hephaestus Industries"
+#define PROSTHETIC_XMG "Xion Manufacturing Group"
+
+//Brain Damage defines
+#define BRAIN_DAMAGE_MILD 10
+#define BRAIN_DAMAGE_SEVERE 40
+
+#define BRAIN_TRAUMA_MILD /datum/brain_trauma/mild
+#define BRAIN_TRAUMA_SEVERE /datum/brain_trauma/severe
+#define BRAIN_TRAUMA_SPECIAL /datum/brain_trauma/special
+
+#define CURE_CRYSTAL "crystal"
+#define CURE_SOLITUDE "solitude"
+#define CURE_HYPNOSIS "hypnosis"
+#define CURE_SURGERY "surgery"
+#define CURE_ADMIN "all"

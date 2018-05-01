@@ -6,11 +6,13 @@
 	description = "A toxic chemical."
 	reagent_state = LIQUID
 	color = "#CF3600"
-	metabolism = REM * 0.05 // 0.01 by default. They last a while and slowly kill you.
+	metabolism = REM * 0.1 // 0.02 by default. They last a while and slowly kill you.
 	var/strength = 4 // How much damage it deals per unit
+	taste_description = "bitterness"
+	taste_mult = 1.2
 
 /datum/reagent/toxin/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(strength && alien != IS_DIONA)
+	if(strength)
 		M.adjustToxLoss(strength * removed)
 
 /datum/reagent/toxin/plasticide
@@ -20,6 +22,7 @@
 	reagent_state = LIQUID
 	color = "#CF3600"
 	strength = 5
+	taste_description = "plastic"
 
 /datum/reagent/toxin/amatoxin
 	name = "Amatoxin"
@@ -28,6 +31,7 @@
 	reagent_state = LIQUID
 	color = "#792300"
 	strength = 10
+	taste_description = "mushroom"
 
 /datum/reagent/toxin/carpotoxin
 	name = "Carpotoxin"
@@ -36,6 +40,7 @@
 	reagent_state = LIQUID
 	color = "#003333"
 	strength = 10
+	taste_description = "fish"
 
 /datum/reagent/toxin/carpotoxin/affect_ingest(var/mob/living/carbon/M, var/alien, var/removed)
 	if(alien && alien == IS_UNATHI)
@@ -50,11 +55,12 @@
 	color = "#9D14DB"
 	strength = 30
 	touch_met = 5
+	taste_mult = 1.5
 
 /datum/reagent/toxin/phoron/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
-		if(H.species.has_organ["filtration bit"] && isvaurca(H))
+		if(H.species.has_organ["filtration bit"] && alien == IS_VAURCA)
 			metabolism = REM * 20 //vaurcae metabolise phoron faster than other species - good for them if their filter isn't broken.
 			var/obj/item/organ/vaurca/filtrationbit/F = H.internal_organs_by_name["filtration bit"]
 			if(isnull(F))
@@ -79,7 +85,7 @@
 		L.adjust_fire_stacks(amount / 5)
 
 /datum/reagent/toxin/phoron/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
-	if(isvaurca(M))
+	if(alien == IS_VAURCA)
 		return
 	M.take_organ_damage(0, removed * 0.1) //being splashed directly with phoron causes minor chemical burns
 	if(prob(50))
@@ -99,9 +105,13 @@
 	color = "#CF3600"
 	strength = 20
 	metabolism = REM * 2
+	taste_mult = 1.5
 
 /datum/reagent/toxin/cyanide/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	..()
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
+		return
 	M.adjustOxyLoss(20 * removed)
 	M.sleeping += 1
 
@@ -113,16 +123,18 @@
 	color = "#FFFFFF"
 	strength = 0
 	overdose = REAGENTS_OVERDOSE
+	taste_description = "salt"
 
 /datum/reagent/toxin/potassium_chloride/overdose(var/mob/living/carbon/M, var/alien)
 	..()
-	if(ishuman(M))
-		var/mob/living/carbon/human/H = M
-		if(H.stat != 1)
-			if(H.losebreath >= 10)
-				H.losebreath = max(10, H.losebreath - 10)
-			H.adjustOxyLoss(2)
-			H.Weaken(10)
+	var/mob/living/carbon/human/H = M
+	if(!istype(H) || (H.species.flags & NO_BLOOD))
+		return
+	if(H.stat != 1)
+		if(H.losebreath >= 10)
+			H.losebreath = max(10, H.losebreath - 10)
+		H.adjustOxyLoss(2)
+		H.Weaken(10)
 
 /datum/reagent/toxin/potassium_chlorophoride
 	name = "Potassium Chlorophoride"
@@ -132,16 +144,18 @@
 	color = "#FFFFFF"
 	strength = 10
 	overdose = 20
+	taste_description = "salt"
 
 /datum/reagent/toxin/potassium_chlorophoride/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	..()
-	if(ishuman(M))
-		var/mob/living/carbon/human/H = M
-		if(H.stat != 1)
-			if(H.losebreath >= 10)
-				H.losebreath = max(10, M.losebreath-10)
-			H.adjustOxyLoss(2)
-			H.Weaken(10)
+	var/mob/living/carbon/human/H = M
+	if(!istype(H) || (H.species.flags & NO_BLOOD))
+		return
+	if(H.stat != 1)
+		if(H.losebreath >= 10)
+			H.losebreath = max(10, M.losebreath-10)
+		H.adjustOxyLoss(2)
+		H.Weaken(10)
 
 /datum/reagent/toxin/zombiepowder
 	name = "Zombie Powder"
@@ -151,10 +165,12 @@
 	color = "#669900"
 	metabolism = REM
 	strength = 3
+	taste_description = "death"
 
 /datum/reagent/toxin/zombiepowder/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	..()
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_SCAN))
 		return
 	M.status_flags |= FAKEDEATH
 	M.adjustOxyLoss(3 * removed)
@@ -166,7 +182,7 @@
 	if(holder && holder.my_atom && ismob(holder.my_atom))
 		var/mob/M = holder.my_atom
 		M.status_flags &= ~FAKEDEATH
-	..()
+	return ..()
 
 /datum/reagent/toxin/fertilizer //Reagents used for plant fertilizers.
 	name = "fertilizer"
@@ -175,6 +191,16 @@
 	reagent_state = LIQUID
 	strength = 0.5 // It's not THAT poisonous.
 	color = "#664330"
+	taste_description = "plant food"
+	taste_mult = 0.5
+	unaffected_species = IS_MACHINE
+
+/datum/reagent/toxin/fertilizer/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
+	if(alien == IS_DIONA)
+		M.nutrition += removed*3
+		//Fertilizer is good for plants
+	else
+		..()
 
 /datum/reagent/toxin/fertilizer/eznutrient
 	name = "EZ Nutrient"
@@ -195,7 +221,9 @@
 	reagent_state = LIQUID
 	color = "#49002E"
 	strength = 4
-	metabolism = REM * 0.35
+	metabolism = REM*1.5
+	taste_mult = 1
+	unaffected_species = IS_MACHINE
 
 /datum/reagent/toxin/plantbgone/touch_turf(var/turf/T)
 	if(istype(T, /turf/simulated/wall))
@@ -206,18 +234,22 @@
 			W.visible_message("<span class='notice'>The fungi are completely dissolved by the solution!</span>")
 
 /datum/reagent/toxin/plantbgone/touch_obj(var/obj/O, var/volume)
-	if(istype(O, /obj/effect/plant))
+	if(istype(O, /obj/structure/alien/weeds))
+		var/obj/structure/alien/weeds/alien_weeds = O
+		alien_weeds.health -= rand(15, 35)
+		alien_weeds.healthcheck()
+	else if(istype(O, /obj/effect/plant))
 		qdel(O)
 
 /datum/reagent/toxin/plantbgone/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	..()
 	if(alien == IS_DIONA)
-		M.adjustToxLoss(50 * removed)
+		M.adjustToxLoss(30 * removed)
 
+//Affect touch automatically transfers to affect_blood, so we'll apply the damage there, after accounting for permeability
 /datum/reagent/toxin/plantbgone/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
-	..()
-	if(alien == IS_DIONA)
-		M.adjustToxLoss(50 * removed)
+	removed *= M.reagent_permeability()
+	affect_blood(M, alien, removed*0.5)
 
 /datum/reagent/acid/polyacid
 	name = "Polytrinic acid"
@@ -225,8 +257,9 @@
 	description = "Polytrinic acid is a an extremely corrosive chemical substance."
 	reagent_state = LIQUID
 	color = "#8E18A9"
-	power = 10
+	power = 6
 	meltdose = 4
+	taste_description = "acid"
 
 /datum/reagent/lexorin
 	name = "Lexorin"
@@ -235,11 +268,13 @@
 	reagent_state = LIQUID
 	color = "#C8A5DC"
 	overdose = REAGENTS_OVERDOSE
+	taste_description = "acid"
 
 /datum/reagent/lexorin/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
 		return
-	M.take_organ_damage(3 * removed, 0)
+	M.adjustOxyLoss(2 * removed)
 	if(M.losebreath < 15)
 		M.losebreath++
 
@@ -249,6 +284,8 @@
 	description = "Might cause unpredictable mutations. Keep away from children."
 	reagent_state = LIQUID
 	color = "#13BC5E"
+	taste_description = "slime"
+	taste_mult = 0.9
 
 /datum/reagent/mutagen/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
 	if(prob(33))
@@ -272,7 +309,7 @@
 				randmutg(M)
 			domutcheck(M, null)
 			M.UpdateAppearance()
-	M.apply_effect(10 * removed, IRRADIATE, 0)
+	M.apply_effect(10 * removed, IRRADIATE, blocked = 0)
 
 /datum/reagent/slimejelly
 	name = "Slime Jelly"
@@ -280,9 +317,12 @@
 	description = "A gooey semi-liquid produced from one of the deadliest lifeforms in existence. SO REAL."
 	reagent_state = LIQUID
 	color = "#801E28"
+	taste_description = "slime"
+	taste_mult = 1.3
 
 /datum/reagent/slimejelly/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
 		return
 	if(prob(10))
 		M << "<span class='danger'>Your insides are burning!</span>"
@@ -298,9 +338,11 @@
 	color = "#009CA8"
 	metabolism = REM * 0.5
 	overdose = REAGENTS_OVERDOSE
+	taste_description = "bitterness"
 
 /datum/reagent/soporific/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
 		return
 	if(dose < 1)
 		if(dose == metabolism * 2 || prob(5))
@@ -323,9 +365,11 @@
 	color = "#000067"
 	metabolism = REM * 0.5
 	overdose = REAGENTS_OVERDOSE * 0.5
+	taste_description = "bitterness"
 
 /datum/reagent/chloralhydrate/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
 		return
 	if(dose == metabolism)
 		M.confused += 2
@@ -345,6 +389,7 @@
 	description = "An alcoholic beverage made from malted grains, hops, yeast, and water. The fermentation appears to be incomplete." //If the players manage to analyze this, they deserve to know something is wrong.
 	reagent_state = LIQUID
 	color = "#664300"
+	taste_description = "beer"
 
 	glass_icon_state = "beerglass"
 	glass_name = "glass of beer"
@@ -361,9 +406,12 @@
 	color = "#60A584"
 	metabolism = REM * 0.5
 	overdose = REAGENTS_OVERDOSE
+	taste_description = "bitterness"
+	taste_mult = 0.4
 
 /datum/reagent/space_drugs/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
 		return
 	M.druggy = max(M.druggy, 15)
 	if(prob(10) && isturf(M.loc) && !istype(M.loc, /turf/space) && M.canmove && !M.restrained())
@@ -379,9 +427,11 @@
 	color = "#202040"
 	metabolism = REM * 0.25
 	overdose = REAGENTS_OVERDOSE
+	taste_description = "bitterness"
 
 /datum/reagent/serotrotium/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
 		return
 	if(prob(7))
 		M.emote(pick("twitch", "drool", "moan", "gasp"))
@@ -395,9 +445,11 @@
 	color = "#000055"
 	metabolism = REM * 0.5
 	overdose = REAGENTS_OVERDOSE
+	taste_description = "sourness"
 
 /datum/reagent/cryptobiolin/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
 		return
 	M.dizziness = max(150, M.dizziness)//Setting dizziness directly works as long as the make_dizzy proc is called after to spawn the process
 	M.make_dizzy(4)
@@ -411,10 +463,9 @@
 	reagent_state = LIQUID
 	color = "#C8A5DC"
 	overdose = REAGENTS_OVERDOSE
+	taste_description = "numbness"
 
 /datum/reagent/impedrezene/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
-		return
 	M.jitteriness = max(M.jitteriness - 5, 0)
 	if(prob(80))
 		M.adjustBrainLoss(3 * removed)
@@ -431,10 +482,9 @@
 	color = "#B31008"
 	metabolism = REM * 0.25
 	overdose = REAGENTS_OVERDOSE
+	taste_description = "sourness"
 
 /datum/reagent/mindbreaker/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
-		return
 	M.hallucination = max(M.hallucination, 100)
 
 /datum/reagent/psilocybin
@@ -444,9 +494,11 @@
 	color = "#E700E7"
 	overdose = REAGENTS_OVERDOSE
 	metabolism = REM * 0.5
+	taste_description = "mushroom"
 
 /datum/reagent/psilocybin/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_DIONA)
+	var/mob/living/carbon/human/H = M
+	if(istype(H) && (H.species.flags & NO_BLOOD))
 		return
 	M.druggy = max(M.druggy, 30)
 	if(dose < 1)
@@ -471,13 +523,6 @@
 		if(prob(15))
 			M.emote(pick("twitch", "giggle"))
 
-/datum/reagent/nicotine
-	name = "Nicotine"
-	id = "nicotine"
-	description = "A highly addictive stimulant extracted from the tobacco plant."
-	reagent_state = LIQUID
-	color = "#181818"
-
 /* Transformations */
 
 /datum/reagent/slimetoxin
@@ -486,6 +531,7 @@
 	description = "A corruptive toxin produced by slimes."
 	reagent_state = LIQUID
 	color = "#13BC5E"
+	taste_description = "sludge"
 
 /datum/reagent/slimetoxin/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	if(ishuman(M))
@@ -500,6 +546,7 @@
 	description = "An advanced corruptive toxin produced by slimes."
 	reagent_state = LIQUID
 	color = "#13BC5E"
+	taste_description = "sludge"
 
 /datum/reagent/aslimetoxin/affect_blood(var/mob/living/carbon/M, var/alien, var/removed) // TODO: check if there's similar code anywhere else
 	if(M.transforming)
@@ -508,7 +555,7 @@
 	M.transforming = 1
 	M.canmove = 0
 	M.icon = null
-	M.overlays.Cut()
+	M.cut_overlays()
 	M.invisibility = 101
 	for(var/obj/item/W in M)
 		if(istype(W, /obj/item/weapon/implant)) //TODO: Carn. give implants a dropped() or something
@@ -532,6 +579,7 @@
 	description = "Microscopic construction robots."
 	reagent_state = LIQUID
 	color = "#535E66"
+	taste_description = "slimey metal"
 
 /datum/reagent/nanites/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
 	if(prob(10))
@@ -546,6 +594,7 @@
 	description = "Microbes with an entirely alien cellular structure."
 	reagent_state = LIQUID
 	color = "#535E66"
+	taste_description = "sludge"
 
 /datum/reagent/xenomicrobes/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
 	if(prob(10))
@@ -553,3 +602,49 @@
 
 /datum/reagent/xenomicrobes/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
 	M.contract_disease(new /datum/disease/xeno_transformation(0), 1)
+
+/datum/reagent/toxin/undead
+	name = "Undead Ichor"
+	id = "undead_ichor"
+	description = "A wicked liquid with unknown origins and uses."
+	color = "#b2beb5"
+	strength = 25
+	taste_description = "ashes"
+
+/datum/reagent/toxin/undead/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
+	if(alien && alien == IS_UNDEAD)
+		M.heal_organ_damage(10 * removed, 15 * removed)
+		return
+	..()
+
+/datum/reagent/toxin/tobacco
+	name = "Space Tobacco"
+	id = "tobacco"
+	description = "Low-grade space tobacco."
+	reagent_state = LIQUID
+	color = "#333300"
+	data = 0
+	taste_description = "low-grade tobacco"
+	strength = 0.004
+	taste_mult = 10
+
+/datum/reagent/toxin/tobacco/affect_blood(var/mob/living/carbon/human/M, var/alien, var/removed)
+	if(istype(M))
+		var/obj/item/organ/H = M.internal_organs_by_name["heart"]
+		if(istype(H))
+			H.take_damage(removed * strength * 0.5,1)
+		var/obj/item/organ/L = M.internal_organs_by_name["lungs"]
+		if(istype(L))
+			L.take_damage(removed * strength,1)
+		var/obj/item/organ/A = M.internal_organs_by_name["liver"]
+		if(istype(A))
+			A.take_damage(removed * strength * 0.25,1)
+
+/datum/reagent/toxin/tobacco/rich
+	name = "Earth Tobacco"
+	id = "tobaccorich"
+	description = "Nicknamed 'Earth Tobacco', this plant is much higher quality than it's space fairing counterpart."
+	reagent_state = LIQUID
+	data = 0
+	taste_description = "quality tobacco"
+	strength = 0.002

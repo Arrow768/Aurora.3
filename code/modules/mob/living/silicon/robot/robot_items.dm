@@ -28,10 +28,9 @@
 				user << "You activate the analyzer's microlaser, analyzing \the [loaded_item] and breaking it down."
 				flick("portable_analyzer_scan", src)
 				playsound(src.loc, 'sound/items/Welder2.ogg', 50, 1)
-				var/list/temp_tech = ConvertReqString2List(loaded_item.origin_tech)
-				for(var/T in temp_tech)
-					files.UpdateTech(T, temp_tech[T])
-					user << "\The [loaded_item] had level [temp_tech[T]] in [T]."
+				for(var/T in loaded_item.origin_tech)
+					files.UpdateTech(T, loaded_item.origin_tech[T])
+					user << "\The [loaded_item] had level [loaded_item.origin_tech[T]] in [CallTechName(T)]."
 				loaded_item = null
 				for(var/obj/I in contents)
 					for(var/mob/M in I.contents)
@@ -55,7 +54,7 @@
 			user << "The [src] is empty.  Put something inside it first."
 	if(response == "Sync")
 		var/success = 0
-		for(var/obj/machinery/r_n_d/server/S in machines)
+		for(var/obj/machinery/r_n_d/server/S in SSmachinery.all_machines)
 			for(var/datum/tech/T in files.known_tech) //Uploading
 				S.files.AddTech2Known(T)
 			for(var/datum/tech/T in S.files.known_tech) //Downloading
@@ -90,7 +89,10 @@
 			user << "Your [src] already has something inside.  Analyze or eject it first."
 			return
 		var/obj/item/I = target
-		I.loc = src
+		if (I.anchored)
+			user << span("notice", "\The [I] is anchored in place.")
+			return
+		I.forceMove(src)
 		loaded_item = I
 		for(var/mob/M in viewers())
 			M.show_message(text("<span class='notice'>[user] adds the [I] to the [src].</span>"), 1)
@@ -230,7 +232,7 @@
 	deploy_paper(get_turf(src))
 
 /obj/item/weapon/form_printer/proc/deploy_paper(var/turf/T)
-	T.visible_message("\blue \The [src.loc] dispenses a sheet of crisp white paper.")
+	T.visible_message("<span class='notice'>\The [src.loc] dispenses a sheet of crisp white paper.</span>")
 	new /obj/item/weapon/paper(T)
 
 
@@ -296,7 +298,7 @@
 /obj/item/weapon/inflatable_dispenser/proc/try_deploy_inflatable(var/turf/T, var/mob/living/user)
 	if (deploying)
 		return
-	deploying = 1
+
 	var/newtype
 	if(mode) // Door deployment
 		if(!stored_doors)
@@ -314,9 +316,10 @@
 		if(T && istype(T))
 			newtype = /obj/structure/inflatable/wall
 
+	deploying = 1
 	user.visible_message(span("notice", "[user] starts deploying an inflatable"), span("notice", "You start deploying an inflatable [mode ? "door" : "wall"]!"))
 	playsound(T, 'sound/items/zip.ogg', 75, 1)
-	if (do_after(user, 20, needhand = 0))
+	if (do_after(user, 15, needhand = 0))
 		new newtype(T)
 		if (mode)
 			stored_doors--

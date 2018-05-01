@@ -35,8 +35,8 @@ em						{font-style: normal;font-weight: bold;}
 .mod_channel			{color: #735638;	font-weight: bold;}
 .mod_channel .admin		{color: #b82e00;	font-weight: bold;}
 .admin_channel			{color: #9611D4;	font-weight: bold;}
-.cciaasay				{color: #521590;}
-.devsay					{color: #02280D;}
+.cciaasay				{color: #22a9b4;}
+.devsay					{color: #5C7463;}
 
 /* Radio: Misc */
 .deadsay				{color: #530FAD;}
@@ -97,6 +97,7 @@ h1.alert, h2.alert		{color: #000000;}
 .vox					{color: #AA00AA;}
 .rough					{font-family: "Trebuchet MS", cursive, sans-serif;}
 .say_quote				{font-family: Georgia, Verdana, sans-serif;}
+.yassa					{color: #400987;}
 
 .interface				{color: #330033;}
 

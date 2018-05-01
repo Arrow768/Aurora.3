@@ -6,9 +6,10 @@
 	extended_desc = "Program for programming employee ID cards to access parts of the station."
 	required_access_run = access_change_ids
 	required_access_download = access_change_ids
-	usage_flags = PROGRAM_CONSOLE
+	usage_flags = PROGRAM_CONSOLE | PROGRAM_LAPTOP
 	requires_ntnet = 0
 	size = 8
+	color = LIGHT_COLOR_BLUE
 
 /datum/nano_module/program/card_mod
 	name = "ID card modification program"
@@ -82,7 +83,7 @@
 					"accesses" = accesses)))
 			data["regions"] = regions
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "identification_computer.tmpl", name, 600, 700, state = state)
 		ui.auto_update_layout = 1
@@ -162,11 +163,11 @@
 				if(id_card)
 					data_core.manifest_modify(id_card.registered_name, id_card.assignment)
 				computer.proc_eject_id(user)
-		if("terminate")
+		if("suspend")
 			if(computer && can_run(user, 1))
-				id_card.assignment = "Terminated"
+				id_card.assignment = "Suspended"
 				remove_nt_access(id_card)
-				callHook("terminate_employee", list(id_card))
+				callHook("suspend_employee", list(id_card))
 		if("edit")
 			if(computer && can_run(user, 1))
 				if(href_list["name"])
@@ -220,7 +221,7 @@
 	if(id_card)
 		id_card.name = text("[id_card.registered_name]'s ID Card ([id_card.assignment])")
 
-	nanomanager.update_uis(NM)
+	SSnanoui.update_uis(NM)
 	return 1
 
 /datum/computer_file/program/card_mod/proc/remove_nt_access(var/obj/item/weapon/card/id/id_card)

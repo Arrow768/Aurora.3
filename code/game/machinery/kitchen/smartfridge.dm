@@ -22,12 +22,13 @@
 	var/scan_id = 1
 	var/is_secure = 0
 	var/datum/wires/smartfridge/wires = null
+	atmos_canpass = CANPASS_NEVER
 
 /obj/machinery/smartfridge/secure
 	is_secure = 1
 
-/obj/machinery/smartfridge/New()
-	..()
+/obj/machinery/smartfridge/Initialize()
+	. = ..()
 	if(is_secure)
 		wires = new/datum/wires/smartfridge/secure(src)
 	else
@@ -60,6 +61,10 @@
 	name = "\improper Slime Extract Storage"
 	desc = "A refrigerated storage unit for slime extracts"
 	req_access = list(access_research)
+
+/obj/machinery/smartfridge/secure/extract/Initialize()
+	. = ..()
+	new/obj/item/weapon/storage/bag/slimes(src)
 
 /obj/machinery/smartfridge/secure/extract/accept_check(var/obj/item/O as obj)
 	if(istype(O,/obj/item/slime_extract))
@@ -130,7 +135,7 @@
 			return 1
 	return 0
 
-/obj/machinery/smartfridge/drying_rack/process()
+/obj/machinery/smartfridge/drying_rack/machinery_process()
 	..()
 	if (contents.len)
 		dry()
@@ -152,7 +157,7 @@
 		return
 	return
 
-/obj/machinery/smartfridge/process()
+/obj/machinery/smartfridge/machinery_process()
 	if(stat & (BROKEN|NOPOWER))
 		return
 	if(src.seconds_electrified > 0)
@@ -177,16 +182,16 @@
 ********************/
 
 /obj/machinery/smartfridge/attackby(var/obj/item/O as obj, var/mob/user as mob)
-	if(istype(O, /obj/item/weapon/screwdriver))
+	if(isscrewdriver(O))
 		panel_open = !panel_open
 		user.visible_message("[user] [panel_open ? "opens" : "closes"] the maintenance panel of \the [src].", "You [panel_open ? "open" : "close"] the maintenance panel of \the [src].")
-		overlays.Cut()
+		cut_overlays()
 		if(panel_open)
-			overlays += image(icon, icon_panel)
-		nanomanager.update_uis(src)
+			add_overlay(icon_panel)
+		SSnanoui.update_uis(src)
 		return
 
-	if(istype(O, /obj/item/device/multitool)||istype(O, /obj/item/weapon/wirecutters))
+	if(ismultitool(O)||iswirecutter(O))
 		if(panel_open)
 			attack_hand(user)
 		return
@@ -208,7 +213,7 @@
 				item_quants[O.name] = 1
 			user.visible_message("<span class='notice'>[user] has added \the [O] to \the [src].</span>", "<span class='notice'>You add \the [O] to \the [src].</span>")
 
-			nanomanager.update_uis(src)
+			SSnanoui.update_uis(src)
 
 	else if(istype(O, /obj/item/weapon/storage/bag))
 		var/obj/item/weapon/storage/bag/P = O
@@ -231,7 +236,7 @@
 			if(P.contents.len > 0)
 				user << "<span class='notice'>Some items are refused.</span>"
 
-		nanomanager.update_uis(src)
+		SSnanoui.update_uis(src)
 
 	else
 		user << "<span class='notice'>\The [src] smartly refuses [O].</span>"
@@ -277,7 +282,7 @@
 	if(items.len > 0)
 		data["contents"] = items
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if(!ui)
 		ui = new(user, src, ui_key, "smartfridge.tmpl", src.name, 400, 500)
 		ui.set_initial_data(data)
@@ -287,7 +292,7 @@
 	if(..()) return 0
 
 	var/mob/user = usr
-	var/datum/nanoui/ui = nanomanager.get_open_ui(user, src, "main")
+	var/datum/nanoui/ui = SSnanoui.get_open_ui(user, src, "main")
 
 	src.add_fingerprint(user)
 

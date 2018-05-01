@@ -17,9 +17,6 @@
 		user_buckle_mob(M, user)
 
 //Cleanup
-/obj/Del()
-	unbuckle_mob()
-	return ..()
 
 /obj/Destroy()
 	unbuckle_mob()
@@ -27,9 +24,14 @@
 
 
 /obj/proc/buckle_mob(mob/living/M)
-	if(!can_buckle || !istype(M) || (M.loc != loc) || M.buckled || M.pinned.len || (buckle_require_restraints && !M.restrained()))
+	if(!can_buckle || !istype(M) || M.buckled || M.pinned.len || (buckle_require_restraints && !M.restrained()))
 		return 0
 
+	if ((M.loc != loc) && !(density && get_dist(src, M) <= 1))
+		return 0
+
+	if (M.loc != loc)
+		M.forceMove(loc)
 	M.buckled = src
 	M.facing_dir = null
 	M.set_dir(buckle_dir ? buckle_dir : dir)
@@ -52,9 +54,9 @@
 	return
 
 /obj/proc/user_buckle_mob(mob/living/M, mob/user)
-	if(!ticker)
+	if(!ROUND_IS_STARTED)
 		user << "<span class='warning'>You can't buckle anyone in before the game starts.</span>"
-	if(!user.Adjacent(M) || user.restrained() || user.lying || user.stat || istype(user, /mob/living/silicon/pai))
+	if(!user.Adjacent(M) || user.restrained() || user.stat || istype(user, /mob/living/silicon/pai))
 		return
 	if(M == buckled_mob)
 		return

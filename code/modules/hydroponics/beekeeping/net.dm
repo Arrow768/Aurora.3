@@ -3,7 +3,7 @@
 	desc = "For catching rogue bees."
 	icon = 'icons/obj/apiary_bees_etc.dmi'
 	icon_state = "bee_net"
-	item_state = "bedsheet"
+	item_state = "bee_net"
 	w_class = 3
 	var/caught_bees = 0
 	var/feralbees
@@ -90,7 +90,7 @@
 			if (target.strength <= 0)
 				qdel(target)
 
-	if (target && !target.gcDestroyed)
+	if (!QDELETED(target))
 		target.update_icons()
 
 

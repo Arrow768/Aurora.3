@@ -31,11 +31,6 @@
 	build_path = /obj/machinery/computer/scan_consolenew
 	origin_tech = list(TECH_DATA = 2, TECH_BIO = 2)
 
-/obj/item/weapon/circuitboard/communications
-	name = T_BOARD("command and communications console")
-	build_path = /obj/machinery/computer/communications
-	origin_tech = list(TECH_DATA = 2, TECH_MAGNET = 2)
-
 /obj/item/weapon/circuitboard/teleporter
 	name = T_BOARD("teleporter control console")
 	build_path = /obj/machinery/computer/teleporter
@@ -142,11 +137,6 @@
 	name = T_BOARD("disease splicer")
 	build_path = /obj/machinery/computer/diseasesplicer
 
-/obj/item/weapon/circuitboard/ordercomp
-	name = T_BOARD("supply ordering console")
-	build_path = /obj/machinery/computer/ordercomp
-	origin_tech = list(TECH_DATA = 2)
-
 /obj/item/weapon/circuitboard/mining_shuttle
 	name = T_BOARD("mining shuttle console")
 	build_path = /obj/machinery/computer/shuttle_control/mining
@@ -167,10 +157,10 @@
 	build_path = /obj/machinery/computer/area_atmos
 	origin_tech = list(TECH_DATA = 2)
 
-/obj/item/weapon/circuitboard/prison_shuttle
+/*/obj/item/weapon/circuitboard/prison_shuttle
 	name = T_BOARD("prison shuttle control console")
 	build_path = /obj/machinery/computer/prison_shuttle
-	origin_tech = list(TECH_DATA = 2)
+	origin_tech = list(TECH_DATA = 2)*/
 
 /obj/item/weapon/circuitboard/rcon_console
 	name = T_BOARD("RCON remote control console")

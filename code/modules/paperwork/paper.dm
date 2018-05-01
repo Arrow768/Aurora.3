@@ -30,19 +30,22 @@
 	var/list/offset_y[0] //usage by the photocopier
 	var/rigged = 0
 	var/spam_flag = 0
+	var/old_name		// The name of the paper before it was folded into a plane.
 
 	var/const/deffont = "Verdana"
 	var/const/signfont = "Times New Roman"
 	var/const/crayonfont = "Comic Sans MS"
 
-/obj/item/weapon/paper/New(loc, text,title)
-	..(loc)
-	set_content(title, text ? text : info)
-
-// needed for subtyped papers with pre-defined content
-/obj/item/weapon/paper/New()
-	..()
-	update_icon()
+/obj/item/weapon/paper/Initialize(mapload, text, title)
+	. = ..()
+	if (text || title)
+		set_content(title, text ? text : info)
+	else
+		updateinfolinks()
+		if (mapload)
+			update_icon()
+		else
+			addtimer(CALLBACK(src, /atom/.proc/update_icon), 1)
 
 /obj/item/weapon/paper/proc/set_content(title, text)
 	if(title)
@@ -52,7 +55,7 @@
 		info = parsepencode(text)
 	else
 		info = ""
-		
+
 	update_icon()
 	update_space(info)
 	updateinfolinks()
@@ -67,7 +70,7 @@
 		info = ""
 
 	update_icon()
-	update_space()
+	update_space(info)
 	updateinfolinks()
 
 /obj/item/weapon/paper/update_icon()
@@ -84,6 +87,9 @@
 
 /obj/item/weapon/paper/examine(mob/user)
 	..()
+	if (old_name && icon_state == "paper_plane")
+		user << span("notice", "You're going to have to unfold it before you can read it.")
+		return
 	if(name != "sheet of paper")
 		user << "It's titled '[name]'."
 	if(in_range(user, src) || isobserver(user))
@@ -122,9 +128,31 @@
 			return
 		//crumple dat paper
 		info = stars(info,85)
-		user.visible_message("\The [user] crumples \the [src] into a ball!")
+		user.visible_message("\The [user] crumples \the [src] into a ball!", "You crumple \the [src] into a ball.", "You hear crinkling.")
 		icon_state = "scrap"
 		return
+
+	if (user.a_intent == I_GRAB && icon_state != "scrap" && !istype(src, /obj/item/weapon/paper/carbon))
+		if (icon_state == "paper_plane")
+			user.show_message(span("alert", "The paper is already folded into a plane."))
+			return
+		user.visible_message(span("notice", "\The [user] carefully folds \the [src] into a plane."),
+			span("notice", "You carefully fold \the [src] into a plane."), "You hear paper rustling.")
+		icon_state = "paper_plane"
+		throw_range = 8
+		old_name = name
+		name = "paper plane"
+		return
+
+	if (user.a_intent == I_HELP && old_name && icon_state == "paper_plane")
+		user.visible_message(span("notice", "\The [user] unfolds \the [src]."), span("notice", "You unfold \the [src]."), "You hear paper rustling.")
+		icon_state = initial(icon_state)
+		throw_range = initial(throw_range)
+		name = old_name
+		old_name = null
+		update_icon()
+		return
+
 	user.examinate(src)
 	if(rigged && (Holiday == "April Fool's Day"))
 		if(spam_flag == 0)
@@ -152,7 +180,7 @@
 			else
 				user.visible_message("<span class='warning'>[user] begins to wipe [H]'s lipstick off with \the [src].</span>", \
 								 	 "<span class='notice'>You begin to wipe off [H]'s lipstick.</span>")
-				if(do_after(user, 10) && do_after(H, 10, 5, 0))	//user needs to keep their active hand, H does not.
+				if(do_after(user, 10) && do_after(H, 10, 0))	//user needs to keep their active hand, H does not.
 					user.visible_message("<span class='notice'>[user] wipes [H]'s lipstick off with \the [src].</span>", \
 										 "<span class='notice'>You wipe off [H]'s lipstick.</span>")
 					H.lip_style = null
@@ -196,8 +224,7 @@
 
 /obj/item/weapon/paper/proc/updateinfolinks()
 	info_links = info
-	var/i = 0
-	for(i=1,i<=fields,i++)
+	for (var/i = 1, i <= min(fields, 35), i++)
 		addtofield(i, "<font face=\"[deffont]\"><A href='?src=\ref[src];write=[i]'>write</A></font>", 1)
 	info_links = info_links + "<font face=\"[deffont]\"><A href='?src=\ref[src];write=end'>write</A></font>"
 
@@ -207,19 +234,32 @@
 	stamps = null
 	free_space = MAX_PAPER_MESSAGE_LEN
 	stamped = list()
-	overlays.Cut()
+	cut_overlays()
 	updateinfolinks()
 	update_icon()
 
 /obj/item/weapon/paper/proc/get_signature(var/obj/item/weapon/pen/P, mob/user as mob)
 	if(P && istype(P, /obj/item/weapon/pen))
 		return P.get_signature(user)
-	return (user && user.real_name) ? user.real_name : "Anonymous"
+
+	if (user)
+		if (user.mind && user.mind.signature)
+			return user.mind.signature
+		else if (user.real_name)
+			return "<i>[user.real_name]</i>"
+
+	return "<i>Anonymous</i>"
+
+/obj/item/weapon/paper/proc/get_signfont(var/obj/item/weapon/pen/P, var/mob/user)
+	if (!istype(P, /obj/item/weapon/pen/chameleon))
+		if (user && user.mind && user.mind.signfont)
+			return user.mind.signfont
+
+	return signfont
 
 /obj/item/weapon/paper/proc/parsepencode(t, obj/item/weapon/pen/P, mob/user, iscrayon)
 
-	if(findtext(t, "\[sign\]"))
-		t = replacetext(t, "\[sign\]", "<font face=\"[signfont]\"><i>[get_signature(P, user)]</i></font>")
+	t = replacetext(t, "\[sign\]", "<font face=\"[get_signfont(P, user)]\">[get_signature(P, user)]</font>")
 
 	if(iscrayon) // If it is a crayon, and he still tries to use these, make them empty!
 		t = replacetext(t, "\[*\]", "")
@@ -261,7 +301,7 @@
 			var/obj/item/weapon/flame/F = P
 			if (!F.lit)
 				return
-		else if (istype(P, /obj/item/weapon/weldingtool))
+		else if (iswelder(P))
 			var/obj/item/weapon/weldingtool/F = P
 			if (!F.welding)//welding tools are 0 when off
 				return
@@ -290,7 +330,7 @@
 				qdel(src)
 
 			else
-				user << "\red You must hold \the [P] steady to burn \the [src]."
+				user << "<span class='warning'>You must hold \the [P] steady to burn \the [src].</span>"
 
 
 /obj/item/weapon/paper/Topic(href, href_list)
@@ -427,7 +467,7 @@
 			user << browse("<HTML><HEAD><TITLE>[name]</TITLE></HEAD><BODY bgcolor='[color]'>[info_links][stamps]</BODY></HTML>", "window=[name]")
 		return
 
-	else if(istype(P, /obj/item/weapon/stamp))
+	else if(istype(P, /obj/item/weapon/stamp) || istype(P, /obj/item/clothing/ring/seal))
 		if((!in_range(src, usr) && loc != user && !( istype(loc, /obj/item/weapon/clipboard) ) && loc.loc != user && user.get_active_hand() != P))
 			return
 
@@ -459,13 +499,13 @@
 		if(!stamped)
 			stamped = new
 		stamped += P.type
-		overlays += stampoverlay
+		add_overlay(stampoverlay)
 
-		user << "<span class='notice'>You stamp the paper with your rubber stamp.</span>"
+		user << "<span class='notice'>You stamp the paper with \the [P].</span>"
 
 	else if(istype(P, /obj/item/weapon/flame))
 		burnpaper(P, user)
-	else if(istype(P, /obj/item/weapon/weldingtool))
+	else if(iswelder(P))
 		burnpaper(P, user)
 
 	add_fingerprint(user)
@@ -508,7 +548,7 @@
 /obj/item/weapon/paper/sentencing/New()
 	info = {"\[center\]\[logo\]\[/center\]
 \[center\]\[b\]\[i\]Operation of Criminal Sentencing Computers\[/b\]\[/i\]\[hr\]
-\[small\]In compliance with new NanoTrasen criminal regulations, the \[b\]NSS Exodus\[/b\] has been equipped with state of the art sentencing computers. The operation of these terminals is quite simple:\[br\]
+\[small\]In compliance with new NanoTrasen criminal regulations, the \[b\][station_name()]\[/b\] has been equipped with state of the art sentencing computers. The operation of these terminals is quite simple:\[br\]
 \[br\]
 While preparing a convicted individual, remove their ID and have the terminal scan it.\[br\]
 Next, select all applicable charges from the menu available. The computer will calculate the sentence based on the minimum recommended sentence - any variables such as repeat offense will need to be manually accounted for.\[br\]

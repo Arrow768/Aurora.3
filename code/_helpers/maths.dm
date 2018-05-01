@@ -1,6 +1,3 @@
-// Macro functions.
-#define RAND_F(LOW, HIGH) (rand()*(HIGH-LOW) + LOW)
-
 // min is inclusive, max is exclusive
 /proc/Wrap(val, min, max)
 	var/d = max - min
@@ -31,8 +28,11 @@
 /proc/Floor(x)
 	return round(x)
 
-/proc/Ceiling(x)
-	return -round(-x)
+/proc/Ceiling(x, y=1)
+	return -round(-x / y) * y
+
+/proc/Modulus(x, y)
+	return ( (x) - (y) * round((x) / (y)) )
 
 // Greatest Common Divisor: Euclid's algorithm.
 /proc/Gcd(a, b)
@@ -124,7 +124,14 @@
 	return sqrt(squaredNorm(x, y))
 
 /proc/IsPowerOfTwo(var/val)
-    return (val & (val-1)) == 0
+	return (val & (val-1)) == 0
 
 /proc/RoundUpToPowerOfTwo(var/val)
-    return 2 ** -round(-log(2,val))
+	return 2 ** -round(-log(2,val))
+
+//Returns the cube root of the input number
+/proc/cubert(var/num, var/iterations = 10)
+	. = num
+	for (var/i = 0, i < iterations, i++)
+		. = (1/3) * (num/(.**2)+2*.)
+

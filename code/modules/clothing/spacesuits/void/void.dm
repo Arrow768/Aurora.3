@@ -102,10 +102,7 @@
 			M << "The valve on your suit's installed tank safely engages."
 			tank.canremove = 0
 
-
-/obj/item/clothing/suit/space/void/dropped()
-	..()
-
+/obj/item/clothing/suit/space/void/proc/cleanup_from_mob()
 	var/mob/living/carbon/human/H
 
 	if(helmet)
@@ -127,6 +124,14 @@
 	if(tank)
 		tank.canremove = 1
 		tank.forceMove(src)
+
+/obj/item/clothing/suit/space/void/on_slotmove()
+	..()
+	cleanup_from_mob()
+
+/obj/item/clothing/suit/space/void/dropped()
+	..()
+	cleanup_from_mob()
 
 /obj/item/clothing/suit/space/void/verb/toggle_helmet()
 
@@ -195,7 +200,7 @@
 		user << "<span class='warning'>You cannot modify \the [src] while it is being worn.</span>"
 		return
 
-	if(istype(W,/obj/item/weapon/screwdriver))
+	if(isscrewdriver(W))
 		if(helmet || boots || tank)
 			var/choice = input("What component would you like to remove?") as null|anything in list(helmet,boots,tank)
 			if(!choice) return

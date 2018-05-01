@@ -467,12 +467,12 @@
 	build_path = /obj/item/mecha_parts/mecha_equipment/generator
 
 /datum/design/item/mecha/taser
-	name = "PBT \"Pacifier\" mounted taser"
+	name = "Mounted taser carbine"
 	id = "mech_taser"
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/taser
 
 /datum/design/item/mecha/lmg
-	name = "Ultra AC 2"
+	name = "Mounted machine gun"
 	id = "mech_lmg"
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/lmg
 
@@ -481,13 +481,13 @@
 
 // *** Weapon modules
 /datum/design/item/mecha/weapon/scattershot
-	name = "LBX AC 10 \"Scattershot\""
+	name = "Mounted shotgun"
 	id = "mech_scattershot"
 	req_tech = list(TECH_COMBAT = 4)
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/scattershot
 
 /datum/design/item/mecha/weapon/laser
-	name = "CH-PS \"Immolator\" laser"
+	name = "Mounted laser carbine"
 	id = "mech_laser"
 	req_tech = list(TECH_COMBAT = 3, TECH_MAGNET = 3)
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/laser
@@ -500,30 +500,74 @@
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/riggedlaser
 
 /datum/design/item/mecha/weapon/laser_heavy
-	name = "CH-LC \"Solaris\" laser cannon"
+	name = "Mounted laser cannon"
 	id = "mech_laser_heavy"
 	req_tech = list(TECH_COMBAT = 4, TECH_MAGNET = 4)
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/laser/heavy
 
 /datum/design/item/mecha/weapon/ion
-	name = "mkIV ion heavy cannon"
+	name = "Heavy ion cannon"
 	id = "mech_ion"
 	req_tech = list(TECH_COMBAT = 4, TECH_MAGNET = 4)
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/ion
 
+/datum/design/item/mecha/weapon/laser_gatling
+	name = "Mounted gatling laser"
+	id = "laser_gatling"
+	req_tech = list(TECH_COMBAT = 4, TECH_MAGNET = 4)
+	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/laser/gatling
+	materials = list(DEFAULT_WALL_MATERIAL = 20000, "gold" = 6000)
+
+/datum/design/item/mecha/weapon/xray_gatling
+	name = "Gatling xray gun"
+	id = "xray_gatling"
+	req_tech = list(TECH_COMBAT = 4, TECH_MAGNET = 4, TECH_MATERIAL = 5, TECH_ILLEGAL = 3)
+	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/xray
+	materials = list(DEFAULT_WALL_MATERIAL = 20000, "gold" = 6000, "phoron" = 6000)
+
+/datum/design/item/mecha/weapon/tesla_gun
+	name = "Mounted tesla cannon"
+	id = "tesla_gun"
+	req_tech = list(TECH_COMBAT = 4, TECH_MAGNET = 5, TECH_MATERIAL = 5)
+	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/tesla
+	materials = list(DEFAULT_WALL_MATERIAL = 20000, "silver" = 6000, "phoron" = 6000)
+
+/datum/design/item/mecha/weapon/gyro_gun
+	name = "Mounted gyrojet autocannon"
+	id = "gyro_gun"
+	req_tech = list(TECH_COMBAT = 6, TECH_MAGNET = 5, TECH_MATERIAL = 6, TECH_ILLEGAL = 5)
+	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/gyro
+	materials = list(DEFAULT_WALL_MATERIAL = 20000, "silver" = 6000, "phoron" = 6000, "diamond" = 7500)
+
 /datum/design/item/mecha/weapon/grenade_launcher
-	name = "SGL-6 grenade launcher"
+	name = "Grenade launcher"
 	id = "mech_grenade_launcher"
 	req_tech = list(TECH_COMBAT = 3)
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/missile_rack/flashbang
 
 /datum/design/item/mecha/weapon/clusterbang_launcher
-	name = "SOP-6 grenade launcher"
+	name = "Clusterbang Grenade launcher"
 	desc = "A weapon that violates the Geneva Convention at 6 rounds per minute."
 	id = "clusterbang_launcher"
 	req_tech = list(TECH_COMBAT= 5, TECH_MATERIAL = 5, TECH_ILLEGAL = 3)
 	materials = list(DEFAULT_WALL_MATERIAL = 20000, "gold" = 6000, "uranium" = 6000)
 	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/missile_rack/flashbang/clusterbang/limited
+
+/datum/design/item/mecha/weapon/plasma_cutter
+	name = "Heavy plasma cutter"
+	desc = "A large mining tool capable of expelling concentrated plasma bursts, useful for crushing rocks."
+	id = "mecha_plasmacutter"
+	req_tech = list(TECH_MATERIAL = 4, TECH_PHORON = 4, TECH_ENGINEERING = 4)
+	materials = list(DEFAULT_WALL_MATERIAL = 2000, "glass" = 1000, "gold" = 1000, "phoron" = 1000)
+	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/energy/plasma
+
+/datum/design/item/mecha/weapon/incendiary
+	name = "Mounted incendiary carbine"
+	desc = "A weapon for combat exosuits. Shoots incendiary shells."
+	id = "mecha_incendiary"
+	req_tech = list(TECH_COMBAT= 4, TECH_MATERIAL = 4, TECH_PHORON = 3)
+	materials = list(DEFAULT_WALL_MATERIAL = 2000, "glass" = 1000, "phoron" = 1000)
+	build_path = /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/incendiary
 
 // *** Nonweapon modules
 /datum/design/item/mecha/wormhole_gen
@@ -537,7 +581,7 @@
 	name = "Teleporter"
 	desc = "An exosuit module that allows teleportation to any position in view."
 	id = "mech_teleporter"
-	req_tech = list(TECH_BLUESPACE = 10, TECH_MAGNET = 5)
+	req_tech = list(TECH_BLUESPACE = 6, TECH_MAGNET = 5)
 	build_path = /obj/item/mecha_parts/mecha_equipment/teleporter
 
 /datum/design/item/mecha/rcd
@@ -650,7 +694,7 @@
 	build_path = /obj/item/rig_module/vision/meson
 
 /datum/design/hardsuitmodules/sechud_module
-	name = "hardsuit meson scanner"
+	name = "hardsuit security hud"
 	desc = "A simple tactical information system for a hardsuit."
 	id = "sechud_module"
 	req_tech = list(TECH_BIO = 3, TECH_MATERIAL = 2, TECH_MAGNET = 3)
@@ -674,7 +718,7 @@
 	build_path = /obj/item/rig_module/vision/nvg
 
 /datum/design/hardsuitmodules/healthscanner_module
-	name = "hardsuit night vision interface"
+	name = "hardsuit health scanner"
 	desc = "A hardsuit-mounted health scanner."
 	id = "healthscanner_module"
 	req_tech = list(TECH_BIO = 3, TECH_MATERIAL = 3, TECH_MAGNET = 2)
@@ -695,7 +739,7 @@
 	id = "plasmacutter_module"
 	req_tech = list(TECH_ENGINEERING = 4, TECH_MATERIAL = 3, TECH_PHORON = 4)
 	materials = list("glass" = 5250, DEFAULT_WALL_MATERIAL = 30000, "silver" = 5250, "phoron" = 7250)
-	build_path = /obj/item/rig_module/device/plasmacutter
+	build_path = /obj/item/rig_module/mounted/plasmacutter
 
 /datum/design/hardsuitmodules/jet_module
 	name = "hardsuit maneuvering jets"
@@ -721,6 +765,14 @@
 	materials = list(DEFAULT_WALL_MATERIAL= 30000, "phoron" = 12500, "silver" = 10000, "gold" = 10000)
 	build_path = /obj/item/rig_module/device/rcd
 
+/datum/design/hardsuitmodules/actuators_module
+	name = "leg actuators"
+	desc = "A set of electromechanical actuators, for safe traversal of multilevelled areas."
+	id = "actuators_module"
+	req_tech = list(TECH_ENGINEERING = 4, TECH_MATERIAL = 4, TECH_POWER = 3)
+	materials = list(DEFAULT_WALL_MATERIAL = 85000, "glass" = 1250, "silver" = 5250, "gold" = 2750)
+	build_path = /obj/item/rig_module/actuators
+
 /datum/design/hardsuitmodules/taser_module
 	name = "mounted taser"
 	desc = "A palm-mounted nonlethal energy projector."
@@ -730,9 +782,17 @@
 	build_path = /obj/item/rig_module/mounted/taser
 
 /datum/design/hardsuitmodules/egun_module
-	name = "mounted taser"
+	name = "mounted energy gun"
 	desc = "A forearm-mounted energy projector."
 	id = "egun_module"
 	req_tech = list(TECH_MATERIAL = 3, TECH_POWER = 4, TECH_COMBAT = 4, TECH_MAGNET = 3)
 	materials = list(DEFAULT_WALL_MATERIAL= 7000, "glass"= 2250, "uranium"= 3250, "gold"= 2500)
 	build_path = /obj/item/rig_module/mounted/egun
+
+/datum/design/hardsuitmodules/cooling_module
+	name = "mounted cooling unit"
+	desc = "A heat sink with liquid cooled radiator."
+	id = "cooling_module"
+	req_tech = list(TECH_MATERIAL = 2, TECH_POWER = 3, TECH_ENGINEERING = 3)
+	materials = list(DEFAULT_WALL_MATERIAL= 7000, "glass"= 5500)
+	build_path = /obj/item/rig_module/cooling_unit

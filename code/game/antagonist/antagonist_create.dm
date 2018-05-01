@@ -44,10 +44,14 @@
 /datum/antagonist/proc/create_radio(var/freq, var/mob/living/carbon/human/player)
 	var/obj/item/device/radio/R
 
-	if(freq == SYND_FREQ)
-		R = new/obj/item/device/radio/headset/syndicate(player)
-	else
-		R = new/obj/item/device/radio/headset(player)
+	switch(freq)
+		if(SYND_FREQ)
+			R = new/obj/item/device/radio/headset/syndicate(player)
+		if(RAID_FREQ)
+			R = new/obj/item/device/radio/headset/raider(player)
+		else
+			R = new/obj/item/device/radio/headset(player)
+			R.set_frequency(freq)
 
 	R.set_frequency(freq)
 	player.equip_to_slot_or_del(R, slot_l_ear)
@@ -105,11 +109,6 @@
 
 	show_objectives(player)
 
-	// Clown clumsiness check, I guess downstream might use it.
-	if (player.current.mind)
-		if (player.current.mind.assigned_role == "Clown")
-			player.current << "You have evolved beyond your clownish nature, allowing you to wield weapons without harming yourself."
-			player.current.mutations.Remove(CLUMSY)
 	return 1
 
 /datum/antagonist/proc/set_antag_name(var/mob/living/player)

@@ -43,9 +43,7 @@
 		else
 			new /obj/item/clothing/suit/armor/vest(Tsec)
 
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-	s.set_up(3, 1, src)
-	s.start()
+	spark(src, 3, alldirs)
 
 	new /obj/effect/decal/cleanable/blood/oil(Tsec)
 	qdel(src)
@@ -63,7 +61,7 @@
 	playsound(loc, emagged ? 'sound/weapons/Laser.ogg' : 'sound/weapons/Taser.ogg', 50, 1)
 	var/obj/item/projectile/P = new projectile(loc)
 	var/def_zone = get_exposed_defense_zone(A)
-	P.launch(A, def_zone)
+	P.launch_projectile(A, def_zone)
 // Assembly
 
 /obj/item/weapon/secbot_assembly/ed209_assembly
@@ -115,7 +113,7 @@
 				return 1
 
 		if(3)
-			if(istype(W, /obj/item/weapon/weldingtool))
+			if(iswelder(W))
 				var/obj/item/weapon/weldingtool/WT = W
 				if(WT.remove_fuel(0, user))
 					build_step++
@@ -145,7 +143,7 @@
 				return 1
 
 		if(6)
-			if(istype(W, /obj/item/stack/cable_coil))
+			if(iscoil(W))
 				var/obj/item/stack/cable_coil/C = W
 				if (C.get_amount() < 1)
 					user << "<span class='warning'>You need one coil of wire to wire [src].</span>"
@@ -170,7 +168,7 @@
 				return 1
 
 		if(8)
-			if(istype(W, /obj/item/weapon/screwdriver))
+			if(isscrewdriver(W))
 				playsound(src.loc, 'sound/items/Screwdriver.ogg', 100, 1)
 				var/turf/T = get_turf(user)
 				user << "<span class='notice'>Now attaching the gun to the frame...</span>"

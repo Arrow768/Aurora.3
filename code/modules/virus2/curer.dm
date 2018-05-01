@@ -65,10 +65,8 @@
 	onclose(user, "computer")
 	return
 
-/obj/machinery/computer/curer/process()
-	..()
-
-	if(stat & (NOPOWER|BROKEN))
+/obj/machinery/computer/curer/machinery_process()
+	if (inoperable())
 		return
 	use_power(500)
 

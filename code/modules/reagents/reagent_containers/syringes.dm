@@ -204,7 +204,7 @@
 		return
 
 	update_icon()
-		overlays.Cut()
+		cut_overlays()
 
 		if(mode == SYRINGE_BROKEN)
 			icon_state = "broken"
@@ -218,7 +218,7 @@
 					injoverlay = "draw"
 				if (SYRINGE_INJECT)
 					injoverlay = "inject"
-			overlays += injoverlay
+			add_overlay(injoverlay)
 		icon_state = "[rounded_vol]"
 		item_state = "syringe_[rounded_vol]"
 
@@ -228,7 +228,7 @@
 			filling.icon_state = "syringe[rounded_vol]"
 
 			filling.color = reagents.get_color()
-			overlays += filling
+			add_overlay(filling)
 
 	proc/syringestab(mob/living/carbon/target as mob, mob/living/carbon/user as mob)
 
@@ -250,13 +250,13 @@
 
 			if (target != user && H.getarmor(target_zone, "melee") > 5 && prob(50))
 				for(var/mob/O in viewers(world.view, user))
-					O.show_message(text("\red <B>[user] tries to stab [target] in \the [hit_area] with [src.name], but the attack is deflected by armor!</B>"), 1)
+					O.show_message(text("<span class='danger'>[user] tries to stab [target] in \the [hit_area] with [src.name], but the attack is deflected by armor!</span>"), 1)
 				user.remove_from_mob(src)
 				qdel(src)
 
 				user.attack_log += "\[[time_stamp()]\]<font color='red'> Attacked [target.name] ([target.ckey]) with \the [src] (INTENT: HARM).</font>"
 				target.attack_log += "\[[time_stamp()]\]<font color='orange'> Attacked by [user.name] ([user.ckey]) with [src.name] (INTENT: HARM).</font>"
-				msg_admin_attack("[key_name_admin(user)] attacked [key_name_admin(target)] with [src.name] (INTENT: HARM) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)")
+				msg_admin_attack("[key_name_admin(user)] attacked [key_name_admin(target)] with [src.name] (INTENT: HARM) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)",ckey=key_name(user),ckey_target=key_name(src))
 
 				return
 
@@ -310,8 +310,8 @@
 /obj/item/weapon/reagent_containers/syringe/inaprovaline
 	name = "Syringe (inaprovaline)"
 	desc = "Contains inaprovaline - used to stabilize patients."
-	New()
-		..()
+	Initialize()
+		. = ..()
 		reagents.add_reagent("inaprovaline", 15)
 		mode = SYRINGE_INJECT
 		update_icon()
@@ -319,8 +319,8 @@
 /obj/item/weapon/reagent_containers/syringe/antitoxin
 	name = "Syringe (anti-toxin)"
 	desc = "Contains anti-toxins."
-	New()
-		..()
+	Initialize()
+		. = ..()
 		reagents.add_reagent("anti_toxin", 15)
 		mode = SYRINGE_INJECT
 		update_icon()
@@ -328,8 +328,8 @@
 /obj/item/weapon/reagent_containers/syringe/antiviral
 	name = "Syringe (spaceacillin)"
 	desc = "Contains antiviral agents."
-	New()
-		..()
+	Initialize()
+		. = ..()
 		reagents.add_reagent("spaceacillin", 15)
 		mode = SYRINGE_INJECT
 		update_icon()
@@ -337,8 +337,8 @@
 /obj/item/weapon/reagent_containers/syringe/drugs
 	name = "Syringe (drugs)"
 	desc = "Contains aggressive drugs meant for torture."
-	New()
-		..()
+	Initialize()
+		. = ..()
 		reagents.add_reagent("space_drugs",  5)
 		reagents.add_reagent("mindbreaker",  5)
 		reagents.add_reagent("cryptobiolin", 5)
@@ -346,8 +346,8 @@
 		update_icon()
 
 /obj/item/weapon/reagent_containers/syringe/ld50_syringe/choral
-	New()
-		..()
+	Initialize()
+		. = ..()
 		reagents.add_reagent("chloralhydrate", 60)
 		mode = SYRINGE_INJECT
 		update_icon()

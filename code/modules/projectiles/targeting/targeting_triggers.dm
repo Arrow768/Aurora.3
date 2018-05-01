@@ -9,6 +9,10 @@
 				AO.update_aiming_deferred()
 
 /obj/aiming_overlay/proc/trigger(var/perm)
+
+	if(user && user.client && (user.client.prefs.toggles_secondary & SAFETY_CHECK) && user.a_intent != I_HURT) //Check this first to save time.
+		user << "You refrain from firing, as you aren't on harm intent."
+		return
 	if(!owner || !aiming_with || !aiming_at || !locked)
 		return
 	if(perm && (target_permissions & perm))
@@ -16,13 +20,15 @@
 	if(!owner.canClick())
 		return
 	owner.setClickCooldown(5) // Spam prevention, essentially.
-	if(owner.a_intent == I_HELP)
-		owner << "<span class='warning'>You refrain from firing \the [aiming_with] as your intent is set to help.</span>"
-		return
 	owner.visible_message("<span class='danger'>\The [owner] pulls the trigger reflexively!</span>")
 	var/obj/item/weapon/gun/G = aiming_with
 	if(istype(G))
 		G.Fire(aiming_at, owner)
+	cancel_aiming()//if you can't remove it, nerf it
+	aim_cooldown(3)
+	toggle_active()
+	if (owner.client)
+		owner.client.remove_gun_icons()
 
 /mob/living/ClickOn(var/atom/A, var/params)
 	. = ..()

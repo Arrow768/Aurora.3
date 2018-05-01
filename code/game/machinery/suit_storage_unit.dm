@@ -35,8 +35,9 @@
 	MASK_TYPE = /obj/item/clothing/mask/breath
 
 
-/obj/machinery/suit_storage_unit/New()
-	src.update_icon()
+/obj/machinery/suit_storage_unit/Initialize()
+	. = ..()
+	update_icon()
 	if(SUIT_TYPE)
 		SUIT = new SUIT_TYPE(src)
 	if(HELMET_TYPE)
@@ -477,7 +478,7 @@
 /obj/machinery/suit_storage_unit/attackby(obj/item/I as obj, mob/user as mob)
 	if(!src.ispowered)
 		return
-	if(istype(I, /obj/item/weapon/screwdriver))
+	if(isscrewdriver(I))
 		src.panelopen = !src.panelopen
 		playsound(src.loc, 'sound/items/Screwdriver.ogg', 100, 1)
 		user << text("<font color='blue'>You [] the unit's maintenance panel.</font>",(src.panelopen ? "open up" : "close") )
@@ -605,8 +606,8 @@
 
 	var/datum/wires/suit_storage_unit/wires = null
 
-/obj/machinery/suit_cycler/New()
-	..()
+/obj/machinery/suit_cycler/Initialize()
+	. = ..()
 
 	wires = new(src)
 	target_department = departments[1]
@@ -680,7 +681,7 @@
 			return
 
 	//Hacking init.
-	if(istype(I, /obj/item/device/multitool) || istype(I, /obj/item/weapon/wirecutters))
+	if(ismultitool(I) || iswirecutter(I))
 		if(panel_open)
 			attack_hand(user)
 		return
@@ -716,7 +717,7 @@
 			src.updateUsrDialog()
 
 			return
-	else if(istype(I,/obj/item/weapon/screwdriver))
+	else if(isscrewdriver(I))
 
 		panel_open = !panel_open
 		user << "You [panel_open ?  "open" : "close"] the maintenance panel."
@@ -867,6 +868,18 @@
 	else if(href_list["apply_paintjob"])
 
 		if(!suit && !helmet) return
+		if(suit && suit.helmet)
+			to_chat(usr, "<span class='alert'>\The [src] cannot function while a helmet is attached to the suit!</span>")
+			return
+		var/list/no_refit
+		if (helmet && !helmet.refittable)
+			LAZYADD(no_refit, helmet)
+		if (suit && !suit.refittable)
+			LAZYADD(no_refit, suit)
+		if (LAZYLEN(no_refit))
+			to_chat(usr, "<span class='alert'>\The [english_list(no_refit)] in [src] [no_refit.len == 1 ? "is" : "are"] not refittable!</span>")
+			return
+
 		active = 1
 		spawn(100)
 			apply_paintjob()
@@ -910,7 +923,7 @@
 	src.updateUsrDialog()
 	return
 
-/obj/machinery/suit_cycler/process()
+/obj/machinery/suit_cycler/machinery_process()
 
 	if(electrified > 0)
 		electrified--

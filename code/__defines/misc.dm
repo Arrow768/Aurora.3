@@ -1,6 +1,26 @@
 #define DEBUG
+
+//These get to go at the top, because they're special
+//You can use these defines to get the typepath of the currently running proc/verb (yes procs + verbs are objects)
+/* eg:
+/mob/living/carbon/human/death()
+	world << THIS_PROC_TYPE_STR //You can only output the string versions
+Will print: "/mob/living/carbon/human/death" (you can optionally embed it in a string with () (eg: the _WITH_ARGS defines) to make it look nicer)
+*/
+#define THIS_PROC_TYPE .....
+#define THIS_PROC_TYPE_STR "[THIS_PROC_TYPE]" //Because you can only obtain a string of THIS_PROC_TYPE using "[]", and it's nice to just +/+= strings
+#define THIS_PROC_TYPE_STR_WITH_ARGS "[THIS_PROC_TYPE]([args.Join(",")])"
+#define THIS_PROC_TYPE_WEIRD ...... //This one is WEIRD, in some cases (When used in certain defines? (eg: ASSERT)) THIS_PROC_TYPE will fail to work, but THIS_PROC_TYPE_WEIRD will work instead
+#define THIS_PROC_TYPE_WEIRD_STR "[THIS_PROC_TYPE_WEIRD]" //Included for completeness
+#define THIS_PROC_TYPE_WEIRD_STR_WITH_ARGS "[THIS_PROC_TYPE_WEIRD]([args.Join(",")])" //Ditto
+
+
 // Turf-only flags.
-#define NOJAUNT 1 // This is used in literally one place, turf.dm, to block ethereal jaunt.
+#define NOJAUNT 1          // This is used in literally one place, turf.dm, to block ethereal jaunt.
+#define MIMIC_BELOW 2      // If this turf should mimic the turf on the Z below.
+#define MIMIC_OVERWRITE 4  // If this turf is Z-mimicing, overwrite the turf's appearance instead of using a movable. This is faster, but means the turf cannot have an icon.
+#define MIMIC_QUEUED 8     // If the turf is currently queued for Z-mimic update.
+#define MIMIC_NO_AO 16     // If the turf shouldn't apply regular turf AO and only do Z-mimic AO.
 
 #define TRANSITIONEDGE 7 // Distance from edge to move to another z-level.
 
@@ -20,6 +40,7 @@
 
 #define SEE_INVISIBLE_MINIMUM 5
 #define INVISIBILITY_MAXIMUM 100
+#define INVISIBILITY_ABSTRACT 101	// Special invis value that can never be seen by see_invisible.
 
 // Some arbitrary defines to be used by self-pruning global lists. (see master_controller)
 #define PROCESS_KILL 26 // Used to trigger removal from a processing list.
@@ -28,7 +49,7 @@
 #define AGE_MIN 17
 #define AGE_MAX 85
 
-#define MAX_GEAR_COST 5 // Used in chargen for accessory loadout limit.
+#define MAX_GEAR_COST 10 // Used in chargen for accessory loadout limit.
 
 // Preference toggles.
 #define SOUND_ADMINHELP 0x1
@@ -48,14 +69,22 @@
 #define SHOW_TYPING     0x4000
 #define CHAT_NOICONS    0x8000
 
+#define PARALLAX_SPACE 0x1
+#define PARALLAX_DUST  0x2
+#define PROGRESS_BARS  0x4
+#define PARALLAX_IS_STATIC 0x8
+//Gun safety check.
+#define SAFETY_CHECK 0x10
+
 #define TOGGLES_DEFAULT (SOUND_ADMINHELP|SOUND_MIDI|SOUND_AMBIENCE|SOUND_LOBBY|CHAT_OOC|CHAT_DEAD|CHAT_GHOSTEARS|CHAT_GHOSTSIGHT|CHAT_PRAYER|CHAT_RADIO|CHAT_ATTACKLOGS|CHAT_LOOC)
 
 //Sound effects toggles
 #define ASFX_AMBIENCE	1
 #define ASFX_FOOTSTEPS	2
 #define ASFX_VOTE		4
+#define ASFX_VOX		8
 
-#define ASFX_DEFAULT (ASFX_AMBIENCE|ASFX_FOOTSTEPS|ASFX_VOTE)
+#define ASFX_DEFAULT (ASFX_AMBIENCE|ASFX_FOOTSTEPS|ASFX_VOTE|ASFX_VOX)
 
 // For secHUDs and medHUDs and variants. The number is the location of the image on the list hud_list of humans.
 #define      HEALTH_HUD 1 // A simple line rounding the mob's number health.
@@ -143,15 +172,9 @@
 
 //Area flags, possibly more to come
 #define RAD_SHIELDED 1 //shielded from radiation, clearly
-
-// Custom layer definitions, supplementing the default TURF_LAYER, MOB_LAYER, etc.
-#define DOOR_OPEN_LAYER 2.7		//Under all objects if opened. 2.7 due to tables being at 2.6
-#define DOOR_CLOSED_LAYER 3.1	//Above most items if closed
-#define LIGHTING_LAYER 11
-#define HUD_LAYER 20			//Above lighting, but below obfuscation. For in-game HUD effects (whereas SCREEN_LAYER is for abstract/OOC things like inventory slots)
-#define OBFUSCATION_LAYER 21	//Where images covering the view for eyes are put
-#define SCREEN_LAYER 22			//Mob HUD/effects layer
-#define UNDERDOOR 3.09		//Just barely under a closed door.
+#define SPAWN_ROOF   2 // if we should attempt to spawn a roof above us.
+#define HIDE_FROM_HOLOMAP 4 // if we shouldn't be drawn on station holomaps
+#define FIRING_RANGE	8
 
 // Convoluted setup so defines can be supplied by Bay12 main server compile script.
 // Should still work fine for people jamming the icons into their repo.
@@ -255,9 +278,189 @@
 
 // Law settings
 #define PERMABRIG_SENTENCE 90 // Measured in minutes
-//#define PERMAPRISON_SENTENCE 60 // Measured in IC days
-#define FELONY_LEVEL 2.0 // What is the minimum law severity that counts as a felony?
 
 #define LAYER_TABLE	2.8
 #define LAYER_UNDER_TABLE	2.79
 #define LAYER_ABOVE_TABLE	2.81
+
+// Stoplag.
+#define TICK_CHECK (world.tick_usage > CURRENT_TICKLIMIT)
+#define CHECK_TICK if (TICK_CHECK) stoplag()
+
+// Performance bullshit.
+
+//supposedly the fastest way to do this according to https://gist.github.com/Giacom/be635398926bb463b42a
+#define RANGE_TURFS(RADIUS, CENTER) \
+  block( \
+    locate(max(CENTER.x-(RADIUS),1),          max(CENTER.y-(RADIUS),1),          CENTER.z), \
+    locate(min(CENTER.x+(RADIUS),world.maxx), min(CENTER.y+(RADIUS),world.maxy), CENTER.z) \
+  )
+
+#define get_turf(A) (get_step(A, 0))
+
+#define UNTIL(X) while(!(X)) stoplag()
+
+#define MIDNIGHT_ROLLOVER		864000	//number of deciseconds in a day
+
+#define DEBUG_REF(D) (D ? "\ref[D]|[D] ([D.type])" : "NULL")
+
+// These defines write to log_debug, prefixing the path to the current proc.
+//  When using them, try PROCLOG first. If it does not compile, try PROCLOG_WEIRD.
+#define PROCLOG(thing) log_debug("[THIS_PROC_TYPE]: [thing]")
+#define PROCLOG_WEIRD(thing) log_debug("[THIS_PROC_TYPE_WEIRD]: [thing]")
+
+//Recipe type defines. Used to determine what machine makes them
+#define MICROWAVE			0x1
+#define FRYER				0x2
+#define OVEN				0x4
+#define CANDYMAKER			0x8
+#define CEREALMAKER			0x10
+
+// MultiZAS directions.
+#define NORTHUP (NORTH|UP)
+#define EASTUP (EAST|UP)
+#define SOUTHUP (SOUTH|UP)
+#define WESTUP (WEST|UP)
+#define NORTHDOWN (NORTH|DOWN)
+#define EASTDOWN (EAST|DOWN)
+#define SOUTHDOWN (SOUTH|DOWN)
+#define WESTDOWN (WEST|DOWN)
+
+#define NL_NOT_DISABLED      0
+#define NL_TEMPORARY_DISABLE 1
+#define NL_PERMANENT_DISABLE 2
+
+// Used for creating soft references to objects. A manner of storing an item reference
+// as text so you don't necessarily fuck with an object's ability to be garbage collected.
+#define SOFTREF(A) "\ref[A]"
+
+// This only works on 511 because it relies on 511's `var/something = foo = bar` syntax.
+#define WEAKREF(D) (istype(D, /datum) && !D:gcDestroyed ? (D:weakref || (D:weakref = new(D))) : null)
+
+#define ADD_VERB_IN(the_atom,time,verb) addtimer(CALLBACK(the_atom, /atom/.proc/add_verb, verb), time, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_NO_HASH_WAIT)
+#define ADD_VERB_IN_IF(the_atom,time,verb,callback) addtimer(CALLBACK(the_atom, /atom/.proc/add_verb, verb, callback), time, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_NO_HASH_WAIT)
+
+// Maploader bounds indices
+#define MAP_MINX 1
+#define MAP_MINY 2
+#define MAP_MINZ 3
+#define MAP_MAXX 4
+#define MAP_MAXY 5
+#define MAP_MAXZ 6
+
+// /atom/proc/use_check flags.
+#define USE_ALLOW_NONLIVING 1
+#define USE_ALLOW_NON_ADV_TOOL_USR 2
+#define USE_ALLOW_DEAD 4
+#define USE_ALLOW_INCAPACITATED 8
+#define USE_ALLOW_NON_ADJACENT 16
+#define USE_FORCE_SRC_IN_USER 32
+#define USE_DISALLOW_SILICONS 64
+
+#define USE_SUCCESS 0
+#define USE_FAIL_NON_ADJACENT 1
+#define USE_FAIL_NONLIVING 2
+#define USE_FAIL_NON_ADV_TOOL_USR 3
+#define USE_FAIL_DEAD 4
+#define USE_FAIL_INCAPACITATED 5
+#define USE_FAIL_NOT_IN_USER 6
+#define USE_FAIL_IS_SILICON 7
+
+#define DEFAULT_SIGHT (SEE_SELF)
+
+#define isStationLevel(Z) ((Z) in current_map.station_levels)
+#define isNotStationLevel(Z) !isStationLevel(Z)
+
+//Affects the chance that armour will block an attack. Should be between 0 and 1.
+//If set to 0, then armor will always prevent the same amount of damage, always, with no randomness whatsoever.
+//Of course, this will affect code that checks for blocked < 100, as blocked will be less likely to actually be 100.
+#define ARMOR_BLOCK_CHANCE_MULT 1.0
+
+//Cargo Container Types
+#define CARGO_CONTAINER_CRATE "crate"
+#define CARGO_CONTAINER_FREEZER "freezer"
+#define CARGO_CONTAINER_BOX "box"
+
+// We should start using these.
+#define ITEMSIZE_TINY   1
+#define ITEMSIZE_SMALL  2
+#define ITEMSIZE_NORMAL 3
+#define ITEMSIZE_LARGE  4
+#define ITEMSIZE_HUGE   5
+
+// getFlatIcon function altering defines
+#define GFI_ROTATION_DEFAULT 0 //Don't do anything special
+#define GFI_ROTATION_DEFDIR 1 //Layers will have default direction of there object
+#define GFI_ROTATION_OVERDIR 2 //Layers will have overidden direction
+
+// The pixel_(x|y) offset that will be used by default by wall items, such as APCs or Fire Alarms.
+#define DEFAULT_WALL_OFFSET 28
+
+// Defines for translating a dir into pixelshifts for wall items
+#define DIR2PIXEL_X(dir) ((dir & (NORTH|SOUTH)) ? 0 : (dir == EAST ? DEFAULT_WALL_OFFSET : -(DEFAULT_WALL_OFFSET)))
+#define DIR2PIXEL_Y(dir) ((dir & (NORTH|SOUTH)) ? (dir == NORTH ? DEFAULT_WALL_OFFSET : -(DEFAULT_WALL_OFFSET)) : 0)
+
+/*
+Define for getting a bitfield of adjacent turfs that meet a condition.
+ ORIGIN is the object to step from, VAR is the var to write the bitfield to
+ TVAR is the temporary turf variable to use, FUNC is the condition to check.
+ FUNC generally should reference TVAR.
+ example:
+	var/turf/T
+	var/result = 0
+	CALCULATE_NEIGHBORS(src, result, T, isopenturf(T))
+*/
+#define CALCULATE_NEIGHBORS(ORIGIN, VAR, TVAR, FUNC) \
+	for (var/_tdir in cardinal) {                    \
+		TVAR = get_step(ORIGIN, _tdir);              \
+		if ((TVAR) && (FUNC)) {                      \
+			VAR |= 1 << _tdir;                       \
+		}                                            \
+	}                                                \
+	if (VAR & N_NORTH) {                             \
+		if (VAR & N_WEST) {                          \
+			TVAR = get_step(ORIGIN, NORTHWEST);      \
+			if (FUNC) {                              \
+				VAR |= N_NORTHWEST;                  \
+			}                                        \
+		}                                            \
+		if (VAR & N_EAST) {                          \
+			TVAR = get_step(ORIGIN, NORTHEAST);      \
+			if (FUNC) {                              \
+				VAR |= N_NORTHEAST;                  \
+			}                                        \
+		}                                            \
+	}                                                \
+	if (VAR & N_SOUTH) {                             \
+		if (VAR & N_WEST) {                          \
+			TVAR = get_step(ORIGIN, SOUTHWEST);      \
+			if (FUNC) {                              \
+				VAR |= N_SOUTHWEST;                  \
+			}                                        \
+		}                                            \
+		if (VAR & N_EAST) {                          \
+			TVAR = get_step(ORIGIN, SOUTHEAST);      \
+			if (FUNC) {                              \
+				VAR |= N_SOUTHEAST;                  \
+			}                                        \
+		}                                            \
+	}
+
+#define DEVICE_NO_CELL "no_cell"
+
+#define FALLOFF_SOUNDS 0.5
+#define SOUND_Z_FACTOR 100
+// Maximum number of Zs away you can be from a sound before it stops being audible.
+#define MAX_SOUND_Z_TRAVERSAL 2
+
+#define Z_ALL_TURFS(Z) block(locate(1, 1, Z), locate(world.maxx, world.maxy, Z))
+
+
+// Z-controller stuff - see basic.dm to see why the fuck this is the way it is.
+#define IS_VALID_ZINDEX(z) !((z) > world.maxz || z > 17 || z < 2)
+
+#define HAS_ABOVE(z) (IS_VALID_ZINDEX(z) && z_levels & (1 << (z - 1)))
+#define HAS_BELOW(z) (IS_VALID_ZINDEX(z) && z_levels & (1 << (z - 2)))
+
+#define GET_ABOVE(A) (HAS_ABOVE(A:z) ? get_step(A, UP) : null)
+#define GET_BELOW(A) (HAS_BELOW(A:z) ? get_step(A, DOWN) : null)

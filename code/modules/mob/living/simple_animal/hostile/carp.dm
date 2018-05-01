@@ -39,7 +39,9 @@
 
 	faction = "carp"
 
-/mob/living/simple_animal/hostile/carp/Process_Spacemove(var/check_drift = 0)
+	flying = TRUE
+
+/mob/living/simple_animal/hostile/carp/Allow_Spacemove(var/check_drift = 0)
 	return 1	//No drifting in space for space carp!	//original comments do not steal
 
 /mob/living/simple_animal/hostile/carp/FindTarget()
@@ -55,7 +57,6 @@
 			L.Weaken(3)
 			L.visible_message("<span class='danger'>\the [src] knocks down \the [L]!</span>")
 
-
 /mob/living/simple_animal/hostile/carp/russian
 	name = "Ivan the carp"
 	desc = "A feared space carp, nicknamed as Ivan by the old spacemen of Tau Ceti."
@@ -69,3 +70,23 @@
     . = ..()
     if(.)
         custom_emote(1,"spots a filthy capitalist!")
+
+/mob/living/simple_animal/hostile/carp/shark
+	name = "space shark"
+	desc = "The bigger, angrier cousin of the space carp."
+	icon = 'icons/mob/spaceshark.dmi'
+	icon_state = "shark"
+	icon_living = "shark"
+	icon_dead = "shark_dead"
+	meat_amount = 5
+
+	pixel_x = -16
+
+	maxHealth = 100
+	health = 100
+
+	mob_size = 15
+
+	harm_intent_damage = 5
+	melee_damage_lower = 20
+	melee_damage_upper = 25

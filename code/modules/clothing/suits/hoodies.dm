@@ -6,18 +6,17 @@
 	var/suittoggled = 0
 	var/hooded = 0
 
-/obj/item/clothing/suit/storage/hooded/New()
+/obj/item/clothing/suit/storage/hooded/Initialize()
+	. = ..()
 	MakeHood()
-	..()
 
 /obj/item/clothing/suit/storage/hooded/Destroy()
-	qdel(hood)
+	QDEL_NULL(hood)
 	return ..()
 
 /obj/item/clothing/suit/storage/hooded/proc/MakeHood()
 	if(!hood)
-		var/obj/item/clothing/head/winterhood/W = new hoodtype(src)
-		hood = W
+		hood = new hoodtype(src)
 
 /obj/item/clothing/suit/storage/hooded/equipped(mob/user, slot)
 	if(slot != slot_wear_suit)
@@ -28,13 +27,22 @@
 	icon_state = "[initial(icon_state)]"
 	item_state = "[initial(item_state)]"
 	suittoggled = 0
+
+	// Hood got nuked. Probably because of RIGs or the like.
+	if (!hood)
+		MakeHood()
+		return
+
 	if(ishuman(hood.loc))
 		var/mob/living/carbon/H = hood.loc
 		H.unEquip(hood, 1)
 		H.update_inv_wear_suit()
-	hood.loc = src
+	hood.forceMove(src)
 
 /obj/item/clothing/suit/storage/hooded/dropped()
+	RemoveHood()
+
+/obj/item/clothing/suit/storage/hooded/on_slotmove()
 	RemoveHood()
 
 /obj/item/clothing/suit/storage/hooded/verb/ToggleHood()
@@ -140,7 +148,7 @@
 	name = "mining winter coat"
 	icon_state = "coatminer"
 	item_state = "coatminer"
-	
+
 /obj/item/clothing/suit/storage/hooded/wintercoat/corgi
 	name = "corgi costume"
 	desc = "A corgi costume made of legit corgi hide."
@@ -148,12 +156,12 @@
 	item_state = "corgi"
 	flags_inv = HIDEJUMPSUIT
 	hoodtype = /obj/item/clothing/head/winterhood/corgi
-	
+
 /obj/item/clothing/head/winterhood/corgi
 	name = "corgi hood"
 	desc = "A hood attached to a corgi costume."
 	icon_state = "corgi_helm"
-	
+
 /obj/item/clothing/suit/storage/hooded/wintercoat/carp
 	name = "space carp costume"
 	desc = "A costume made from 'synthetic' carp scales."
@@ -161,7 +169,7 @@
 	item_state = "carp"
 	flags_inv = HIDEJUMPSUIT
 	hoodtype = /obj/item/clothing/head/winterhood/carp
-	
+
 /obj/item/clothing/head/winterhood/carp
 	name = "space carp hood"
 	desc = "A hood attached to a space carp costume."

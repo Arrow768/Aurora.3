@@ -1,5 +1,5 @@
-/turf/simulated/wall/diona/New(var/newloc)
-	..(newloc,"biomass")
+/turf/simulated/wall/diona/Initialize(mapload)
+	. = ..(mapload,"biomass")
 
 /turf/simulated/wall/diona/attack_generic(var/mob/user, var/damage, var/attack_message)
 	if(istype(user, /mob/living/carbon/alien/diona))
@@ -24,6 +24,7 @@
 	name = "alien vines"
 	desc = "Thick, heavy vines of some sort."
 	icon_state = "vines3"
+	density = 0
 	var/growth = 0
 
 /obj/structure/diona/vines/proc/spread()
@@ -38,7 +39,7 @@
 			if(1)
 				new_growth = 2
 		var/obj/structure/diona/vines/existing = locate() in T
-		if(!istype(existing)) existing = PoolOrNew(/obj/structure/diona/vines, T)
+		if(!istype(existing)) existing = new /obj/structure/diona/vines(T)
 		if(existing.growth < new_growth)
 			existing.growth = new_growth
 			existing.update_icon()
@@ -50,10 +51,9 @@
 	name = "glow bulb"
 	desc = "A glowing bulb of some sort."
 	icon_state = "glowbulb"
-
-/obj/structure/diona/bulb/New(var/newloc)
-	..()
-	set_light(3,3,"#557733")
+	light_power = 3
+	light_range = 3
+	light_color = "#557733"
 
 /datum/random_map/automata/diona
 	iterations = 3
@@ -161,11 +161,11 @@
 
 	switch(value)
 		if(ARTIFACT_CHAR)
-			PoolOrNew(/obj/structure/diona/bulb,T)
+			new /obj/structure/diona/bulb(T)
 		if(MONSTER_CHAR)
 			spawn_diona_nymph(T)
 		if(DOOR_CHAR)
-			var/obj/structure/diona/vines/V = PoolOrNew(/obj/structure/diona/vines,T)
+			var/obj/structure/diona/vines/V = new(T)
 			V.growth = 3
 			V.update_icon()
 			spawn(1)

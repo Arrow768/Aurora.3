@@ -12,6 +12,8 @@
 	charge_cost = 300
 	max_shots = 10
 	projectile_type = /obj/item/projectile/ion
+	can_turret = 1
+	turret_sprite_set = "ion"
 
 /obj/item/weapon/gun/energy/ionrifle/emp_act(severity)
 	..(max(severity, 2)) //so it doesn't EMP itself, I guess
@@ -28,6 +30,7 @@
 	self_recharge = 1
 	use_external_power = 1
 	recharge_time = 10
+	can_turret = 0
 
 /obj/item/weapon/gun/energy/decloner
 	name = "biological demolecularisor"
@@ -68,15 +71,17 @@
 /obj/item/weapon/gun/energy/meteorgun
 	name = "meteor gun"
 	desc = "For the love of god, make sure you're aiming this the right way!"
-	icon_state = "riotgun"
+	icon_state = "meteor_gun"
 	item_state = "c20r"
 	slot_flags = SLOT_BELT|SLOT_BACK
 	w_class = 4
+	max_shots = 10
 	projectile_type = /obj/item/projectile/meteor
-	cell_type = /obj/item/weapon/cell/potato
 	self_recharge = 1
 	recharge_time = 5 //Time it takes for shots to recharge (in ticks)
 	charge_meter = 0
+	can_turret = 1
+	turret_sprite_set = "meteor"
 
 /obj/item/weapon/gun/energy/meteorgun/pen
 	name = "meteor pen"
@@ -86,6 +91,7 @@
 	item_state = "pen"
 	w_class = 1
 	slot_flags = SLOT_BELT
+	can_turret = 0
 
 
 /obj/item/weapon/gun/energy/mindflayer
@@ -94,6 +100,8 @@
 	icon_state = "xray"
 	projectile_type = /obj/item/projectile/beam/mindflayer
 	fire_sound = 'sound/weapons/Laser.ogg'
+	can_turret = 1
+	turret_sprite_set = "xray"
 
 /obj/item/weapon/gun/energy/toxgun
 	name = "phoron pistol"
@@ -103,6 +111,9 @@
 	w_class = 3.0
 	origin_tech = list(TECH_COMBAT = 5, TECH_PHORON = 4)
 	projectile_type = /obj/item/projectile/energy/phoron
+	can_turret = 1
+	turret_is_lethal = 0
+	turret_sprite_set = "net"
 
 /obj/item/weapon/gun/energy/beegun
 	name = "\improper NanoTrasen Portable Apiary"
@@ -121,7 +132,7 @@
 	burst_delay = 1
 	move_delay = 3
 	fire_delay = 0
-	dispersion = list(0.0, 0.2, -0.2)
+	dispersion = list(0, 8)
 
 /obj/item/weapon/gun/energy/mousegun
 	name = "\improper NT \"Arodentia\" Exterminator ray"
@@ -140,30 +151,35 @@
 	burst_delay = 1
 	move_delay = 0
 	fire_delay = 3
-	dispersion = list(0.0, 6,0, -6.0)
+	dispersion = list(0, 15, 15)
 
 	var/lightfail = 0
 
 /obj/item/weapon/gun/energy/mousegun/handle_post_fire(mob/user, atom/target, var/pointblank=0, var/reflex=0, var/playemote = 1)
 	var/T = get_turf(user)
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-	s.set_up(3, 1, T)
-	s.start()
-	failcheck()
+	spark(T, 3, alldirs)
 	..()
 
-/obj/item/weapon/gun/energy/mousegun/proc/failcheck()
-	lightfail = 0
-	if (prob(5))
-		for (var/mob/living/M in range(rand(1,4),src)) //Big failure, TIME FOR RADIATION BITCHES
-			if (src in M.contents)
-				M << "<span class='danger'>[src]'s reactor overloads!</span>"
-			M << "<span class='warning'>You feel a wave of heat wash over you.</span>"
-			M.apply_effect(300, IRRADIATE)
-		//crit_fail = 1 //break the gun so it stops recharging
-		processing_objects.Remove(src)
-		update_icon()
-	return 0
+/obj/item/weapon/gun/energy/net
+	name = "net gun"
+	desc = "A gun designed to deploy energy nets to capture animals or unruly crew members."
+	icon_state = "netgun"
+	projectile_type = /obj/item/projectile/beam/energy_net
+	fire_sound = 'sound/weapons/plasma_cutter.ogg'
+	slot_flags = SLOT_HOLSTER | SLOT_BELT
+	w_class = 3
+	max_shots = 4
+	fire_delay = 25
+	can_turret = 1
+	turret_is_lethal = 0
+	turret_sprite_set = "net"
+
+/obj/item/weapon/gun/energy/net/mounted
+	max_shots = 1
+	self_recharge = 1
+	use_external_power = 1
+	recharge_time = 40
+	can_turret = 0
 
 /* Vaurca Weapons */
 
@@ -183,11 +199,14 @@
 	force = 30
 	projectile_type = /obj/item/projectile/energy/bfg
 	slot_flags = SLOT_BACK
-	max_shots = 10
+	max_shots = 3
 	sel_mode = 1
 	fire_delay = 10
 	accuracy = 20
 	muzzle_flash = 10
+
+#define GATLINGLASER_DISPERSION_CONCENTRATED list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+#define GATLINGLASER_DISPERSION_SPRAY list(0, 5, 5, 10, 10, 15, 15, 20, 20, 25, 25, 30, 30, 35, 40, 45)
 
 /obj/item/weapon/gun/energy/vaurca/gatlinglaser
 	name = "gatling laser"
@@ -206,14 +225,15 @@
 	burst = 10
 	burst_delay = 1
 	fire_delay = 10
-	dispersion = list(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+	dispersion = GATLINGLASER_DISPERSION_CONCENTRATED
 
 	firemodes = list(
-		list(mode_name="concentrated burst", burst=10, burst_delay = 1, fire_delay = 10, dispersion = list(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)),
-		list(mode_name="spray", burst=20, burst_delay = 1, move_delay = 5, fire_delay = 30, dispersion = list(0.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.0, 3.25))
+		list(mode_name="concentrated burst", burst=10, burst_delay = 1, fire_delay = 10, dispersion = GATLINGLASER_DISPERSION_CONCENTRATED),
+		list(mode_name="spray", burst=20, burst_delay = 1, move_delay = 5, fire_delay = 30, dispersion = GATLINGLASER_DISPERSION_SPRAY)
 		)
 
 	action_button_name = "Wield gatling laser"
+	charge_cost = 50
 
 /obj/item/weapon/gun/energy/vaurca/gatlinglaser/can_wield()
 	return 1
@@ -230,26 +250,27 @@
 	toggle_wield(usr)
 
 /obj/item/weapon/gun/energy/vaurca/gatlinglaser/special_check(var/mob/user)
-	..()
 	if(is_charging)
 		user << "<span class='danger'>\The [src] is already spinning!</span>"
 		return 0
 	if(!wielded)
 		user << "<span class='danger'>You cannot fire this weapon with just one hand!</span>"
 		return 0
-	playsound(src, 'sound/weapons/chainsawhit.ogg', 90, 1)
+	playsound(src, 'sound/weapons/chainsawstart.ogg', 90, 1)
 	user.visible_message(
 					"<span class='danger'>\The [user] begins spinning [src]'s barrels!</span>",
 					"<span class='danger'>You begin spinning [src]'s barrels!</span>",
 					"<span class='danger'>You hear the spin of a rotary gun!</span>"
 					)
 	is_charging = 1
-	sleep(30)
+	if(!do_after(user, 30))
+		return 0
 	is_charging = 0
 	if(!istype(user.get_active_hand(), src))
 		return
-	msg_admin_attack("[key_name_admin(user)] shot with \a [src.type] [key_name_admin(src)]'s target (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)")
-	return 1
+	msg_admin_attack("[key_name_admin(user)] shot with \a [src.type] [key_name_admin(src)]'s target (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)",ckey=key_name(user),ckey_target=key_name(src))
+
+	return ..()
 
 /obj/item/weapon/gun/energy/vaurca/blaster
 	name = "\improper Zo'ra Blaster"
@@ -267,7 +288,8 @@
 	burst = 1
 	burst_delay = 1
 	fire_delay = 0
-
+	can_turret = 1
+	turret_sprite_set = "laser"
 	firemodes = list(
 		list(mode_name="single shot", burst=1, burst_delay = 1, fire_delay = 0),
 		list(mode_name="concentrated burst", burst=3, burst_delay = 1, fire_delay = 5)
@@ -303,6 +325,7 @@
 	can_embed = 0
 	self_recharge = 1
 	recharge_time = 2
+	needspin = FALSE
 
 	action_button_name = "Wield thermal lance"
 
@@ -324,7 +347,6 @@
 	return ..() //Pistolwhippin'
 
 /obj/item/weapon/gun/energy/vaurca/typec/special_check(var/mob/user)
-	..()
 	if(is_charging)
 		user << "<span class='danger'>\The [src] is already charging!</span>"
 		return 0
@@ -337,12 +359,14 @@
 					"<span class='danger'>You hear a low pulsing roar!</span>"
 					)
 	is_charging = 1
-	sleep(40)
+	if(!do_after(user, 20))
+		return 0
 	is_charging = 0
 	if(!istype(user.get_active_hand(), src))
 		return
-	msg_admin_attack("[key_name_admin(user)] shot with \a [src.type] [key_name_admin(src)]'s target (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)")
-	return 1
+	msg_admin_attack("[key_name_admin(user)] shot with \a [src.type] [key_name_admin(src)]'s target (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)",ckey=key_name(user),ckey_target=key_name(src))
+
+	return ..()
 
 /obj/item/weapon/gun/energy/vaurca/typec/attack_hand(mob/user as mob)
 	if(loc != user)
@@ -375,7 +399,7 @@
 	icon = 'icons/obj/vaurca_items.dmi'
 	icon_state = "thermaldrill"
 	item_state = "thermaldrill"
-	origin_tech = "combat=6;phorontech=8,"
+	origin_tech = list(TECH_COMBAT = 6, TECH_PHORON = 8)
 	fire_sound = 'sound/magic/lightningbolt.ogg'
 	slot_flags = SLOT_BACK
 	w_class = 4
@@ -389,11 +413,14 @@
 	self_recharge = 1
 	recharge_time = 1
 	charge_meter = 1
+	charge_cost = 50
+	can_turret = 1
+	turret_sprite_set = "thermaldrill"
 
 	firemodes = list(
 		list(mode_name="2 second burst", burst=10, burst_delay = 1, fire_delay = 20),
-		list(mode_name="4 second burst", burst=20, burst_delay = 1, fire_delay = 40),
-		list(mode_name="6 second burst", burst=30, burst_delay = 1, fire_delay = 60)
+		list(mode_name="4 second burst", burst=20, burst_delay = 1, fire_delay = 40, dispersion = list(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
+		list(mode_name="6 second burst", burst=30, burst_delay = 1, fire_delay = 60, dispersion = list(0, 1.5, 3, 4.5, 6, 7.5, 9, 10.5, 12, 13.5, 15, 16.5, 18, 19.5, 21))
 		)
 
 	action_button_name = "Wield thermal drill"
@@ -413,7 +440,6 @@
 	toggle_wield(usr)
 
 /obj/item/weapon/gun/energy/vaurca/thermaldrill/special_check(var/mob/user)
-	..()
 	if(is_charging)
 		user << "<span class='danger'>\The [src] is already charging!</span>"
 		return 0
@@ -426,12 +452,57 @@
 					"<span class='danger'>You hear a low pulsing roar!</span>"
 					)
 	is_charging = 1
-	sleep(60)
+	if(!do_after(user, 40))
+		is_charging = FALSE
+		return 0
 	is_charging = 0
 	if(!istype(user.get_active_hand(), src))
 		return
 	msg_admin_attack("[key_name_admin(user)] shot with \a [src.type] [key_name_admin(src)]'s target (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)")
-	return 1
+
+	return ..()
+
+/obj/item/weapon/gun/energy/vaurca/mountedthermaldrill
+	name = "mounted thermal drill"
+	desc = "Pierce the heavens? Son, there won't <i>be</i> any heavens when you're through with it."
+	contained_sprite = 1
+	icon = 'icons/obj/vaurca_items.dmi'
+	icon_state = "thermaldrill"
+	item_state = "thermaldrill"
+	origin_tech = "combat=6;phorontech=8,"
+	fire_sound = 'sound/magic/lightningbolt.ogg'
+	slot_flags = SLOT_BACK
+	w_class = 4
+	force = 15
+	projectile_type = /obj/item/projectile/beam/thermaldrill
+	max_shots = 90
+	sel_mode = 1
+	burst = 30
+	burst_delay = 1
+	fire_delay = 20
+	self_recharge = 1
+	recharge_time = 1
+	charge_meter = 1
+	use_external_power = 1
+	charge_cost = 25
+	dispersion = list(0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30)
+
+/obj/item/weapon/gun/energy/vaurca/mountedthermaldrill/special_check(var/mob/user)
+	if(is_charging)
+		user << "<span class='danger'>\The [src] is already charging!</span>"
+		return 0
+	user.visible_message(
+					"<span class='danger'>\The [user] begins charging the [src]!</span>",
+					"<span class='danger'>You begin charging the [src]!</span>",
+					"<span class='danger'>You hear a low pulsing roar!</span>"
+					)
+	is_charging = 1
+	if(!do_after(user, 20))
+		return 0
+	is_charging = 0
+	msg_admin_attack("[key_name_admin(user)] shot with \a [src.type] [key_name_admin(src)]'s target (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)",ckey=key_name(user),ckey_target=key_name(src))
+
+	return ..()
 
 /*/obj/item/weapon/gun/energy/vaurca/flamer
 	name = "Vaurcae Incinerator"
@@ -446,146 +517,43 @@
 	projectile_type = /obj/item/projectile/energy/flamer
 	self_recharge = 1
 	recharge_time = 2
-
 	max_shots = 80
-
 	firemodes = list(
 		list(mode_name="spray", burst = 20, burst_delay = -1, fire_delay = 10, dispersion = list(0.5, 0.5, 1.0, 1.0, 1.5, 1.5, 2.0, 2.0, 2.5, 2.5, 3.0, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.0, 6.0)),
 		)*/
 
-/* Staves */
-
-/obj/item/weapon/gun/energy/staff
-	name = "staff of change"
-	desc = "An artefact that spits bolts of coruscating energy which cause the target's very form to reshape itself"
+/obj/item/weapon/gun/energy/tesla
+	name = "tesla gun"
+	desc = "A gun that shoots a projectile that bounces from living thing to living thing. Keep your distance from whatever you are shooting at."
+	icon_state = "tesla"
+	item_state = "tesla"
 	icon = 'icons/obj/gun.dmi'
-	item_icons = null
-	icon_state = "staffofchange"
-	item_state = "staffofchange"
-	fire_sound = 'sound/weapons/emitter.ogg'
-	flags =  CONDUCT
-	slot_flags = SLOT_BACK
-	w_class = 4.0
-	max_shots = 5
-	projectile_type = /obj/item/projectile/change
-	origin_tech = null
-	self_recharge = 1
 	charge_meter = 0
-
-obj/item/weapon/gun/energy/staff/special_check(var/mob/user)
-	if(HULK in user.mutations)
-		user << "<span class='danger'>In your rage you momentarily forget the operation of this stave!</span>"
-		return 0
-	if(!(user.mind.assigned_role == "Space Wizard"))
-		if(istype(user, /mob/living/carbon/human))
-			//Save the users active hand
-			var/mob/living/new_mob
-			var/mob/living/carbon/human/H = user
-			for(var/obj/item/W in H)
-				if(istype(W, /obj/item/weapon/implant))
-					qdel(W)
-					continue
-				H.drop_from_inventory(W)
-			playsound(user, 'sound/weapons/emitter.ogg', 40, 1)
-			var/obj/item/organ/external/LA = H.get_organ("l_arm")
-			var/obj/item/organ/external/RA = H.get_organ("r_arm")
-			var/obj/item/organ/external/LL = H.get_organ("l_leg")
-			var/obj/item/organ/external/RL = H.get_organ("r_leg")
-			LA.droplimb(0,DROPLIMB_BLUNT)
-			RA.droplimb(0,DROPLIMB_BLUNT)
-			LL.droplimb(0,DROPLIMB_BLUNT)
-			RL.droplimb(0,DROPLIMB_BLUNT)
-			playsound(user, 'sound/effects/splat.ogg', 50, 1)
-			user.visible_message("<span class = 'danger'> With a sickening series of crunches, [user]'s body shrinks, and they begin to sprout feathers!</span>")
-			user.visible_message("<b>[user]</b> screams!",2)
-			new_mob = new /mob/living/simple_animal/parrot(H.loc)
-			new_mob.universal_speak = 1
-			new_mob.key = H.key
-			new_mob.a_intent = "harm"
-			qdel(H)
-			sleep(20)
-			new_mob.say("Poly wanna cracker!")
-		return 0
-	return 1
-
-/obj/item/weapon/gun/energy/staff/handle_click_empty(mob/user = null)
-	if (user)
-		user.visible_message("*fizzle*", "<span class='danger'>*fizzle*</span>")
-	else
-		src.visible_message("*fizzle*")
-	playsound(src.loc, 'sound/effects/sparks1.ogg', 100, 1)
-
-/obj/item/weapon/gun/energy/staff/animate
-	name = "staff of animation"
-	desc = "An artefact that spits bolts of life-force which causes objects which are hit by it to animate and come to life! This magic doesn't affect machines."
-	projectile_type = /obj/item/projectile/animate
-	max_shots = 10
-
-obj/item/weapon/gun/energy/staff/animate/special_check(var/mob/user)
-	if(HULK in user.mutations)
-		user << "<span class='danger'>In your rage you momentarily forget the operation of this stave!</span>"
-		return 0
-	if(!(user.mind.assigned_role == "Space Wizard"))
-		if(istype(user, /mob/living/carbon/human))
-			//Save the users active hand
-			var/mob/living/carbon/human/H = user
-			var/obj/item/organ/external/LA = H.get_organ("l_hand")
-			var/obj/item/organ/external/RA = H.get_organ("r_hand")
-			var/active_hand = H.hand
-			playsound(user, 'sound/effects/blobattack.ogg', 40, 1)
-			user.visible_message("<span class = 'danger'> With a sickening crunch, [user]'s hand rips itself off, and begins crawling away!</span>")
-			user.visible_message("<b>[user]</b> screams!",2)
-			user.drop_item()
-			if(active_hand)
-				LA.droplimb(0,DROPLIMB_EDGE)
-				new /mob/living/simple_animal/hostile/mimic/copy(LA.loc, LA)
-				qdel(LA)
-			else
-				RA.droplimb(0,DROPLIMB_EDGE)
-				new /mob/living/simple_animal/hostile/mimic/copy(RA.loc, RA)
-				qdel(RA)
-		return 0
-	return 1
-
-
-obj/item/weapon/gun/energy/staff/focus
-	name = "mental focus"
-	desc = "An artefact that channels the will of the user into destructive bolts of force. If you aren't careful with it, you might poke someone's brain out."
-	icon = 'icons/obj/wizard.dmi'
-	icon_state = "focus"
-	item_state = "focus"
+	w_class = 4
+	fire_sound = 'sound/magic/LightningShock.ogg'
+	force = 30
+	projectile_type = /obj/item/projectile/energy/tesla
 	slot_flags = SLOT_BACK
-	projectile_type = /obj/item/projectile/forcebolt
+	max_shots = 3
+	sel_mode = 1
+	fire_delay = 10
+	accuracy = 80
+	muzzle_flash = 15
 
-obj/item/weapon/gun/energy/staff/focus/special_check(var/mob/user)
-	if(HULK in user.mutations)
-		user << "<span class='danger'>In your rage you momentarily forget the operation of this stave!</span>"
-		return 0
-	if(!(user.mind.assigned_role == "Space Wizard"))
-		if(istype(user, /mob/living/carbon/human))
-			//Save the users active hand
-			var/mob/living/carbon/human/H = user
-			var/obj/item/organ/external/LA = H.get_organ("l_arm")
-			var/obj/item/organ/external/RA = H.get_organ("r_arm")
-			var/active_hand = H.hand
-			playsound(user, 'sound/magic/lightningbolt.ogg', 40, 1)
-			user << "\red Coruscating waves of energy wreathe around your arm...hot...so <b>hot</b>!"
-			user.show_message("<b>[user]</b> screams!",2)
-			user.drop_item()
-			if(active_hand)
-				LA.droplimb(0,DROPLIMB_BURN)
-			else
-				RA.droplimb(0,DROPLIMB_BURN)
-		return 0
-	return 1
-
-
-obj/item/weapon/gun/energy/staff/focus/attack_self(mob/living/user as mob)
-	if(projectile_type == /obj/item/projectile/forcebolt)
-		charge_cost = 400
-		user << "<span class='warning'>The [src.name] will now strike a small area.</span>"
-		projectile_type = /obj/item/projectile/forcebolt/strong
-	else
-		charge_cost = 200
-		user << "<span class='warning'>The [src.name] will now strike only a single person.</span>"
-		projectile_type = /obj/item/projectile/forcebolt
+/obj/item/weapon/gun/energy/gravity_gun
+	name = "gravity gun"
+	desc = "This nifty gun disables the gravity in the area you shoot at. Use with caution."
+	icon_state = "gravity_gun"
+	item_state = "gravity_gun"
+	icon = 'icons/obj/gun.dmi'
+	charge_meter = 0
+	w_class = 4
+	fire_sound = 'sound/magic/Repulse.ogg'
+	force = 30
+	projectile_type = /obj/item/projectile/energy/gravitydisabler
+	slot_flags = SLOT_BACK
+	max_shots = 2
+	sel_mode = 1
+	fire_delay = 20
+	accuracy = 40
+	muzzle_flash = 10

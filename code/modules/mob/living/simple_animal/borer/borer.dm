@@ -18,6 +18,8 @@
 	attacktext = "nipped"
 	friendly = "prods"
 	wander = 0
+	maxHealth = 40
+	health = 40
 	pass_flags = PASSTABLE
 	universal_understand = 1
 	holder_type = /obj/item/weapon/holder/borer
@@ -41,8 +43,8 @@
 	if(mind)
 		borers.add_antagonist(mind)
 
-/mob/living/simple_animal/borer/New()
-	..()
+/mob/living/simple_animal/borer/Initialize()
+	. = ..()
 
 	add_language("Cortical Link")
 	verbs += /mob/living/proc/ventcrawl
@@ -62,16 +64,16 @@
 			if(host.reagents.has_reagent("sugar"))
 				if(!docile)
 					if(controlling)
-						host << "\blue You feel the soporific flow of sugar in your host's blood, lulling you into docility."
+						host << "<span class='notice'>You feel the soporific flow of sugar in your host's blood, lulling you into docility.</span>"
 					else
-						src << "\blue You feel the soporific flow of sugar in your host's blood, lulling you into docility."
+						src << "<span class='notice'>You feel the soporific flow of sugar in your host's blood, lulling you into docility.</span>"
 					docile = 1
 			else
 				if(docile)
 					if(controlling)
-						host << "\blue You shake off your lethargy as the sugar leaves your host's blood."
+						host << "<span class='notice'>You shake off your lethargy as the sugar leaves your host's blood.</span>"
 					else
-						src << "\blue You shake off your lethargy as the sugar leaves your host's blood."
+						src << "<span class='notice'>You shake off your lethargy as the sugar leaves your host's blood.</span>"
 					docile = 0
 
 			if(chemicals < 250)
@@ -79,14 +81,14 @@
 			if(controlling)
 
 				if(docile)
-					host << "\blue You are feeling far too docile to continue controlling your host..."
+					host << "<span class='notice'>You are feeling far too docile to continue controlling your host...</span>"
 					host.release_control()
 					return
 
 				if(prob(5))
-					host.adjustBrainLoss(rand(1,2))
+					host.adjustBrainLoss(rand(1,2), 55)
 
-				if(prob(host.brainloss/20))
+				if(prob(host.getBrainLoss()/20))
 					host.say("*[pick(list("blink","blink_r","choke","aflap","drool","twitch","twitch_s","gasp"))]")
 
 /mob/living/simple_animal/borer/Stat()

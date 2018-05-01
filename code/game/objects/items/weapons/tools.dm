@@ -9,6 +9,7 @@
  * 		Wirecutters
  * 		Welding Tool
  * 		Crowbar
+*		Pipe Wrench
  */
 
 /*
@@ -123,11 +124,6 @@
 	else
 		..()
 
-
-
-
-
-
 /*
  * Welding Tool
  */
@@ -135,7 +131,7 @@
 	name = "welding tool"
 	desc = "A welding tool with a built-in fuel tank, designed for welding and cutting metal."
 	icon = 'icons/obj/tools/welding.dmi'
-	icon_state = "welder"
+	icon_state = "welder_off"
 	flags = CONDUCT
 	slot_flags = SLOT_BELT
 	var/base_iconstate = "welder"//These are given an _on/_off suffix before being used
@@ -166,8 +162,8 @@
 	desc = "A welding tool with an extended-capacity built-in fuel tank, standard issue for engineers."
 	max_fuel = 40
 	matter = list(DEFAULT_WALL_MATERIAL = 100, "glass" = 60)
-	origin_tech = "engineering=2"
 	base_iconstate = "ind_welder"
+	origin_tech = list(TECH_ENGINEERING = 2)
 
 
 /obj/item/weapon/weldingtool/hugetank
@@ -176,9 +172,8 @@
 	max_fuel = 80
 	w_class = 2.0
 	matter = list(DEFAULT_WALL_MATERIAL = 200, "glass" = 120)
-	origin_tech = "engineering=3"
 	base_iconstate = "adv_welder"
-
+	origin_tech = list(TECH_ENGINEERING = 3)
 
 //The Experimental Welding Tool!
 /obj/item/weapon/weldingtool/experimental
@@ -187,8 +182,8 @@
 	max_fuel = 40
 	w_class = 2.0
 	matter = list(DEFAULT_WALL_MATERIAL = 100, "glass" = 120)
-	origin_tech = "engineering=4;biotech=4"
 	base_iconstate = "exp_welder"
+	origin_tech = list(TECH_ENGINEERING = 4, TECH_BIO = 4)
 	base_itemstate = "exp_welder"
 
 	var/last_gen = 0
@@ -196,22 +191,15 @@
 	//800 = 1 unit per 1 minute and 20 seconds,
 	//This is roughly half the rate that fuel is lost if the welder is left idle, so it you carelessly leave it on it will still run out
 
-
-
-
-
-
-
-
 //Welding tool functionality here
-/obj/item/weapon/weldingtool/New()
+/obj/item/weapon/weldingtool/Initialize()
+	. = ..()
 //	var/random_fuel = min(rand(10,20),max_fuel)
 	var/datum/reagents/R = new/datum/reagents(max_fuel)
 	reagents = R
 	R.my_atom = src
 	R.add_reagent("fuel", max_fuel)
 	update_icon()
-	..()
 
 /obj/item/weapon/weldingtool/update_icon()
 	..()
@@ -224,17 +212,15 @@
 		M.update_inv_r_hand()
 
 /obj/item/weapon/weldingtool/Destroy()
-	if(welding)
-		processing_objects -= src
+	STOP_PROCESSING(SSprocessing, src)
 	return ..()
 
 /obj/item/weapon/weldingtool/examine(mob/user)
 	if(..(user, 0))
 		user << text("\icon[] [] contains []/[] units of fuel!", src, src.name, get_fuel(),src.max_fuel )
 
-
 /obj/item/weapon/weldingtool/attackby(obj/item/W as obj, mob/user as mob)
-	if(istype(W,/obj/item/weapon/screwdriver))
+	if(isscrewdriver(W))
 		if (isrobot(loc))
 			user << span("alert", "You cannot modify your own welder!")
 			return
@@ -273,7 +259,6 @@
 	..()
 	return
 
-
 /obj/item/weapon/weldingtool/process()
 	if(welding)
 		if(prob(5))
@@ -302,7 +287,7 @@
 		if(!(S.status & ORGAN_ROBOT) || user.a_intent != I_HELP)
 			return ..()
 
-		if(M.isSynthetic() && M == user)
+		if(M.isSynthetic() && M == user && !(M.get_species() == "Hunter-Killer"))
 			user << "<span class='warning'>You can't repair damage to your own body - it's against OH&S.</span>"
 			return
 		if(S.brute_dam == 0)
@@ -315,7 +300,7 @@
 			return
 		if(S.brute_dam > ROBOLIMB_SELF_REPAIR_CAP)
 			user << "<span class='warning'>The damage is far too severe to patch over externally.</span>"
-			return			
+			return
 		if (src.remove_fuel(0))
 			// Use a bit of fuel and repair
 			S.heal_damage(15,0,0,1)
@@ -328,7 +313,6 @@
 
 	else
 		return ..()
-
 
 /obj/item/weapon/weldingtool/afterattack(obj/O as obj, mob/user as mob, proximity)
 	if(!proximity) return
@@ -352,7 +336,7 @@
 				tank.armed = 0
 				return
 			message_admins("[key_name_admin(user)] triggered a fueltank explosion.")
-			log_game("[key_name(user)] triggered a fueltank explosion with a welding tool.")
+			log_game("[key_name(user)] triggered a fueltank explosion with a welding tool.",ckey=key_name(user))
 			user << span("alert", "That was stupid of you.")
 			tank.explode()
 			return
@@ -371,7 +355,6 @@
 			location.hotspot_expose(700, 50, 1)
 	return
 
-
 /obj/item/weapon/weldingtool/attack_self(mob/user as mob)
 	setWelding(!welding, usr)
 	return
@@ -379,7 +362,6 @@
 //Returns the amount of fuel in the welder
 /obj/item/weapon/weldingtool/proc/get_fuel()
 	return reagents.get_reagent_amount("fuel")
-
 
 //Removes fuel from the welding tool. If a mob is passed, it will perform an eyecheck on the mob. This should probably be renamed to use()
 /obj/item/weapon/weldingtool/proc/remove_fuel(var/amount = 1, var/mob/M = null)
@@ -399,8 +381,6 @@
 /obj/item/weapon/weldingtool/proc/isOn()
 	return src.welding
 
-
-
 //Sets the welding state of the welding tool. If you see W.welding = 1 anywhere, please change it to W.setWelding(1)
 //so that the welding tool updates accordingly
 /obj/item/weapon/weldingtool/proc/setWelding(var/set_welding, var/mob/M)
@@ -414,6 +394,7 @@
 				M << "<span class='notice'>You switch the [src] on.</span>"
 			else if(T)
 				T.visible_message("<span class='danger'>\The [src] turns on.</span>")
+			playsound(loc, 'sound/items/WelderActivate.ogg', 50, 1)
 			src.force = 15
 			src.damtype = "fire"
 			src.w_class = 4
@@ -430,6 +411,7 @@
 			M << "<span class='notice'>You switch \the [src] off.</span>"
 		else if(T)
 			T.visible_message("<span class='warning'>\The [src] turns off.</span>")
+		playsound(loc, 'sound/items/WelderDeactivate.ogg', 50, 1)
 		src.force = 3
 		src.damtype = "brute"
 		src.w_class = initial(src.w_class)
@@ -437,14 +419,12 @@
 		set_processing(0)
 		update_icon()
 
-
 //A wrapper function for the experimental tool to override
 /obj/item/weapon/weldingtool/proc/set_processing(var/state = 0)
 	if (state == 1)
-		processing_objects.Add(src)
+		START_PROCESSING(SSprocessing, src)
 	else
-		processing_objects.Remove(src)
-
+		STOP_PROCESSING(SSprocessing, src)
 
 //Decides whether or not to damage a player's eyes based on what they're wearing as protection
 //Note: This should probably be moved to mob
@@ -452,10 +432,12 @@
 	if(!iscarbon(user))	return 1
 	if(istype(user, /mob/living/carbon/human))
 		var/mob/living/carbon/human/H = user
-		var/obj/item/organ/eyes/E = H.internal_organs_by_name["eyes"]
+		var/obj/item/organ/eyes/E = H.get_eyes()
 		if(!E)
 			return
 		var/safety = H.eyecheck()
+		if(H.status_flags & GODMODE)
+			return
 		switch(safety)
 			if(FLASH_PROTECTION_MODERATE)
 				usr << "<span class='warning'>Your eyes sting a little.</span>"
@@ -483,32 +465,27 @@
 				user.eye_blind = 5
 				user.eye_blurry = 5
 				user.disabilities |= NEARSIGHTED
-				spawn(100)
-					user.disabilities &= ~NEARSIGHTED
+				addtimer(CALLBACK(user, /mob/.proc/reset_nearsighted), 100)
 
-	return
-
-
-
+// This is on /mob instead of the welder so the timer is stopped when the mob is deleted.
+/mob/proc/reset_nearsighted()
+	disabilities &= ~NEARSIGHTED
 
 /obj/item/weapon/weldingtool/Destroy()
-	processing_objects.Remove(src)//Stop processing when destroyed regardless of conditions
-	..()
-
+	STOP_PROCESSING(SSprocessing, src)	//Stop processing when destroyed regardless of conditions
+	return ..()
 
 //Make sure the experimental tool only stops processing when its turned off AND full
 /obj/item/weapon/weldingtool/experimental/set_processing(var/state = 0)
 	if (state == 1)
-		processing_objects.Add(src)
+		START_PROCESSING(SSprocessing, src)
 		last_gen = world.time
 	else if (welding == 0 && get_fuel() >= max_fuel)
-		processing_objects.Remove(src)
-
+		STOP_PROCESSING(SSprocessing, src)
 
 /obj/item/weapon/weldingtool/experimental/process()
 	..()
 	fuel_gen()
-
 
 /obj/item/weapon/weldingtool/experimental/proc/fuel_gen()//Proc to make the experimental welder generate fuel, optimized as fuck -Sieve
 
@@ -525,8 +502,6 @@
 	else
 		set_processing(0)
 	last_gen = world.time
-
-
 
 /*
  * Crowbar
@@ -552,62 +527,17 @@
 	icon_state = "red_crowbar"
 	item_state = "crowbar_red"
 
-
-
-/*/obj/item/weapon/combitool
-	name = "combi-tool"
-	desc = "It even has one of those nubbins for doing the thingy."
+// Pipe wrench
+/obj/item/weapon/pipewrench
+	name = "pipe wrench"
+	desc = "A big wrench that is made for working with pipes."
 	icon = 'icons/obj/items.dmi'
-	icon_state = "combitool"
-	w_class = 2
-
-	var/list/spawn_tools = list(
-		/obj/item/weapon/screwdriver,
-		/obj/item/weapon/wrench,
-		/obj/item/weapon/wirecutters,
-		/obj/item/weapon/material/kitchen/utensil/knife,
-		/obj/item/weapon/material/kitchen/utensil/fork,
-		/obj/item/weapon/material/hatchet
-		)
-	var/list/tools = list()
-	var/current_tool = 1
-
-/obj/item/weapon/combitool/examine()
-	..()
-	if(loc == usr && tools.len)
-		usr << "It has the following fittings:"
-		for(var/obj/item/tool in tools)
-			usr << "\icon[tool] - [tool.name][tools[current_tool]==tool?" (selected)":""]"
-
-/obj/item/weapon/combitool/New()
-	..()
-	for(var/type in spawn_tools)
-		tools |= new type(src)
-
-/obj/item/weapon/combitool/attack_self(mob/user as mob)
-	if(++current_tool > tools.len) current_tool = 1
-	var/obj/item/tool = tools[current_tool]
-	if(!tool)
-		user << "You can't seem to find any fittings in \the [src]."
-	else
-		user << "You switch \the [src] to the [tool.name] fitting."
-	return 1
-
-/obj/item/weapon/combitool/attack(mob/living/carbon/M as mob, mob/living/carbon/user as mob)
-	if(!M.Adjacent(user))
-		return 0
-	var/obj/item/tool = tools[current_tool]
-	if(!tool) return 0
-	return (tool ? tool.attack(M,user) : 0)
-
-/obj/item/weapon/combitool/afterattack(var/atom/target, var/mob/living/user, proximity, params)
-	if(!proximity)
-		return 0
-	var/obj/item/tool = tools[current_tool]
-	if(!tool) return 0
-	tool.loc = user
-	var/resolved = target.attackby(tool,user)
-	if(!resolved && tool && target)
-		tool.afterattack(target,user,1)
-	if(tool)
-		tool.loc = src*/
+	icon_state = "pipewrench"
+	flags = CONDUCT
+	slot_flags = SLOT_BELT
+	force = 5.0
+	throwforce = 7.0
+	w_class = 2.0
+	origin_tech = list(TECH_MATERIAL = 1, TECH_ENGINEERING = 2)
+	matter = list(DEFAULT_WALL_MATERIAL = 150)
+	attack_verb = list("bashed", "battered", "bludgeoned", "whacked")

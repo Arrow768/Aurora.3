@@ -10,6 +10,15 @@
 	max_ammo = 7
 	multiple_sprites = 1
 
+/obj/item/ammo_magazine/a454
+	name = "speed loader (.454)"
+	icon_state = "T38"
+	caliber = "454"
+	ammo_type = /obj/item/ammo_casing/a454
+	matter = list(DEFAULT_WALL_MATERIAL = 1260)
+	max_ammo = 7
+	multiple_sprites = 1
+
 /obj/item/ammo_magazine/c38
 	name = "speed loader (.38)"
 	icon_state = "38"
@@ -21,7 +30,12 @@
 
 /obj/item/ammo_magazine/c38/rubber
 	name = "speed loader (.38 rubber)"
-	ammo_type = /obj/item/ammo_casing/c38r
+	ammo_type = /obj/item/ammo_casing/c38/rubber
+
+/obj/item/ammo_magazine/c38/emp
+	name = "speed loader (.38 haywire)"
+	ammo_type = /obj/item/ammo_casing/c38/emp
+	matter = list(DEFAULT_WALL_MATERIAL = 360, "uranium" = 600)
 
 /obj/item/ammo_magazine/c45
 	name = "ammunition Box (.45)"
@@ -58,15 +72,15 @@
 
 /obj/item/ammo_magazine/c45m/rubber
 	name = "magazine (.45 rubber)"
-	ammo_type = /obj/item/ammo_casing/c45r
+	ammo_type = /obj/item/ammo_casing/c45/rubber
 
 /obj/item/ammo_magazine/c45m/practice
 	name = "magazine (.45 practice)"
-	ammo_type = /obj/item/ammo_casing/c45p
+	ammo_type = /obj/item/ammo_casing/c45/practice
 
 /obj/item/ammo_magazine/c45m/flash
 	name = "magazine (.45 flash)"
-	ammo_type = "/obj/item/ammo_casing/c45f"
+	ammo_type = /obj/item/ammo_casing/c45/flash
 
 /obj/item/ammo_magazine/t40
 	name = "magazine (10mm)"
@@ -83,7 +97,7 @@
 
 /obj/item/ammo_magazine/t40/rubber
 	name = "magazine (10mm rubber)"
-	ammo_type = /obj/item/ammo_casing/t40r
+	ammo_type = /obj/item/ammo_casing/t40/rubber
 
 /obj/item/ammo_magazine/mc9mm
 	name = "magazine (9mm)"
@@ -100,10 +114,10 @@
 	initial_ammo = 0
 
 /obj/item/ammo_magazine/mc9mm/flash
-	ammo_type = /obj/item/ammo_casing/c9mmf
+	ammo_type = /obj/item/ammo_casing/c9mm/flash
 
 /obj/item/ammo_magazine/c9mm
-	name = "ammunition Box (9mm)"
+	name = "ammunition box (9mm)"
 	icon_state = "9mm"
 	origin_tech = list(TECH_COMBAT = 2)
 	matter = list(DEFAULT_WALL_MATERIAL = 1800)
@@ -129,14 +143,14 @@
 
 /obj/item/ammo_magazine/mc9mmt/rubber
 	name = "top mounted magazine (9mm rubber)"
-	ammo_type = /obj/item/ammo_casing/c9mmr
+	ammo_type = /obj/item/ammo_casing/c9mm/rubber
 
 /obj/item/ammo_magazine/mc9mmt/practice
 	name = "top mounted magazine (9mm practice)"
-	ammo_type = /obj/item/ammo_casing/c9mmp
+	ammo_type = /obj/item/ammo_casing/c9mm/practice
 
 /obj/item/ammo_magazine/c45
-	name = "ammunition Box (.45)"
+	name = "ammunition box (.45)"
 	icon_state = "9mm"
 	origin_tech = list(TECH_COMBAT = 2)
 	caliber = ".45"
@@ -177,7 +191,7 @@
 
 /obj/item/ammo_magazine/a556/practice
 	name = "magazine (5.56mm practice)"
-	ammo_type = /obj/item/ammo_casing/a556p
+	ammo_type = /obj/item/ammo_casing/a556/practice
 
 /obj/item/ammo_magazine/a556/ap
 	name = "magazine (5.56mm AP)"
@@ -269,6 +283,11 @@
 	max_ammo = 5
 	multiple_sprites = 1
 
+/obj/item/ammo_magazine/boltaction/vintage
+	name = "vintage stripper clip"
+	ammo_type = /obj/item/ammo_casing/vintage
+	caliber = "vintage"
+
 /obj/item/ammo_magazine/c45uzi
 	name = "stick magazine (.45)"
 	icon_state = "uzi45"
@@ -319,28 +338,30 @@
 	name = "ammunition box (shell)"
 	icon_state = "lethalslug_box"
 	ammo_type = /obj/item/ammo_casing/shotgun/pellet
-	max_ammo = 8
 
 /obj/item/ammo_magazine/shotgun/stun
 	name = "ammunition box (stun shells)"
 	icon_state = "stunshot_box"
 	ammo_type = /obj/item/ammo_casing/shotgun/stunshell
-	max_ammo = 8
 	matter = list(DEFAULT_WALL_MATERIAL = 2880, "glass" = 5760)
 
 /obj/item/ammo_magazine/shotgun/beanbag
 	name = "ammunition box (beanbag shells)"
 	icon_state = "beanshot_box"
 	ammo_type = /obj/item/ammo_casing/shotgun/beanbag
-	max_ammo = 8
 	matter = list(DEFAULT_WALL_MATERIAL = 1440)
 
 /obj/item/ammo_magazine/shotgun/incendiary
 	name = "ammunition box (incendiary shells)"
 	icon_state = "incendiaryshot_box"
 	ammo_type = /obj/item/ammo_casing/shotgun/incendiary
-	max_ammo = 8
 	matter = list(DEFAULT_WALL_MATERIAL = 3600)
+
+/obj/item/ammo_magazine/shotgun/emp
+	name = "ammunition box (haywire shells)"
+	icon_state = "empshot_box"
+	ammo_type = /obj/item/ammo_casing/shotgun/emp
+	matter = list(DEFAULT_WALL_MATERIAL = 3600, "uranium" = 1600)
 
 /obj/item/ammo_magazine/caps
 	name = "speed loader (caps)"

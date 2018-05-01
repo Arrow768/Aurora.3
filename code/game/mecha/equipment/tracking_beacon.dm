@@ -1,16 +1,21 @@
 
 
 /obj/item/mecha_parts/mecha_tracking
-	name = "Exosuit tracking beacon"
+	name = "exosuit tracking beacon"
 	desc = "Device used to transmit exosuit data."
 	icon = 'icons/obj/device.dmi'
 	icon_state = "motion2"
 	origin_tech = list(TECH_DATA = 2, TECH_MAGNET = 2)
 	var/control = 0//
 
-/obj/item/mecha_parts/mecha_tracking/initialize()
+/obj/item/mecha_parts/mecha_tracking/Initialize()
+	. = ..()
 	if (in_mecha())
 		exo_beacons.Add(src)//For the sake of exosuits which spawn with a preinstalled tracking beacon
+
+/obj/item/mecha_parts/mecha_tracking/Destroy()
+	exo_beacons.Remove(src)
+	return ..()
 
 /obj/item/mecha_parts/mecha_tracking/proc/get_mecha_info()
 	if(!in_mecha())
@@ -131,8 +136,7 @@
 /obj/item/weapon/storage/box/mechabeacons
 	name = "Exosuit Control Beacons"
 
-/obj/item/weapon/storage/box/mechabeacons/New()
-	..()
+/obj/item/weapon/storage/box/mechabeacons/fill()
 	new /obj/item/mecha_parts/mecha_tracking/control(src)
 	new /obj/item/mecha_parts/mecha_tracking/control(src)
 	new /obj/item/mecha_parts/mecha_tracking/control(src)

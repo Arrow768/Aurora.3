@@ -58,7 +58,7 @@
 				plastic.add_charge(1000)
 
 
-		else if(istype(M,/mob/living/simple_animal/lizard) || istype(M,/mob/living/simple_animal/mouse))
+		else if(istype(M,/mob/living/simple_animal/lizard) || (istype(M,/mob/living/simple_animal/mouse) && M.mob_size <= 2))
 			src.loc.visible_message("<span class='danger'>[src.loc] sucks [M] into its decompiler. There's a horrible crunching noise.</span>","<span class='danger'>It's a bit of a struggle, but you manage to suck [M] into your decompiler. It makes a series of visceral crunching noises.</span>")
 			new/obj/effect/decal/cleanable/blood/splatter(get_turf(src))
 			qdel(M)
@@ -75,6 +75,9 @@
 		if(istype(W,/obj/item/weapon/cigbutt))
 			if(plastic)
 				plastic.add_charge(500)
+		else if (istype(W, /obj/item/weapon/flame/match))
+			if (wood)
+				wood.add_charge(100)
 		else if(istype(W,/obj/effect/spider/spiderling))
 			if(wood)
 				wood.add_charge(2000)
@@ -170,7 +173,7 @@
 		else
 			module_string += text("[O]: <A HREF=?src=\ref[src];act=\ref[O]>Activate</A><BR>")
 
-		if((istype(O,/obj/item/weapon) || istype(O,/obj/item/device)) && !(istype(O,/obj/item/stack/cable_coil)))
+		if((istype(O,/obj/item/weapon) || istype(O,/obj/item/device)) && !(iscoil(O)))
 			tools += module_string
 		else
 			resources += module_string

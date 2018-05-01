@@ -2,13 +2,9 @@
 // charge from 0 to 100%
 // fits in APC to provide backup power
 
-/obj/item/weapon/cell/New()
-	..()
+/obj/item/weapon/cell/Initialize()
+	. = ..()
 	charge = maxcharge
-	update_icon()
-
-/obj/item/weapon/cell/initialize()
-	..()
 	update_icon()
 
 /obj/item/weapon/cell/Created()
@@ -29,14 +25,14 @@
 	return use(cell_amt) / CELLRATE
 
 /obj/item/weapon/cell/update_icon()
-	overlays.Cut()
+	cut_overlays()
 
 	if(charge < 0.01)
 		return
 	else if(charge/maxcharge >=0.995)
-		overlays += image('icons/obj/power.dmi', "cell-o2")
+		add_overlay("cell-o2")
 	else
-		overlays += image('icons/obj/power.dmi', "cell-o1")
+		add_overlay("cell-o1")
 
 /obj/item/weapon/cell/proc/percent()		// return % charge of cell
 	return 100.0*charge/maxcharge
@@ -50,6 +46,9 @@
 
 // use power from a cell, returns the amount actually used
 /obj/item/weapon/cell/proc/use(var/amount)
+	if (QDELING(src))
+		return 0
+
 	if(rigged && amount > 0)
 		explode()
 		return 0
@@ -67,6 +66,9 @@
 
 // recharge the cell
 /obj/item/weapon/cell/proc/give(var/amount)
+	if (QDELING(src))
+		return 0
+
 	if(rigged && amount > 0)
 		explode()
 		return 0
@@ -97,8 +99,8 @@
 
 			rigged = 1
 
-			log_admin("LOG: [user.name] ([user.ckey]) injected a power cell with phoron, rigging it to explode.")
-			message_admins("LOG: [user.name] ([user.ckey]) injected a power cell with phoron, rigging it to explode.")
+			log_admin("LOG: [user.name] ([user.ckey]) injected a power cell with phoron, rigging it to explode.",ckey=key_name(user))
+			message_admins("[key_name_admin(user)] injected a power cell with phoron, rigging it to explode.")
 
 		S.reagents.clear_reagents()
 	else if(istype(W, /obj/item/device/assembly_holder))

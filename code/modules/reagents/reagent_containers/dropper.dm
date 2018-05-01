@@ -38,6 +38,9 @@
 				if(istype(target, /mob/living/carbon/human))
 					var/mob/living/carbon/human/victim = target
 
+					if(victim.isSynthetic())
+						return
+
 					var/obj/item/safe_thing = null
 					if(victim.wear_mask)
 						if (victim.wear_mask.body_parts_covered & EYES)
@@ -51,17 +54,17 @@
 
 					if(safe_thing)
 						trans = reagents.trans_to_obj(safe_thing, amount_per_transfer_from_this)
-						user.visible_message("<span class='warning'>[user] tries to squirt something into [target]'s eyes, but fails!</span>", "<span class='notice'>You transfer [trans] units of the solution.</span>")
+						user.visible_message("<span class='warning'>[user] tries to squirt something into [target]'s eyes, but fails!</span>", "<span class='warning'>You try to squirt something into [target]'s eyes, but fail!</span>")
 						return
 
-				trans = reagents.trans_to_mob(target, reagents.total_volume, CHEM_INGEST)
+				trans = reagents.trans_to_mob(target, reagents.total_volume, CHEM_BLOOD)
 				user.visible_message("<span class='warning'>[user] squirts something into [target]'s eyes!</span>", "<span class='notice'>You transfer [trans] units of the solution.</span>")
 
 				var/mob/living/M = target
 				var/contained = reagentlist()
 				M.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been squirted with [name] by [user.name] ([user.ckey]). Reagents: [contained]</font>")
 				user.attack_log += text("\[[time_stamp()]\] <font color='red'>Used the [name] to squirt [M.name] ([M.key]). Reagents: [contained]</font>")
-				msg_admin_attack("[user.name] ([user.ckey]) squirted [M.name] ([M.key]) with [name]. Reagents: [contained] (INTENT: [uppertext(user.a_intent)]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)")
+				msg_admin_attack("[key_name_admin(user)] squirted [key_name_admin(M)] with [name]. Reagents: [contained] (INTENT: [uppertext(user.a_intent)]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)",ckey=key_name(user),ckey_target=key_name(M))
 				return
 
 			else

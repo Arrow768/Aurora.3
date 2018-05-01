@@ -52,6 +52,8 @@
 	oxygen = 0
 	nitrogen = 0
 
+	roof_type = null
+
 /turf/simulated/floor/reinforced/airmix
 	oxygen = MOLES_O2ATMOS
 	nitrogen = MOLES_N2ATMOS
@@ -78,10 +80,10 @@
 	oxygen = 0
 	nitrogen = 0
 
-/turf/simulated/floor/reinforced/n20/New()
-	..()
-	sleep(-1)
-	if(!air) make_air()
+/turf/simulated/floor/reinforced/n20/Initialize()
+	. = ..()
+	if(!air)
+		make_air()
 	air.adjust_gas("sleeping_agent", ATMOSTANK_NITROUSOXIDE)
 
 /turf/simulated/floor/cult
@@ -89,6 +91,7 @@
 	icon = 'icons/turf/flooring/cult.dmi'
 	icon_state = "cult"
 	initial_flooring = /decl/flooring/reinforced/cult
+	appearance_flags = NO_CLIENT_COLOR
 
 /turf/simulated/floor/cult/cultify()
 	return
@@ -113,6 +116,7 @@
 /turf/simulated/floor/tiled/steel/airless
 	oxygen = 0
 	nitrogen = 0
+	roof_type = null
 
 /turf/simulated/floor/tiled/white
 	name = "white floor"
@@ -130,6 +134,18 @@
 	icon_state = "freezer"
 	initial_flooring = /decl/flooring/tiling/freezer
 
+/turf/simulated/floor/tiled/ramp
+	name = "foot ramp"
+	icon = 'icons/turf/flooring/tiles.dmi'
+	icon_state = "ramptop"
+	initial_flooring = /decl/flooring/reinforced/ramp
+
+/turf/simulated/floor/tiled/ramp/bottom
+	name = "foot ramp"
+	icon = 'icons/turf/flooring/tiles.dmi'
+	icon_state = "rampbot"
+	initial_flooring = /decl/flooring/reinforced/ramp/bottom
+
 /turf/simulated/floor/lino
 	name = "lino"
 	icon = 'icons/turf/flooring/linoleum.dmi'
@@ -142,6 +158,7 @@
 	oxygen = 0
 	nitrogen = 0
 	temperature = TCMB
+	roof_type = null
 
 /turf/simulated/floor/airless
 	name = "airless plating"
@@ -149,6 +166,8 @@
 	nitrogen = 0
 	temperature = TCMB
 	footstep_sound = "concretestep"
+
+	roof_type = null
 
 /turf/simulated/floor/tiled/airless
 	name = "airless floor"
@@ -178,43 +197,34 @@
 	temperature = TCMB
 
 // Placeholders
+
 /turf/simulated/floor/airless/lava
-/turf/simulated/floor/light
+	name = "lava"
+	icon = 'icons/turf/flooring/lava.dmi'
+	icon_state = "lava"
+
+/turf/simulated/floor/ice
+	name = "ice"
+	icon = 'icons/turf/snow.dmi'
+	icon_state = "ice"
+
 /turf/simulated/floor/snow
+	name = "snow"
+	icon = 'icons/turf/snow.dmi'
+	icon_state = "snow"
 	footstep_sound = "gravelstep"
+
+/turf/simulated/floor/snow/Initialize()
+	. = ..()
+	icon_state = pick("snow[rand(1,12)]","snow0")
+
 /turf/simulated/floor/plating/snow
+	icon = 'icons/turf/snow.dmi'
+	icon_state = "snowplating"
 	footstep_sound = "gravelstep"
+
 /turf/simulated/floor/airless/ceiling
+	icon_state = "asteroidplating"
+	baseturf = /turf/space
 
-/turf/simulated/floor/beach
-	name = "beach"
-	icon = 'icons/misc/beach.dmi'
-	footstep_sound = "sandstep"
-
-/turf/simulated/floor/beach/sand
-	name = "sand"
-	icon_state = "sand"
-
-/turf/simulated/floor/beach/sand/desert
-	icon_state = "desert"
-
-/turf/simulated/floor/beach/coastline
-	name = "coastline"
-	icon = 'icons/misc/beach2.dmi'
-	icon_state = "sandwater"
-	footstep_sound = "waterstep"
-
-/turf/simulated/floor/beach/water
-	name = "water"
-	icon_state = "water"
-	footstep_sound = "waterstep"
-
-/turf/simulated/floor/beach/water/update_dirt()
-	return	// Water doesn't become dirty
-
-/turf/simulated/floor/beach/water/ocean
-	icon_state = "seadeep"
-
-/turf/simulated/floor/beach/water/New()
-	..()
-	overlays += image("icon"='icons/misc/beach.dmi',"icon_state"="water5","layer"=MOB_LAYER+0.1)
+/turf/simulated/floor/light

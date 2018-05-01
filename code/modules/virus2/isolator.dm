@@ -40,7 +40,7 @@
 	S.loc = src
 
 	user.visible_message("[user] adds \a [O] to \the [src]!", "You add \a [O] to \the [src]!")
-	nanomanager.update_uis(src)
+	SSnanoui.update_uis(src)
 	update_icon()
 
 	src.attack_hand(user)
@@ -71,10 +71,11 @@
 						var/datum/data/record/R = null
 						if (ID in virusDB)
 							R = virusDB[ID]
-
-						var/mob/living/carbon/human/D = B.data["donor"]
+		
+						var/datum/weakref/A = B.data["donor"]
+						var/mob/living/carbon/human/D = A.resolve()
 						pathogen_pool.Add(list(list(\
-							"name" = "[D.get_species()] [B.name]", \
+							"name" = "[D ? D.get_species() : "unknown"] [B.name]", \
 							"dna" = B.data["blood_DNA"], \
 							"unique_id" = V.uniqueID, \
 							"reference" = "\ref[V]", \
@@ -100,13 +101,13 @@
 					"name" = entry.fields["name"], \
 					"description" = replacetext(desc, "\n", ""))
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "pathogenic_isolator.tmpl", src.name, 400, 500)
 		ui.set_initial_data(data)
 		ui.open()
 
-/obj/machinery/disease2/isolator/process()
+/obj/machinery/disease2/isolator/machinery_process()
 	if (isolating > 0)
 		isolating -= 1
 		if (isolating == 0)
@@ -116,14 +117,14 @@
 				virus2 = null
 				ping("\The [src] pings, \"Viral strain isolated.\"")
 
-			nanomanager.update_uis(src)
+			SSnanoui.update_uis(src)
 			update_icon()
 
 /obj/machinery/disease2/isolator/Topic(href, href_list)
 	if (..()) return 1
 
 	var/mob/user = usr
-	var/datum/nanoui/ui = nanomanager.get_open_ui(user, src, "main")
+	var/datum/nanoui/ui = SSnanoui.get_open_ui(user, src, "main")
 
 	src.add_fingerprint(user)
 
@@ -188,8 +189,9 @@
 			info += "<hr>"
 
 			for(var/datum/reagent/blood/B in sample.reagents.reagent_list)
-				var/mob/living/carbon/human/D = B.data["donor"]
-				info += "<large><u>[D.get_species()] [B.name]:</u></large><br>[B.data["blood_DNA"]]<br>"
+				var/datum/weakref/A = B.data["donor"]
+				var/mob/living/carbon/human/D = A.resolve()
+				info += "<large><u>[D ? D.get_species() : "unknown"] [B.name]:</u></large><br>[B.data["blood_DNA"]]<br>"
 
 				var/list/virus = B.data["virus2"]
 				info += "<u>Pathogens:</u> <br>"

@@ -94,7 +94,7 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 	data += nanoui_data
 
 	// update the ui if it exists, returns null if no ui is passed/found
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)	// No auto-refresh
 		ui = new(user, src, ui_key, "uplink.tmpl", title, 450, 600, state = inventory_state)
 		ui.set_initial_data(data)
@@ -104,6 +104,11 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 // Interaction code. Gathers a list of items purchasable from the paren't uplink and displays it. It also adds a lock button.
 /obj/item/device/uplink/hidden/interact(mob/user)
 	ui_interact(user)
+
+/obj/item/device/uplink/hidden/CanUseTopic()
+	if(!active)
+		return STATUS_CLOSE
+	return ..()
 
 // The purchasing code.
 /obj/item/device/uplink/hidden/Topic(href, href_list)
@@ -116,7 +121,7 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 		UI.buy(src, usr)
 	else if(href_list["lock"])
 		toggle()
-		var/datum/nanoui/ui = nanomanager.get_open_ui(user, src, "main")
+		var/datum/nanoui/ui = SSnanoui.get_open_ui(user, src, "main")
 		ui.close()
 	else if(href_list["return"])
 		nanoui_menu = round(nanoui_menu/10)
@@ -203,14 +208,14 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 
 			switch (nanoui_data["contracts_view"])
 				if (1)
-					query_details[":status"] = "open"
+					query_details["status"] = "open"
 				if (2)
-					query_details[":status"] = "closed"
+					query_details["status"] = "closed"
 				else
 					nanoui_data["contracts_view"] = 1
-					query_details[":status"] = "open"
+					query_details["status"] = "open"
 
-			var/DBQuery/index_query = dbcon.NewQuery("SELECT count(*) as Total_Contracts FROM ss13_syndie_contracts WHERE deleted_at IS NULL AND status = :status")
+			var/DBQuery/index_query = dbcon.NewQuery("SELECT count(*) as Total_Contracts FROM ss13_syndie_contracts WHERE deleted_at IS NULL AND status = :status:")
 			index_query.Execute(query_details)
 
 			var/pages = 0
@@ -237,9 +242,9 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 				if (nanoui_data["contracts_current_page"] > pages)
 					return
 
-				query_details[":offset"] = (nanoui_data["contracts_current_page"] - 1) * 10
+				query_details["offset"] = (nanoui_data["contracts_current_page"] - 1) * 10
 
-				var/DBQuery/list_query = dbcon.NewQuery("SELECT contract_id, contractee_name, title FROM ss13_syndie_contracts WHERE deleted_at IS NULL AND status = :status LIMIT 10 OFFSET :offset")
+				var/DBQuery/list_query = dbcon.NewQuery("SELECT contract_id, contractee_name, title FROM ss13_syndie_contracts WHERE deleted_at IS NULL AND status = :status: LIMIT 10 OFFSET :offset:")
 				list_query.Execute(query_details)
 
 				var/list/contracts = list()
@@ -267,17 +272,9 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 				nanoui_data["contracts_view"] = 1
 
 			var/query_details[0]
+			query_details["contract_id"] = exploit_id
 
-			switch (nanoui_data["contracts_view"])
-				if (1)
-					query_details[":status"] = "open"
-				if (2)
-					query_details[":status"] = "closed"
-				else
-					nanoui_data["contracts_view"] = 1
-					query_details[":status"] = "open"
-
-			var/DBQuery/select_query = dbcon.NewQuery("SELECT contract_id, contractee_name, status, title, description, reward_other FROM ss13_syndie_contracts WHERE contract_id = :contract_id")
+			var/DBQuery/select_query = dbcon.NewQuery("SELECT contract_id, contractee_name, status, title, description, reward_other FROM ss13_syndie_contracts WHERE contract_id = :contract_id:")
 			select_query.Execute(query_details)
 
 			if (select_query.NextRow())
@@ -321,16 +318,16 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 // Includes normal radio uplink, multitool uplink,
 // implant uplink (not the implant tool) and a preset headset uplink.
 
-/obj/item/device/radio/uplink/New()
-	hidden_uplink = new(src)
+/obj/item/device/radio/uplink/New(var/loc, var/mind)
+	hidden_uplink = new(src, mind)
 	icon_state = "radio"
 
 /obj/item/device/radio/uplink/attack_self(mob/user as mob)
 	if(hidden_uplink)
 		hidden_uplink.trigger(user)
 
-/obj/item/device/multitool/uplink/New()
-	hidden_uplink = new(src)
+/obj/item/device/multitool/uplink/New(var/loc, var/mind)
+	hidden_uplink = new(src, mind)
 
 /obj/item/device/multitool/uplink/attack_self(mob/user as mob)
 	if(hidden_uplink)
@@ -339,9 +336,9 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 /obj/item/device/radio/headset/uplink
 	traitor_frequency = 1445
 
-/obj/item/device/radio/headset/uplink/New()
+/obj/item/device/radio/headset/uplink/New(var/loc, var/mind)
 	..()
-	hidden_uplink = new(src)
+	hidden_uplink = new(src, mind)
 	hidden_uplink.uses = DEFAULT_TELECRYSTAL_AMOUNT
 
 /*
@@ -356,12 +353,56 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 	flags = CONDUCT
 	w_class = 2
 
-/obj/item/device/contract_uplink/New()
+/obj/item/device/contract_uplink/New(var/loc, var/mind)
 	..()
-	hidden_uplink = new(src)
+	hidden_uplink = new(src, mind)
 	hidden_uplink.uses = 0
 	hidden_uplink.nanoui_menu = 3
 
 /obj/item/device/contract_uplink/attack_self(mob/user as mob)
+	if (hidden_uplink)
+		hidden_uplink.trigger(user)
+
+
+//for revs to create their own central command reports
+/obj/item/device/announcer
+	name = "relay positioning device"
+	icon = 'icons/obj/device.dmi'
+	icon_state = "locator"
+	description_antag = "This device allows you to create a single central command report. It has only one use."
+	w_class = 2
+
+/obj/item/device/announcer/attack_self(mob/user as mob)
+	if(!player_is_antag(user.mind))
+		return
+
+	var/title = sanitize(input("Enter your announcement title.", "Announcement Title") as null|text)
+	if(!title)
+		return
+
+	var/message = sanitize(input("Enter your announcement message.", "Announcement Title") as null|text)
+	if(!message)
+		return
+
+	command_announcement.Announce("[message]", title, new_sound = 'sound/AI/commandreport.ogg', msg_sanitized = 1);
+	discord_bot.send_to_cciaa("Announcer - Fake announcement:`[title]` - `[message]`, sent by [user]!")
+	qdel(src)
+
+//ninja
+/obj/item/device/ninja_uplink
+	name = "infiltrator uplink"
+	desc = "A small device used for access to a restricted cache of specialized items."
+	icon = 'icons/obj/radio.dmi'
+	icon_state = "radio"
+	flags = CONDUCT
+	w_class = 2
+
+/obj/item/device/ninja_uplink/New(var/loc, var/mind)
+	..()
+	hidden_uplink = new(src, mind)
+	hidden_uplink.uses = DEFAULT_TELECRYSTAL_AMOUNT
+	hidden_uplink.nanoui_menu = 1
+
+/obj/item/device/ninja_uplink/attack_self(mob/user as mob)
 	if (hidden_uplink)
 		hidden_uplink.trigger(user)

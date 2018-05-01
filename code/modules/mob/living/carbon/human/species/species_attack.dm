@@ -4,12 +4,15 @@
 	shredding = 0
 	sharp = 1
 	edge = 1
+	damage = 5
+	attack_name = "sharp bite"
 
 /datum/unarmed_attack/diona
 	attack_verb = list("lashed", "bludgeoned")
 	attack_noun = list("tendril")
 	eye_attack_text = "a tendril"
 	eye_attack_text_victim = "a tendril"
+	attack_name = "tendrils"
 
 /datum/unarmed_attack/claws
 	attack_verb = list("scratched", "clawed", "slashed")
@@ -20,6 +23,8 @@
 	miss_sound = 'sound/weapons/slashmiss.ogg'
 	sharp = 1
 	edge = 1
+	damage = 5
+	attack_name = "claws"
 
 /datum/unarmed_attack/claws/show_attack(var/mob/living/carbon/human/user, var/mob/living/carbon/human/target, var/zone, var/attack_damage)
 	var/skill = user.skills["combat"]
@@ -54,18 +59,21 @@
 
 /datum/unarmed_attack/claws/strong
 	attack_verb = list("slashed")
-	damage = 5
+	damage = 10
 	shredding = 1
+	attack_name = "strong claws"
 
 /datum/unarmed_attack/bite/strong
 	attack_verb = list("mauled")
-	damage = 8
+	damage = 10
 	shredding = 1
+	attack_name = "strong bite"
 
 /datum/unarmed_attack/slime_glomp
 	attack_verb = list("glomped")
 	attack_noun = list("body")
 	damage = 2
+	attack_name = "glomp"
 
 /datum/unarmed_attack/slime_glomp/apply_effects()
 	//Todo, maybe have a chance of causing an electrical shock?
@@ -73,6 +81,7 @@
 
 /datum/unarmed_attack/stomp/weak
 	attack_verb = list("jumped on")
+	attack_name = "weak stomp"
 
 /datum/unarmed_attack/stomp/weak/get_unarmed_damage()
 	return damage
@@ -87,6 +96,8 @@
 	attack_noun = list("power fist")
 	damage = 12
 	attack_sound = 'sound/weapons/beartrap_shut.ogg'
+	attack_name = "power fist"
+	shredding = 1
 
 /datum/unarmed_attack/terminator/apply_effects(var/mob/living/carbon/human/user,var/mob/living/carbon/human/target,var/armour,var/attack_damage,var/zone)
 	..()
@@ -94,9 +105,7 @@
 		playsound(user, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
 		user.visible_message("<span class='danger'>[user] shoves hard, sending [target] flying!</span>")
 		var/T = get_turf(user)
-		var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-		s.set_up(3, 1, T)
-		s.start()
+		spark(T, 3, alldirs)
 		step_away(target,user,15)
 		sleep(1)
 		step_away(target,user,15)

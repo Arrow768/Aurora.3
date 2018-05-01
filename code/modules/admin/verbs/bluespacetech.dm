@@ -9,23 +9,31 @@
 // - SoundScopes
 */
 
+/client
+	var/bst_cooldown	// So people can't spam BSTs.
+
+/client/proc/bst_spawn_cooldown()
+	bst_cooldown = null
+
 /client/proc/cmd_dev_bst()
 	set category = "Debug"
 	set name = "Spawn Bluespace Tech"
 	set desc = "Spawns a Bluespace Tech to debug stuff"
+
+	if (bst_cooldown)
+		src << "You've used this verb too recently, please wait a moment before trying again."
+		return
 
 	if(!check_rights(R_DEV|R_ADMIN))	return
 
 	if(!holder)
 		return //how did they get here?
 
-	if(!ticker)
-		alert("Wait until the game starts")
-		return
-
-	if(ticker.current_state < GAME_STATE_PLAYING)
+	if(!ROUND_IS_STARTED)
 		src << span("alert", "The game hasn't started yet!")
 		return
+
+	bst_cooldown = TRUE
 
 	if(istype(mob, /mob/living))
 		if(!holder.original_mob)
@@ -34,10 +42,7 @@
 	//I couldn't get the normal way to work so this works.
 	//This whole section looks like a hack, I don't like it.
 	var/T = get_turf(usr)
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-	s.set_up(3, 1, T)
-	s.start()
-	var/mob/living/carbon/human/bst/bst = new(get_turf(T))
+	var/mob/living/carbon/human/bst/bst = new(T)
 //	bst.original_mob = usr
 	bst.anchored = 1
 	bst.ckey = usr.ckey
@@ -65,14 +70,14 @@
 		bst.equip_to_slot_or_del(new /obj/item/device/pda/captain/bst(bst.back), slot_in_backpack)
 		bst.equip_to_slot_or_del(new /obj/item/device/multitool(bst.back), slot_in_backpack)
 
-		var/obj/item/weapon/storage/box/pills = new /obj/item/weapon/storage/box
+		var/obj/item/weapon/storage/box/pills = new /obj/item/weapon/storage/box(null, TRUE)
 		pills.name = "adminordrazine"
 		for(var/i = 1, i < 12, i++)
 			new /obj/item/weapon/reagent_containers/pill/adminordrazine(pills)
 		bst.equip_to_slot_or_del(pills, slot_in_backpack)
 
-  //Implant because access
-  bst.implant_loyalty(bst,TRUE)
+	//Implant because access
+	bst.implant_loyalty(bst,TRUE)
 
 	//Sort out ID
 	var/obj/item/weapon/card/id/bst/id = new/obj/item/weapon/card/id/bst(bst)
@@ -114,19 +119,22 @@
 	bst.add_language(LANGUAGE_CHANGELING)
 	bst.add_language(LANGUAGE_BORER)
 
-	spawn(5)
-		s.start()
-		bst.anchored = 0
-		spawn(10)
-			qdel(s)
+	addtimer(CALLBACK(src, .proc/bst_post_spawn, bst), 5)
+	addtimer(CALLBACK(src, .proc/bst_spawn_cooldown), 5 SECONDS)
+
 	log_debug("Bluespace Tech Spawned: X:[bst.x] Y:[bst.y] Z:[bst.z] User:[src]")
 
 	feedback_add_details("admin_verb","BST")
 	return 1
 
+/client/proc/bst_post_spawn(mob/living/carbon/human/bst/bst)
+	spark(bst, 3, alldirs)
+	bst.anchored = FALSE
+
 /mob/living/carbon/human/bst
 	universal_understand = 1
 	status_flags = GODMODE
+	var/fall_override = TRUE
 
 /mob/living/carbon/human/bst/can_inject(var/mob/user, var/error_msg, var/target_zone)
 	user << span("alert", "The [src] disarms you before you can inject them.")
@@ -149,29 +157,24 @@
 				bsu()
 			if("Skrell")
 				bss()
-			if("Vaurca")
+			if("Vaurca Worker")
 				bsv()
 		return
 
 	src.custom_emote(1,"presses a button on their suit, followed by a polite bow.")
-	spawn(10)
-		var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-		s.set_up(5, 1, src)
-		s.start()
-		spawn(5)
-			qdel(s)
-		if(key)
-			if(client.holder && client.holder.original_mob)
-				client.holder.original_mob.key = key
-			else
-				var/mob/dead/observer/ghost = new(src)	//Transfer safety to observer spawning proc.
-				ghost.key = key
-				ghost.mind.name = "[ghost.key] BSTech"
-				ghost.name = "[ghost.key] BSTech"
-				ghost.real_name = "[ghost.key] BSTech"
-				ghost.voice_name = "[ghost.key] BSTech"
-		qdel(src)
-	return
+	spark(src, 5, alldirs)
+	addtimer(CALLBACK(GLOBAL_PROC, .proc/qdel, src), 10, TIMER_CLIENT_TIME)
+	animate(src, alpha = 0, time = 9, easing = QUAD_EASING)
+	if(key)
+		if(client.holder && client.holder.original_mob)
+			client.holder.original_mob.key = key
+		else
+			var/mob/abstract/observer/ghost = new(src)	//Transfer safety to observer spawning proc.
+			ghost.key = key
+			ghost.mind.name = "[ghost.key] BSTech"
+			ghost.name = "[ghost.key] BSTech"
+			ghost.real_name = "[ghost.key] BSTech"
+			ghost.voice_name = "[ghost.key] BSTech"
 
 /mob/living/carbon/human/bst/proc/bsc() //because we all have our unrealistic snowflakes right?
 	if(set_species("Tajara"))
@@ -288,9 +291,17 @@
 		key = null
 		suicide()
 
-/mob/living/carbon/human/bst/say(var/message)
-	var/verb = "says in a subdued tone"
-	..(message, verb)
+/mob/living/carbon/human/bst/verb/antigrav()
+	set name = "Toggle Gravity"
+	set desc = "Toggles on/off falling for you."
+	set category = "BST"
+
+	if (fall_override)
+		fall_override = FALSE
+		to_chat(usr, "<span class='notice'>You will now fall normally.</span>")
+	else
+		fall_override = TRUE
+		to_chat(usr, "<span class='notice'>You will no longer fall.</span>")
 
 /mob/living/carbon/human/bst/verb/bstwalk()
 	set name = "Ruin Everything"
@@ -337,6 +348,14 @@
 		C.holder.original_mob = null
 	suicide()
 
+/mob/living/carbon/human/bst/verb/tgm()
+	set name = "Toggle Godmode"
+	set desc = "Enable or disable god mode. For testing things that require you to be vulnerable."
+	set category = "BST"
+
+	status_flags ^= GODMODE
+	src << span("notice", "God mode is now [status_flags & GODMODE ? "enabled" : "disabled"]")
+
 //Equipment. All should have canremove set to 0
 //All items with a /bst need the attack_hand() proc overrided to stop people getting overpowered items.
 
@@ -357,7 +376,7 @@
 
 //Headset
 /obj/item/device/radio/headset/ert/bst
-	name = "\improper Bluespace Technician's headset"
+	name = "bluespace technician's headset"
 	desc = "A Bluespace Technician's headset. The letters 'BST' are stamped on the side."
 	translate_binary = 1
 	translate_hive = 1
@@ -383,7 +402,7 @@
 
 //Clothes
 /obj/item/clothing/under/rank/centcom_officer/bst
-	name = "\improper Bluespace Technician's Uniform"
+	name = "bluespace technician's uniform"
 	desc = "A Bluespace Technician's Uniform. There is a logo on the sleeve that reads 'BST'."
 	has_sensor = 0
 	sensor_mode = 0
@@ -403,7 +422,7 @@
 
 //Gloves
 /obj/item/clothing/gloves/swat/bst
-	name = "\improper Bluespace Technician's gloves"
+	name = "bluespace technician's gloves"
 	desc = "A pair of modified gloves. The letters 'BST' are stamped on the side."
 	siemens_coefficient = 0
 	permeability_coefficient = 0
@@ -420,12 +439,33 @@
 
 //Sunglasses
 /obj/item/clothing/glasses/sunglasses/bst
-	name = "\improper Bluespace Technician's Glasses"
+	name = "bluespace technician's glasses"
 	desc = "A pair of modified sunglasses. The word 'BST' is stamped on the side."
 //	var/list/obj/item/clothing/glasses/hud/health/hud = null
 	vision_flags = (SEE_TURFS|SEE_OBJS|SEE_MOBS)
 	see_invisible = SEE_INVISIBLE_NOLIGHTING
 	canremove = 0
+	flash_protection = FLASH_PROTECTION_MAJOR
+
+/obj/item/clothing/glasses/sunglasses/bst/verb/toggle_xray(mode in list("X-Ray without Lighting", "X-Ray with Lighting", "Normal"))
+	set name = "Change Vision Mode"
+	set desc = "Changes your glasses' vision mode."
+	set category = "BST"
+	set src in usr
+
+	switch (mode)
+		if ("X-Ray without Lighting")
+			vision_flags = (SEE_TURFS|SEE_OBJS|SEE_MOBS)
+			see_invisible = SEE_INVISIBLE_NOLIGHTING
+		if ("X-Ray with Lighting")
+			vision_flags = (SEE_TURFS|SEE_OBJS|SEE_MOBS)
+			see_invisible = -1
+		if ("Normal")
+			vision_flags = 0
+			see_invisible = -1
+
+	usr << "<span class='notice'>\The [src]'s vision mode is now <b>[mode]</b>.</span>"
+
 /*	New()
 		..()
 		src.hud += new/obj/item/clothing/glasses/hud/security(src)
@@ -443,10 +483,10 @@
 
 //Shoes
 /obj/item/clothing/shoes/black/bst
-	name = "\improper Bluespace Technician's shoes"
+	name = "bluespace technician's shoes"
 	desc = "A pair of black shoes with extra grip. The letters 'BST' are stamped on the side."
 	icon_state = "black"
-	flags = NOSLIP
+	item_flags = NOSLIP
 	canremove = 0
 
 /obj/item/clothing/shoes/black/bst/attack_hand()

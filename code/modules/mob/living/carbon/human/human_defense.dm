@@ -9,12 +9,14 @@ emp_act
 */
 
 /mob/living/carbon/human/bullet_act(var/obj/item/projectile/P, var/def_zone)
+	if(martial_art && martial_art.deflection_chance)
+		if(prob(martial_art.deflection_chance))
+			src.visible_message("<span class='danger'>\The [src] deflects \the [P]!</span>")
+			return 0
 
 	def_zone = check_zone(def_zone)
 	if(!has_organ(def_zone))
 		return PROJECTILE_FORCE_MISS //if they don't have the organ in question then the projectile just passes by.
-
-	var/obj/item/organ/external/organ = get_organ()
 
 	//Shields
 	var/shield_check = check_shields(P.damage, P, null, def_zone, "the [P.name]")
@@ -22,11 +24,18 @@ emp_act
 		if(shield_check < 0)
 			return shield_check
 		else
-			P.on_hit(src, 2, def_zone)
-			return 2
+			P.on_hit(src, 100, def_zone)
+			return 100
+
+	var/obj/item/organ/external/organ = get_organ(def_zone)
+
+	// Tell clothing we're wearing that it got hit by a bullet/laser/etc
+	var/list/clothing = get_clothing_list_organ(organ)
+	for(var/obj/item/clothing/C in clothing)
+		C.clothing_impact(P, P.damage)
 
 	//Shrapnel
-	if(P.can_embed())
+	if(!(species.flags & NO_EMBED) && P.can_embed())
 		var/armor = getarmor_organ(organ, "bullet")
 		if(prob(20 + max(P.damage - armor, -10)))
 			var/obj/item/weapon/SP = new P.shrapnel_type()
@@ -54,7 +63,7 @@ emp_act
 				c_hand = r_hand
 
 			if(c_hand && (stun_amount || agony_amount > 10))
-				msg_admin_attack("[src.name] ([src.ckey]) was disarmed by a stun effect (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)")
+				msg_admin_attack("[src.name] ([src.ckey]) was disarmed by a stun effect (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)",ckey=key_name(src))
 
 				drop_from_inventory(c_hand)
 				if (affected.status & ORGAN_ROBOT)
@@ -101,6 +110,15 @@ emp_act
 
 	return siemens_coefficient
 
+// Returns a list of clothing that is currently covering def_zone.
+/mob/living/carbon/human/proc/get_clothing_list_organ(var/obj/item/organ/external/def_zone, var/type)
+	var/list/results = list()
+	var/list/clothing_items = list(head, wear_mask, wear_suit, w_uniform, gloves, shoes)
+	for(var/obj/item/clothing/C in clothing_items)
+		if(istype(C) && (C.body_parts_covered & def_zone.body_part))
+			results.Add(C)
+	return results
+
 //this proc returns the armour value for a particular external organ.
 /mob/living/carbon/human/proc/getarmor_organ(var/obj/item/organ/external/def_zone, var/type)
 	if(!type || !def_zone) return 0
@@ -109,8 +127,8 @@ emp_act
 	for(var/gear in protective_gear)
 		if(gear && istype(gear ,/obj/item/clothing))
 			var/obj/item/clothing/C = gear
-			if(istype(C) && C.body_parts_covered & def_zone.body_part)
-				protection += C.armor[type]
+			if(istype(C) && C.body_parts_covered & def_zone.body_part && C.armor)
+				protection = add_armor(protection, C.armor[type])
 	return protection
 
 /mob/living/carbon/human/proc/check_head_coverage()
@@ -162,7 +180,7 @@ emp_act
 	if(user == src) // Attacking yourself can't miss
 		target_zone = user.zone_sel.selecting
 	if(!target_zone)
-		visible_message("\red <b>[user] misses [src] with \the [I]!</b>")
+		visible_message("<span class='danger'>[user] misses [src] with \the [I]!</span>")
 		return 0
 
 	//var/obj/item/organ/external/affecting = get_organ(target_zone)
@@ -182,7 +200,7 @@ emp_act
 	if(!affecting)
 		return //should be prevented by attacked_with_item() but for sanity.
 
-	visible_message("<span class='danger'>[src] has been [I.attack_verb.len? pick(I.attack_verb) : "attacked"] in the [affecting.name] with [I.name] by [user]!</span>")
+	visible_message("<span class='danger'>[src] has been [LAZYPICK(I.attack_verb, "attacked")] in the [affecting.name] with [I] by [user]!</span>")
 
 	var/blocked = run_armor_check(hit_zone, "melee", I.armor_penetration, "Your armor has protected your [affecting.name].", "Your armor has softened the blow to your [affecting.name].")
 	standard_weapon_hit_effects(I, user, effective_force, blocked, hit_zone)
@@ -193,6 +211,12 @@ emp_act
 	var/obj/item/organ/external/affecting = get_organ(hit_zone)
 	if(!affecting)
 		return 0
+
+	// Allow clothing to respond to being hit.
+	// This is done up here so that clothing damage occurs even if fully blocked.
+	var/list/clothing = get_clothing_list_organ(affecting)
+	for(var/obj/item/clothing/C in clothing)
+		C.clothing_impact(I, effective_force)
 
 	// Handle striking to cripple.
 	if(user.a_intent == I_DISARM)
@@ -258,9 +282,9 @@ emp_act
 	return 1
 
 /mob/living/carbon/human/proc/attack_joint(var/obj/item/organ/external/organ, var/obj/item/W, var/blocked)
-	if(!organ || (organ.dislocated == 2) || (organ.dislocated == -1) || blocked >= 2)
+	if(!organ || (organ.dislocated == 2) || (organ.dislocated == -1) || blocked >= 100)
 		return 0
-	if(prob(W.force / (blocked+1)))
+	if(prob(W.force * BLOCKED_MULT(blocked)))
 		visible_message("<span class='danger'>[src]'s [organ.joint] [pick("gives way","caves in","crumbles","collapses")]!</span>")
 		organ.dislocate(1)
 		return 1
@@ -324,10 +348,10 @@ emp_act
 		var/obj/item/organ/external/affecting = get_organ(zone)
 		var/hit_area = affecting.name
 
-		src.visible_message("\red [src] has been hit in the [hit_area] by [O].")
+		src.visible_message("<span class='warning'>[src] has been hit in the [hit_area] by [O].</span>")
 		var/armor = run_armor_check(affecting, "melee", O.armor_penetration, "Your armor has protected your [hit_area].", "Your armor has softened hit to your [hit_area].") //I guess "melee" is the best fit here
 
-		if(armor < 2)
+		if(armor < 100)
 			apply_damage(throw_damage, dtype, zone, armor, is_sharp(O), has_edge(O), O)
 
 		if(ismob(O.thrower))
@@ -337,7 +361,7 @@ emp_act
 				src.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been hit with a [O], thrown by [M.name] ([assailant.ckey])</font>")
 				M.attack_log += text("\[[time_stamp()]\] <font color='red'>Hit [src.name] ([src.ckey]) with a thrown [O]</font>")
 				if(!istype(src,/mob/living/simple_animal/mouse))
-					msg_admin_attack("[src.name] ([src.ckey]) was hit by a [O], thrown by [M.name] ([assailant.ckey]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)")
+					msg_admin_attack("[src.name] ([src.ckey]) was hit by a [O], thrown by [M.name] ([assailant.ckey]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)",ckey=key_name(M),ckey_target=key_name(src))
 
 		//thrown weapon embedded object code.
 		if(dtype == BRUTE && istype(O,/obj/item))
@@ -346,7 +370,7 @@ emp_act
 				var/sharp = is_sharp(I)
 				var/damage = throw_damage
 				if (armor)
-					damage /= armor+1
+					damage *= BLOCKED_MULT(armor)
 
 				//blunt objects should really not be embedding in things unless a huge amount of force is involved
 				var/embed_chance = sharp? damage/I.w_class : damage/(I.w_class*3)
@@ -367,7 +391,7 @@ emp_act
 		if(O.throw_source && momentum >= THROWNOBJ_KNOCKBACK_SPEED)
 			var/dir = get_dir(O.throw_source, src)
 
-			visible_message("\red [src] staggers under the impact!","\red You stagger under the impact!")
+			visible_message("<span class='warning'>[src] staggers under the impact!</span>","<span class='warning'> You stagger under the impact!</span>")
 			src.throw_at(get_edge_target_turf(src,dir),1,momentum)
 
 			if(!O || !src) return
@@ -460,3 +484,40 @@ emp_act
 		perm += perm_by_part[part]
 
 	return perm
+
+/mob/living/carbon/human/proc/grabbedby(mob/living/carbon/human/user,var/supress_message = 0)
+	if(user == src || anchored)
+		return 0
+	if(user.disabilities & PACIFIST)
+		to_chat(user, "<span class='notice'>You don't want to risk hurting [src]!</span>")
+		return 0
+
+	for(var/obj/item/weapon/grab/G in user.grabbed_by)
+		if(G.assailant == user)
+			user << "<span class='notice'>You already grabbed [src].</span>"
+			return
+
+	if (!attempt_grab(user))
+		return
+
+	if(src.w_uniform)
+		src.w_uniform.add_fingerprint(src)
+
+	var/obj/item/weapon/grab/G = new /obj/item/weapon/grab(user, src)
+	if(buckled)
+		user << "<span class='notice'>You cannot grab [src], \he is buckled in!</span>"
+	if(!G)	//the grab will delete itself in New if affecting is anchored
+		return
+	user.put_in_active_hand(G)
+	G.synch()
+	LAssailant = user
+
+	user.do_attack_animation(src)
+	playsound(loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
+	if(user.gloves && istype(user.gloves,/obj/item/clothing/gloves/force/syndicate)) //only antag gloves can do this for now
+		G.state = GRAB_AGGRESSIVE
+		G.icon_state = "grabbed1"
+		visible_message("<span class='warning'>[user] gets a strong grip on [src]!</span>")
+		return 1
+	visible_message("<span class='warning'>[user] has grabbed [src] passively!</span>")
+	return 1

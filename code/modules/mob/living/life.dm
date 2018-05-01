@@ -1,6 +1,8 @@
 /mob/living/Life()
-	set invisibility = 0
 	set background = BACKGROUND_ENABLED
+
+	if (QDELETED(src))	// If they're being deleted, why bother?
+		return
 
 	..()
 
@@ -17,9 +19,6 @@
 		//Mutations and radiation
 		handle_mutations_and_radiation()
 
-		//Chemicals in the body
-		handle_chemicals_in_body()
-
 		//Blood
 		handle_blood()
 
@@ -31,6 +30,9 @@
 	//Handle temperature/pressure differences between body and environment
 	if(environment)
 		handle_environment(environment)
+
+	//Chemicals in the body
+	handle_chemicals_in_body()
 
 	//Check if we're on fire
 	handle_fire()
@@ -54,6 +56,9 @@
 	update_canmove()
 
 	handle_regular_hud_updates()
+
+	if(languages.len == 1 && default_language != languages[1])
+		default_language = languages[1]
 
 /mob/living/proc/handle_breathing()
 	return
@@ -124,10 +129,13 @@
 		// deafness heals slowly over time, unless ear_damage is over 100
 		if(ear_damage < 100)
 			adjustEarDamage(-0.05,-1)
+	if(disabilities & PACIFIST && a_intent == I_HURT)
+		to_chat(src, "<span class='notice'>You don't feel like harming anybody.</span>")
+		a_intent_change(I_HELP)
 
 //this handles hud updates. Calls update_vision() and handle_hud_icons()
 /mob/living/proc/handle_regular_hud_updates()
-	if(!client)	return 0
+	if(!client || QDELETED(src))	return 0
 
 	handle_hud_icons()
 	handle_vision()
@@ -172,8 +180,9 @@
 		if (is_ventcrawling)
 			sight |= SEE_TURFS|BLIND
 
-		see_in_dark = initial(see_in_dark)
-		see_invisible = initial(see_invisible)
+		if (!stop_sight_update) //If true, it won't reset the mob vision flags to the initial ones
+			see_in_dark = initial(see_in_dark)
+			see_invisible = initial(see_invisible)
 
 /mob/living/proc/update_dead_sight()
 	sight |= SEE_TURFS
