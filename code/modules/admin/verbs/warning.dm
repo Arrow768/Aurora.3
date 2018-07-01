@@ -407,4 +407,4 @@
 			notes_query.Execute(query_details)
 
 			message_admins("<span class='notice'>[key_name_admin(usr)] edited one of [ckey]'s warning notes.</span>")
-			log_admin("[key_name(usr)] edited one of [ckey]'s warning notes.", admin_key=key_name(usr), ckey=ckey)
+			log_admin("[key_name(usr)] edited asdf one of [ckey]'s warning notes.", admin_key=key_name(usr), ckey=ckey)
