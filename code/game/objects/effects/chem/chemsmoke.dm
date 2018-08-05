@@ -24,19 +24,14 @@
 	pixel_x = -32 + rand(-8, 8)
 	pixel_y = -32 + rand(-8, 8)
 
-	//switching opacity on after the smoke has spawned, and then turning it off before it is deleted results in cleaner
-	//lighting and view range updates (Is this still true with the new lighting system?)
-	opacity = 1
-
 	//float over to our destination, if we have one
 	destination = dest_turf
 	if(destination)
 		walk_to(src, destination)
 
 /obj/effect/effect/smoke/chem/Destroy()
-	opacity = 0
-	fadeOut()
-	..()
+	walk(src, 0)
+	return ..()
 
 /obj/effect/effect/smoke/chem/Move()
 	var/list/oldlocs = view(1, src)
@@ -61,16 +56,6 @@
 			if(!istype(AM, /obj/effect/effect/smoke/chem))
 				reagents.splash(AM, splash_amount, copy = 1)
 
-// Fades out the smoke smoothly using it's alpha variable.
-/obj/effect/effect/smoke/chem/proc/fadeOut(var/frames = 16)
-	if(!alpha) return //already transparent
-
-	frames = max(frames, 1) //We will just assume that by 0 frames, the coder meant "during one frame".
-	var/alpha_step = round(alpha / frames)
-	while(alpha > 0)
-		alpha = max(0, alpha - alpha_step)
-		sleep(world.tick_lag)
-
 /////////////////////////////////////////////
 // Chem Smoke Effect System
 /////////////////////////////////////////////
@@ -90,8 +75,8 @@
 	var/datum/seed/seed
 
 /datum/effect/effect/system/smoke_spread/chem/spores/New(seed_name)
-	if(seed_name && plant_controller)
-		seed = plant_controller.seeds[seed_name]
+	if(seed_name && SSplants)
+		seed = SSplants.seeds[seed_name]
 	if(!seed)
 		qdel(src)
 	..()
@@ -154,7 +139,7 @@
 			if(M)
 				more = "(<A HREF='?_src_=holder;adminmoreinfo=\ref[M]'>?</a>)"
 			message_admins("A chemical smoke reaction has taken place in ([whereLink])[contained]. Last associated key is [carry.my_atom.fingerprintslast][more].", 0, 1)
-			log_game("A chemical smoke reaction has taken place in ([where])[contained]. Last associated key is [carry.my_atom.fingerprintslast].")
+			log_game("A chemical smoke reaction has taken place in ([where])[contained]. Last associated key is [carry.my_atom.fingerprintslast].",ckey=key_name(M))
 		else
 			message_admins("A chemical smoke reaction has taken place in ([whereLink]). No associated key.", 0, 1)
 			log_game("A chemical smoke reaction has taken place in ([where])[contained]. No associated key.")
@@ -240,6 +225,23 @@
 				spawn(0)
 					spawnSmoke(T, I, duration)
 
+/datum/effect/effect/system/smoke_spread/chem/spores/start()
+	..()
+	if(seed.get_trait(TRAIT_SPREAD))
+		var/sporecount = 0
+		for(var/turf/T in targetTurfs)
+			var/bad_turf = 0
+			for(var/obj/O in T)
+				if(O.density || istype(O, /obj/machinery/portable_atmospherics/hydroponics))
+					bad_turf = 1
+					break
+			if(bad_turf)
+				continue
+			if(prob(min(seed.get_trait(TRAIT_POTENCY),50)) && sporecount < max(1,round(seed.get_trait(TRAIT_POTENCY)/20),1))
+				new /obj/machinery/portable_atmospherics/hydroponics/soil/invisible(T,seed)
+				sporecount++
+
+
 //------------------------------------------
 // Randomizes and spawns the smoke effect.
 // Also handles deleting the smoke once the effect is finished.
@@ -250,7 +252,7 @@
 	if(passed_smoke)
 		smoke = passed_smoke
 	else
-		smoke = PoolOrNew(/obj/effect/effect/smoke/chem, list(location, smoke_duration + rand(smoke_duration*-0.25, smoke_duration*0.25), T, I))
+		smoke = new /obj/effect/effect/smoke/chem(location, smoke_duration + rand(smoke_duration*-0.25, smoke_duration*0.25), T, I)
 
 	if(chemholder.reagents.reagent_list.len)
 		chemholder.reagents.trans_to_obj(smoke, chemholder.reagents.total_volume / dist, copy = 1) //copy reagents to the smoke so mob/breathe() can handle inhaling the reagents
@@ -260,8 +262,8 @@
 		smoke.initial_splash()
 
 
-/datum/effect/effect/system/smoke_spread/chem/spores/spawnSmoke(var/turf/T, var/smoke_duration, var/icon/I, var/dist = 1)
-	var/obj/effect/effect/smoke/chem/spores = PoolOrNew(/obj/effect/effect/smoke/chem, location)
+/datum/effect/effect/system/smoke_spread/chem/spores/spawnSmoke(var/turf/T, var/icon/I, var/smoke_duration, var/dist = 1)
+	var/obj/effect/effect/smoke/chem/spores = new /obj/effect/effect/smoke/chem(location)
 	spores.name = "cloud of [seed.seed_name] [seed.seed_noun]"
 	..(T, I, smoke_duration, dist, spores)
 

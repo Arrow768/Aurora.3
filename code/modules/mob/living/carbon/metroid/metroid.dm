@@ -60,21 +60,22 @@
 
 	var/core_removal_stage = 0 //For removing cores.
 
-/mob/living/carbon/slime/New(var/location, var/colour="grey")
+/mob/living/carbon/slime/Initialize(mapload, colour = "grey")
+	. = ..()
 
 	verbs += /mob/living/proc/ventcrawl
 
 	src.colour = colour
 	number = rand(1, 1000)
 	name = "[colour] [is_adult ? "adult" : "baby"] slime ([number])"
-	if (is_adult)mob_size = 6
+	if (is_adult)
+		mob_size = 6
 	real_name = name
 	slime_mutation = mutation_table(colour)
 	mutation_chance = rand(25, 35)
 	var/sanitizedcolour = replacetext(colour, " ", "")
 	coretype = text2path("/obj/item/slime_extract/[sanitizedcolour]")
 	regenerate_icons()
-	..(location)
 
 /mob/living/carbon/slime/movement_delay()
 	if (bodytemperature >= 330.23) // 135 F
@@ -100,10 +101,14 @@
 
 	return tally + config.slime_delay
 
-/mob/living/carbon/slime/Bump(atom/movable/AM as mob|obj, yes)
-	if ((!(yes) || now_pushing))
+/mob/living/carbon/slime/proc/reset_atkcooldown()
+	Atkcool = FALSE
+
+/mob/living/carbon/slime/Collide(atom/movable/AM as mob|obj, yes)
+	if (now_pushing)
 		return
-	now_pushing = 1
+
+	now_pushing = TRUE
 
 	if(isobj(AM) && !client && powerlevel > 0)
 		var/probab = 10
@@ -119,9 +124,8 @@
 				if(nutrition <= get_hunger_nutrition() && !Atkcool)
 					if (is_adult || prob(5))
 						UnarmedAttack(AM)
-						Atkcool = 1
-						spawn(45)
-							Atkcool = 0
+						Atkcool = TRUE
+						addtimer(CALLBACK(src, .proc/reset_atkcooldown), 45)
 
 	if(ismob(AM))
 		var/mob/tmob = AM
@@ -129,19 +133,19 @@
 		if(is_adult)
 			if(istype(tmob, /mob/living/carbon/human))
 				if(prob(90))
-					now_pushing = 0
+					now_pushing = FALSE
 					return
 		else
 			if(istype(tmob, /mob/living/carbon/human))
-				now_pushing = 0
+				now_pushing = FALSE
 				return
 
-	now_pushing = 0
+	now_pushing = FALSE
 
-	..()
+	. = ..()
 
-/mob/living/carbon/slime/Process_Spacemove()
-	return 2
+/mob/living/carbon/slime/Allow_Spacemove()
+	return 1
 
 /mob/living/carbon/slime/Stat()
 	..()
@@ -198,39 +202,10 @@
 	updatehealth()
 
 
-/mob/living/carbon/slime/blob_act()
-	if (stat == 2)
-		return
-	var/shielded = 0
-
-	var/damage = null
-	if (stat != 2)
-		damage = rand(10,30)
-
-	if(shielded)
-		damage /= 4
-
-	show_message("<span class='danger'> The blob attacks you!</span>")
-
-	adjustFireLoss(damage)
-
-	updatehealth()
-	return
-
-
 /mob/living/carbon/slime/u_equip(obj/item/W as obj)
 	return
 
 /mob/living/carbon/slime/attack_ui(slot)
-	return
-
-/mob/living/carbon/slime/meteorhit(O as obj)
-	visible_message("<span class='warning'>[src] has been hit by [O]</span>")
-
-	adjustBruteLoss((istype(O, /obj/effect/meteor/small) ? 10 : 25))
-	adjustFireLoss(30)
-
-	updatehealth()
 	return
 
 /mob/living/carbon/slime/attack_hand(mob/living/carbon/human/M as mob)
@@ -244,7 +219,7 @@
 				playsound(loc, 'sound/weapons/punchmiss.ogg', 25, 1, -1)
 
 			else
-				visible_message("<span class='warning'> [M] manages to wrestle \the [name] off!</span>")
+				visible_message("<span class='warning'>[M] manages to wrestle \the [name] off!</span>")
 				playsound(loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
 
 				if(prob(90) && !client)
@@ -266,7 +241,7 @@
 				playsound(loc, 'sound/weapons/punchmiss.ogg', 25, 1, -1)
 
 			else
-				visible_message("<span class='warning'> [M] manages to wrestle \the [name] off of [Victim]!</span>")
+				visible_message("<span class='warning'>[M] manages to wrestle \the [name] off of [Victim]!</span>")
 				playsound(loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
 
 				if(prob(80) && !client)
@@ -300,7 +275,7 @@
 
 			G.synch()
 
-			LAssailant = M
+			LAssailant = WEAKREF(M)
 
 			playsound(loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
 			visible_message("<span class='warning'>[M] has grabbed [src] passively!</span>")

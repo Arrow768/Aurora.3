@@ -1,5 +1,5 @@
 /obj/mecha/combat/durand
-	desc = "An aging combat exosuit utilized by the Nanotrasen corporation. Originally developed to combat hostile alien lifeforms."
+	desc = "An aging combat exosuit utilized by many corporations. Originally developed to combat hostile alien lifeforms."
 	name = "Durand"
 	icon_state = "durand"
 	initial_icon = "durand"
@@ -11,8 +11,9 @@
 	max_temperature = 30000
 	infra_luminosity = 8
 	force = 40
+	w_class = 25
 	var/defence = 0
-	var/defence_deflect = 35
+	var/def_boost = 15
 	wreckage = /obj/effect/decal/mecha_wreckage/durand
 
 /*
@@ -43,10 +44,10 @@
 		return
 	defence = !defence
 	if(defence)
-		deflect_chance = defence_deflect
+		deflect_chance += def_boost
 		src.occupant_message("<font color='blue'>You enable [src] defence mode.</font>")
 	else
-		deflect_chance = initial(deflect_chance)
+		deflect_chance -= def_boost
 		src.occupant_message("<font color='red'>You disable [src] defence mode.</font>")
 	src.log_message("Toggled defence mode.")
 	return

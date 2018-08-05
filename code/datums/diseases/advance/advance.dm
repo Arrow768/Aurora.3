@@ -38,6 +38,7 @@ var/list/advance_cures = 	list(
 	// NEW VARS
 
 	var/list/symptoms = list() // The symptoms of the disease.
+	var/list/properties = list() // List of properties
 	var/id = ""
 	var/processing = 0
 
@@ -75,7 +76,7 @@ var/list/advance_cures = 	list(
 	if(processing)
 		for(var/datum/symptom/S in symptoms)
 			S.End(src)
-	..()
+	return ..()
 
 // Randomly pick a symptom to activate.
 /datum/disease/advance/stage_act()
@@ -168,7 +169,7 @@ var/list/advance_cures = 	list(
 
 /datum/disease/advance/proc/Refresh(var/new_name = 0)
 	//world << "[src.name] \ref[src] - REFRESH!"
-	var/list/properties = GenerateProperties()
+	GenerateProperties()
 	AssignProperties(properties)
 
 	if(!archive_diseases[GetDiseaseID()])
@@ -187,8 +188,6 @@ var/list/advance_cures = 	list(
 		CRASH("We did not have any symptoms before generating properties.")
 		return
 
-	var/list/properties = list("resistance" = 1, "stealth" = 1, "stage_rate" = 1, "transmittable" = 1, "severity" = 1)
-
 	for(var/datum/symptom/S in symptoms)
 
 		properties["resistance"] += S.resistance
@@ -196,8 +195,6 @@ var/list/advance_cures = 	list(
 		properties["stage_rate"] += S.stage_speed
 		properties["transmittable"] += S.transmittable
 		properties["severity"] = max(properties["severity"], S.level) // severity is based on the highest level symptom
-
-	return properties
 
 // Assign the properties that are in the list.
 /datum/disease/advance/proc/AssignProperties(var/list/properties = list())
@@ -262,7 +259,7 @@ var/list/advance_cures = 	list(
 		cure_id = advance_cures[res]
 
 		// Get the cure name from the cure_id
-		var/datum/reagent/D = chemical_reagents_list[cure_id]
+		var/datum/reagent/D = SSchemistry.chemical_reagents[cure_id]
 		cure = D.name
 
 
@@ -297,7 +294,7 @@ var/list/advance_cures = 	list(
 	for(var/datum/symptom/S in symptoms)
 		L += S.id
 	L = sortList(L) // Sort the list so it doesn't matter which order the symptoms are in.
-	var/result = list2text(L, ":")
+	var/result = jointext(L, ":")
 	id = result
 	return result
 
@@ -398,7 +395,7 @@ var/list/advance_cures = 	list(
 		D.AssignName(new_name)
 		D.Refresh()
 
-		for(var/datum/disease/advance/AD in active_diseases)
+		for(var/datum/disease/advance/AD in SSdisease.processing)
 			AD.Refresh()
 
 		for(var/mob/living/carbon/human/H in shuffle(living_mob_list))
@@ -413,10 +410,22 @@ var/list/advance_cures = 	list(
 			name_symptoms += S.name
 		message_admins("[key_name_admin(user)] has triggered a custom virus outbreak of [D.name]! It has these symptoms: [english_list(name_symptoms)]")
 
+/datum/disease/advance/proc/totalStageSpeed()
+	return properties["stage_rate"]
+
+/datum/disease/advance/proc/totalStealth()
+	return properties["stealth"]
+
+/datum/disease/advance/proc/totalResistance()
+	return properties["resistance"]
+
+/datum/disease/advance/proc/totalTransmittable()
+	return properties["transmittable"]
+
 /*
 /mob/verb/test()
 
-	for(var/datum/disease/D in active_diseases)
+	for(var/datum/disease/D in SSdisease.processing)
 		src << "<a href='?_src_=vars;Vars=\ref[D]'>[D.name] - [D.holder]</a>"
 */
 

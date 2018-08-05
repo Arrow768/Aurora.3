@@ -43,9 +43,7 @@
 		else
 			new /obj/item/clothing/suit/armor/vest(Tsec)
 
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-	s.set_up(3, 1, src)
-	s.start()
+	spark(src, 3, alldirs)
 
 	new /obj/effect/decal/cleanable/blood/oil(Tsec)
 	qdel(src)
@@ -56,7 +54,6 @@
 		return
 
 	last_shot = world.time
-
 	var/projectile = /obj/item/projectile/beam/stun
 	if(emagged)
 		projectile = /obj/item/projectile/beam
@@ -64,10 +61,7 @@
 	playsound(loc, emagged ? 'sound/weapons/Laser.ogg' : 'sound/weapons/Taser.ogg', 50, 1)
 	var/obj/item/projectile/P = new projectile(loc)
 	var/def_zone = get_exposed_defense_zone(A)
-	P.launch(A, def_zone)
-
-	return
-
+	P.launch_projectile(A, def_zone)
 // Assembly
 
 /obj/item/weapon/secbot_assembly/ed209_assembly
@@ -94,7 +88,7 @@
 	switch(build_step)
 		if(0, 1)
 			if(istype(W, /obj/item/robot_parts/l_leg) || istype(W, /obj/item/robot_parts/r_leg))
-				user.drop_item()
+				user.drop_from_inventory(W,get_turf(src))
 				qdel(W)
 				build_step++
 				user << "<span class='notice'>You add the robot leg to [src].</span>"
@@ -109,7 +103,7 @@
 
 		if(2)
 			if(istype(W, /obj/item/clothing/suit/storage/vest))
-				user.drop_item()
+				user.drop_from_inventory(W,get_turf(src))
 				qdel(W)
 				build_step++
 				user << "<span class='notice'>You add the armor to [src].</span>"
@@ -119,7 +113,7 @@
 				return 1
 
 		if(3)
-			if(istype(W, /obj/item/weapon/weldingtool))
+			if(iswelder(W))
 				var/obj/item/weapon/weldingtool/WT = W
 				if(WT.remove_fuel(0, user))
 					build_step++
@@ -128,7 +122,7 @@
 					return 1
 		if(4)
 			if(istype(W, /obj/item/clothing/head/helmet))
-				user.drop_item()
+				user.drop_from_inventory(W,get_turf(src))
 				qdel(W)
 				build_step++
 				user << "<span class='notice'>You add the helmet to [src].</span>"
@@ -139,7 +133,7 @@
 
 		if(5)
 			if(isprox(W))
-				user.drop_item()
+				user.drop_from_inventory(W,get_turf(src))
 				qdel(W)
 				build_step++
 				user << "<span class='notice'>You add the prox sensor to [src].</span>"
@@ -149,7 +143,7 @@
 				return 1
 
 		if(6)
-			if(istype(W, /obj/item/stack/cable_coil))
+			if(iscoil(W))
 				var/obj/item/stack/cable_coil/C = W
 				if (C.get_amount() < 1)
 					user << "<span class='warning'>You need one coil of wire to wire [src].</span>"
@@ -169,12 +163,12 @@
 				user << "<span class='notice'>You add [W] to [src].</span>"
 				item_state = "ed209_taser"
 				icon_state = "ed209_taser"
-				user.drop_item()
+				user.drop_from_inventory(W,get_turf(src))
 				qdel(W)
 				return 1
 
 		if(8)
-			if(istype(W, /obj/item/weapon/screwdriver))
+			if(isscrewdriver(W))
 				playsound(src.loc, 'sound/items/Screwdriver.ogg', 100, 1)
 				var/turf/T = get_turf(user)
 				user << "<span class='notice'>Now attaching the gun to the frame...</span>"
@@ -190,8 +184,7 @@
 				user << "<span class='notice'>You complete the ED-209.</span>"
 				var/turf/T = get_turf(src)
 				new /mob/living/bot/secbot/ed209(T,created_name,lasercolor)
-				user.drop_item()
+				user.drop_from_inventory(W,get_turf(src))
 				qdel(W)
-				user.drop_from_inventory(src)
 				qdel(src)
 				return 1

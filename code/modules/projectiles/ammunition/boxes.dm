@@ -10,6 +10,15 @@
 	max_ammo = 7
 	multiple_sprites = 1
 
+/obj/item/ammo_magazine/a454
+	name = "speed loader (.454)"
+	icon_state = "T38"
+	caliber = "454"
+	ammo_type = /obj/item/ammo_casing/a454
+	matter = list(DEFAULT_WALL_MATERIAL = 1260)
+	max_ammo = 7
+	multiple_sprites = 1
+
 /obj/item/ammo_magazine/c38
 	name = "speed loader (.38)"
 	icon_state = "38"
@@ -21,7 +30,32 @@
 
 /obj/item/ammo_magazine/c38/rubber
 	name = "speed loader (.38 rubber)"
-	ammo_type = /obj/item/ammo_casing/c38r
+	ammo_type = /obj/item/ammo_casing/c38/rubber
+
+/obj/item/ammo_magazine/c38/emp
+	name = "speed loader (.38 haywire)"
+	ammo_type = /obj/item/ammo_casing/c38/emp
+	matter = list(DEFAULT_WALL_MATERIAL = 360, "uranium" = 600)
+
+/obj/item/ammo_magazine/c45
+	name = "ammunition Box (.45)"
+	icon_state = "9mm"
+	origin_tech = list(TECH_COMBAT = 2)
+	caliber = ".45"
+	matter = list(DEFAULT_WALL_MATERIAL = 2250)
+	ammo_type = /obj/item/ammo_casing/c45
+	max_ammo = 30
+
+/obj/item/ammo_magazine/c45x
+	name = "magazine (.45)"
+	icon_state = "45x"
+	origin_tech = list(TECH_COMBAT = 3)
+	mag_type = MAGAZINE
+	matter = list(DEFAULT_WALL_MATERIAL = 600)
+	caliber = ".45"
+	ammo_type = /obj/item/ammo_casing/c45
+	max_ammo = 16
+	multiple_sprites = 1
 
 /obj/item/ammo_magazine/c45m
 	name = "magazine (.45)"
@@ -38,15 +72,15 @@
 
 /obj/item/ammo_magazine/c45m/rubber
 	name = "magazine (.45 rubber)"
-	ammo_type = /obj/item/ammo_casing/c45r
+	ammo_type = /obj/item/ammo_casing/c45/rubber
 
 /obj/item/ammo_magazine/c45m/practice
 	name = "magazine (.45 practice)"
-	ammo_type = /obj/item/ammo_casing/c45p
+	ammo_type = /obj/item/ammo_casing/c45/practice
 
 /obj/item/ammo_magazine/c45m/flash
 	name = "magazine (.45 flash)"
-	ammo_type = "/obj/item/ammo_casing/c45f"
+	ammo_type = /obj/item/ammo_casing/c45/flash
 
 /obj/item/ammo_magazine/t40
 	name = "magazine (10mm)"
@@ -63,12 +97,12 @@
 
 /obj/item/ammo_magazine/t40/rubber
 	name = "magazine (10mm rubber)"
-	ammo_type = /obj/item/ammo_casing/t40r
+	ammo_type = /obj/item/ammo_casing/t40/rubber
 
 /obj/item/ammo_magazine/mc9mm
 	name = "magazine (9mm)"
 	icon_state = "9x19p"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	mag_type = MAGAZINE
 	matter = list(DEFAULT_WALL_MATERIAL = 600)
 	caliber = "9mm"
@@ -80,12 +114,12 @@
 	initial_ammo = 0
 
 /obj/item/ammo_magazine/mc9mm/flash
-	ammo_type = /obj/item/ammo_casing/c9mmf
+	ammo_type = /obj/item/ammo_casing/c9mm/flash
 
 /obj/item/ammo_magazine/c9mm
-	name = "ammunition Box (9mm)"
+	name = "ammunition box (9mm)"
 	icon_state = "9mm"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	matter = list(DEFAULT_WALL_MATERIAL = 1800)
 	caliber = "9mm"
 	ammo_type = /obj/item/ammo_casing/c9mm
@@ -109,16 +143,16 @@
 
 /obj/item/ammo_magazine/mc9mmt/rubber
 	name = "top mounted magazine (9mm rubber)"
-	ammo_type = /obj/item/ammo_casing/c9mmr
+	ammo_type = /obj/item/ammo_casing/c9mm/rubber
 
 /obj/item/ammo_magazine/mc9mmt/practice
 	name = "top mounted magazine (9mm practice)"
-	ammo_type = /obj/item/ammo_casing/c9mmp
+	ammo_type = /obj/item/ammo_casing/c9mm/practice
 
 /obj/item/ammo_magazine/c45
-	name = "ammunition Box (.45)"
+	name = "ammunition box (.45)"
 	icon_state = "9mm"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	caliber = ".45"
 	matter = list(DEFAULT_WALL_MATERIAL = 2250)
 	ammo_type = /obj/item/ammo_casing/c45
@@ -127,24 +161,24 @@
 /obj/item/ammo_magazine/c9mm/empty
 	initial_ammo = 0
 
-/obj/item/ammo_magazine/a12mm
-	name = "magazine (12mm)"
+/obj/item/ammo_magazine/a10mm
+	name = "magazine (10mm)"
 	icon_state = "12mm"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	mag_type = MAGAZINE
-	caliber = "12mm"
+	caliber = "10mm"
 	matter = list(DEFAULT_WALL_MATERIAL = 1500)
-	ammo_type = "/obj/item/ammo_casing/a12mm"
+	ammo_type = /obj/item/ammo_casing/t40
 	max_ammo = 20
 	multiple_sprites = 1
 
-/obj/item/ammo_magazine/a12mm/empty
+/obj/item/ammo_magazine/a10mm/empty
 	initial_ammo = 0
 
 /obj/item/ammo_magazine/a556
 	name = "magazine (5.56mm)"
 	icon_state = "5.56"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	mag_type = MAGAZINE
 	caliber = "a556"
 	matter = list(DEFAULT_WALL_MATERIAL = 1800)
@@ -157,12 +191,18 @@
 
 /obj/item/ammo_magazine/a556/practice
 	name = "magazine (5.56mm practice)"
-	ammo_type = /obj/item/ammo_casing/a556p
+	ammo_type = /obj/item/ammo_casing/a556/practice
+
+/obj/item/ammo_magazine/a556/ap
+	name = "magazine (5.56mm AP)"
+	icon_state = "5.56AP"
+	origin_tech = list(TECH_COMBAT = 3)
+	ammo_type = /obj/item/ammo_casing/a556/ap
 
 /obj/item/ammo_magazine/a50
 	name = "magazine (.50)"
 	icon_state = "50ae"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	mag_type = MAGAZINE
 	caliber = ".50"
 	matter = list(DEFAULT_WALL_MATERIAL = 1260)
@@ -200,7 +240,7 @@
 /obj/item/ammo_magazine/tranq
 	name = "tranquilizer darts (.50 cal PPS)"
 	icon_state = "incendiaryshot_box"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	mag_type = SINGLE_CASING
 	caliber = "PPS"
 	matter = list(DEFAULT_WALL_MATERIAL = 4500)
@@ -213,7 +253,7 @@
 /obj/item/ammo_magazine/a762
 	name = "magazine box (7.62mm)"
 	icon_state = "a762"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	mag_type = MAGAZINE
 	caliber = "a762"
 	matter = list(DEFAULT_WALL_MATERIAL = 4500)
@@ -234,19 +274,6 @@
 	max_ammo = 20
 	multiple_sprites = 1
 
-/obj/item/ammo_magazine/chameleon
-	name = "magazine (.45)"
-	icon_state = "45"
-	mag_type = MAGAZINE
-	caliber = ".45"
-	ammo_type = /obj/item/ammo_casing/chameleon
-	max_ammo = 7
-	multiple_sprites = 1
-	matter = list()
-
-/obj/item/ammo_magazine/chameleon/empty
-	initial_ammo = 0
-
 /obj/item/ammo_magazine/boltaction
 	name = "ammo clip (7.62mm)"
 	icon_state = "762"
@@ -255,6 +282,11 @@
 	matter = list(DEFAULT_WALL_MATERIAL = 1800)
 	max_ammo = 5
 	multiple_sprites = 1
+
+/obj/item/ammo_magazine/boltaction/vintage
+	name = "vintage stripper clip"
+	ammo_type = /obj/item/ammo_casing/vintage
+	caliber = "vintage"
 
 /obj/item/ammo_magazine/c45uzi
 	name = "stick magazine (.45)"
@@ -296,7 +328,7 @@
 /obj/item/ammo_magazine/shotgun
 	name = "ammunition box (slug)"
 	icon_state = "lethalshellshot_box"
-	origin_tech = "combat=2"
+	origin_tech = list(TECH_COMBAT = 2)
 	ammo_type = /obj/item/ammo_casing/shotgun
 	max_ammo = 8
 	caliber = "shotgun"
@@ -304,30 +336,42 @@
 
 /obj/item/ammo_magazine/shotgun/shell
 	name = "ammunition box (shell)"
-	icon_state = "llethalslug_box"
+	icon_state = "lethalslug_box"
 	ammo_type = /obj/item/ammo_casing/shotgun/pellet
-	max_ammo = 8
 
 /obj/item/ammo_magazine/shotgun/stun
 	name = "ammunition box (stun shells)"
 	icon_state = "stunshot_box"
 	ammo_type = /obj/item/ammo_casing/shotgun/stunshell
-	max_ammo = 8
 	matter = list(DEFAULT_WALL_MATERIAL = 2880, "glass" = 5760)
 
 /obj/item/ammo_magazine/shotgun/beanbag
 	name = "ammunition box (beanbag shells)"
 	icon_state = "beanshot_box"
 	ammo_type = /obj/item/ammo_casing/shotgun/beanbag
-	max_ammo = 8
 	matter = list(DEFAULT_WALL_MATERIAL = 1440)
 
 /obj/item/ammo_magazine/shotgun/incendiary
 	name = "ammunition box (incendiary shells)"
 	icon_state = "incendiaryshot_box"
 	ammo_type = /obj/item/ammo_casing/shotgun/incendiary
-	max_ammo = 8
 	matter = list(DEFAULT_WALL_MATERIAL = 3600)
+
+/obj/item/ammo_magazine/shotgun/emp
+	name = "ammunition box (haywire shells)"
+	icon_state = "empshot_box"
+	ammo_type = /obj/item/ammo_casing/shotgun/emp
+	matter = list(DEFAULT_WALL_MATERIAL = 3600, "uranium" = 1600)
+
+/obj/item/ammo_magazine/caps
+	name = "speed loader (caps)"
+	icon_state = "T38"
+	caliber = "caps"
+	color = "#FF0000"
+	ammo_type = /obj/item/ammo_casing/cap
+	matter = list(DEFAULT_WALL_MATERIAL = 600)
+	max_ammo = 7
+	multiple_sprites = 1
 
 //dragunov magazine
 
@@ -344,3 +388,77 @@
 
 /obj/item/ammo_magazine/d762/empty
 	initial_ammo = 0
+
+/obj/item/ammo_magazine/flechette
+	name = "flechette rounds"
+	icon = 'icons/obj/terminator.dmi'
+	icon_state = "flechette"
+	mag_type = MAGAZINE
+	caliber = "flechette"
+	matter = list(DEFAULT_WALL_MATERIAL = 1200)
+	ammo_type = /obj/item/ammo_casing/flechette
+	max_ammo = 40
+	multiple_sprites = 1
+
+/obj/item/ammo_magazine/flechette/empty
+	initial_ammo = 0
+
+/obj/item/ammo_magazine/flechette/explosive
+	name = "explosive flechette rounds"
+	desc = "A box of ten explosive flechettes that can be remotely detonated by a certain signal."
+	icon = 'icons/obj/terminator.dmi'
+	icon_state = "flechette_e"
+	mag_type = MAGAZINE
+	caliber = "flechette"
+	matter = list(DEFAULT_WALL_MATERIAL = 1200)
+	ammo_type = /obj/item/ammo_casing/flechette/explosive
+	max_ammo = 10
+	multiple_sprites = 1
+
+/obj/item/ammo_magazine/flechette/explosive/empty
+	initial_ammo = 0
+
+/obj/item/ammo_magazine/assault_shotgun
+	name = "magazine (slug)"
+	icon = 'icons/obj/dragunov.dmi'
+	icon_state = "csmb"
+	caliber = "shotgun"
+	mag_type = MAGAZINE
+	ammo_type = /obj/item/ammo_casing/shotgun
+	max_ammo = 8
+	matter = list("metal" = 2880)
+	multiple_sprites = 1
+
+/obj/item/ammo_magazine/assault_shotgun/shells
+	name = "magazine (shells)"
+	icon_state = "csm"
+	ammo_type = /obj/item/ammo_casing/shotgun/pellet
+
+/obj/item/ammo_magazine/assault_shotgun/incendiary
+	name = "magazine (incendiary shells)"
+	icon_state = "csmi"
+	ammo_type = /obj/item/ammo_casing/shotgun/incendiary
+	matter = list(DEFAULT_WALL_MATERIAL = 3600)
+
+/obj/item/ammo_magazine/assault_shotgun/stun
+	name = "magazine (stun shells)"
+	icon_state = "csms"
+	ammo_type = /obj/item/ammo_casing/shotgun/stunshell
+	matter = list(DEFAULT_WALL_MATERIAL = 2880, "glass" = 5760)
+
+/obj/item/ammo_magazine/minigun
+	name = "minigun magazine box (7.62mm)"
+	icon_state = "a762"
+	mag_type = MAGAZINE
+	caliber = "a762"
+	ammo_type = /obj/item/ammo_casing/a762
+	max_ammo = 1000
+
+/obj/item/ammo_magazine/leyon
+	name = "ammo clip (10mm)"
+	icon_state = "10mmclip"
+	ammo_type = /obj/item/ammo_casing/t40
+	caliber = "10mm"
+	matter = list(DEFAULT_WALL_MATERIAL = 1800)
+	max_ammo = 5
+	multiple_sprites = 1

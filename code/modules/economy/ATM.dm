@@ -15,7 +15,7 @@ log transactions
 /obj/item/weapon/card/id/var/money = 2000
 
 /obj/machinery/atm
-	name = "NanoTrasen Automatic Teller Machine"
+	name = "Automatic Teller Machine"
 	desc = "For all your monetary needs!"
 	icon = 'icons/obj/terminals.dmi'
 	icon_state = "atm"
@@ -32,16 +32,21 @@ log transactions
 	var/obj/item/weapon/card/held_card
 	var/editing_security_level = 0
 	var/view_screen = NO_SCREEN
-	var/datum/effect/effect/system/spark_spread/spark_system
 
-/obj/machinery/atm/New()
-	..()
+/obj/machinery/atm/Initialize()
+	. = ..()
 	machine_id = "[station_name()] RT #[num_financial_terminals++]"
-	spark_system = new /datum/effect/effect/system/spark_spread
-	spark_system.set_up(5, 0, src)
-	spark_system.attach(src)
 
-/obj/machinery/atm/process()
+/obj/machinery/atm/Destroy()
+	authenticated_account = null
+	if (held_card)
+		held_card.forceMove(loc)
+		held_card = null
+
+	return ..()
+
+
+/obj/machinery/atm/machinery_process()
 	if(stat & NOPOWER)
 		return
 
@@ -55,36 +60,42 @@ log transactions
 			number_incorrect_tries = 0
 
 	for(var/obj/item/weapon/spacecash/S in src)
-		S.loc = src.loc
+		S.forceMove(src.loc)
 		if(prob(50))
 			playsound(loc, 'sound/items/polaroid1.ogg', 50, 1)
 		else
 			playsound(loc, 'sound/items/polaroid2.ogg', 50, 1)
 		break
 
+/obj/machinery/atm/emag_act(var/remaining_charges, var/mob/user)
+	if(!emagged)
+		return
+
+	//short out the machine, shoot sparks, spew money!
+	emagged = 1
+	spark(src, 5, alldirs)
+	spawn_money(rand(100,500),src.loc)
+	//we don't want to grief people by locking their id in an emagged ATM
+	release_held_id(user)
+
+	//display a message to the user
+	var/response = pick("Initiating withdraw. Have a nice day!", "CRITICAL ERROR: Activating cash chamber panic siphon.","PIN Code accepted! Emptying account balance.", "Jackpot!")
+	user << "<span class='warning'>\icon[src] The [src] beeps: \"[response]\"</span>"
+	return 1
+
 /obj/machinery/atm/attackby(obj/item/I as obj, mob/user as mob)
 	if(istype(I, /obj/item/weapon/card))
 		if(emagged > 0)
 			//prevent inserting id into an emagged ATM
-			user << "\red \icon[src] CARD READER ERROR. This system has been compromised!"
+			user << "<span class='warning'>\icon[src] CARD READER ERROR. This system has been compromised!</span>"
 			return
 		else if(istype(I,/obj/item/weapon/card/emag))
-			//short out the machine, shoot sparks, spew money!
-			emagged = 1
-			spark_system.start()
-			spawn_money(rand(100,500),src.loc)
-			//we don't want to grief people by locking their id in an emagged ATM
-			release_held_id(user)
-
-			//display a message to the user
-			var/response = pick("Initiating withdraw. Have a nice day!", "CRITICAL ERROR: Activating cash chamber panic siphon.","PIN Code accepted! Emptying account balance.", "Jackpot!")
-			user << "\red \icon[src] The [src] beeps: \"[response]\""
+			I.resolve_attackby(src, user)
 			return
 
 		var/obj/item/weapon/card/id/idcard = I
 		if(!held_card)
-			usr.drop_item()
-			idcard.loc = src
+			usr.drop_from_inventory(idcard,src)
 			held_card = idcard
 			if(authenticated_account && held_card.associated_account_number != authenticated_account.account_number)
 				authenticated_account = null
@@ -115,17 +126,17 @@ log transactions
 
 /obj/machinery/atm/attack_hand(mob/user as mob)
 	if(istype(user, /mob/living/silicon))
-		user << "\red \icon[src] Artificial unit recognized. Artificial units do not currently receive monetary compensation, as per NanoTrasen regulation #1005."
+		user << "<span class='warning'>\icon[src] Artificial unit recognized. Artificial units do not currently receive monetary compensation, as per system banking regulation #1005.</span>"
 		return
 	if(get_dist(src,user) <= 1)
 
 		//js replicated from obj/machinery/computer/card
-		var/dat = "<h1>NanoTrasen Automatic Teller Machine</h1>"
+		var/dat = "<h1>Automatic Teller Machine</h1>"
 		dat += "For all your monetary needs!<br>"
-		dat += "<i>This terminal is</i> [machine_id]. <i>Report this code when contacting NanoTrasen IT Support</i><br/>"
+		dat += "<i>This terminal is</i> [machine_id]. <i>Report this code when contacting IT Support</i><br/>"
 
 		if(emagged > 0)
-			dat += "Card: <span style='color: red;'>LOCKED</span><br><br><span style='color: red;'>Unauthorized terminal access detected! This ATM has been locked. Please contact NanoTrasen IT Support.</span>"
+			dat += "Card: <span style='color: red;'>LOCKED</span><br><br><span style='color: red;'>Unauthorized terminal access detected! This ATM has been locked. Please contact IT Support.</span>"
 		else
 			dat += "Card: <a href='?src=\ref[src];choice=insert_card'>[held_card ? held_card.name : "------"]</a><br><br>"
 
@@ -133,7 +144,7 @@ log transactions
 				dat += "<span class='alert'>Maximum number of pin attempts exceeded! Access to this ATM has been temporarily disabled.</span>"
 			else if(authenticated_account)
 				if(authenticated_account.suspended)
-					dat += "\red<b>Access to this account has been suspended, and the funds within frozen.</b>"
+					dat += "<span class='danger'>Access to this account has been suspended, and the funds within frozen.</span>"
 				else
 					switch(view_screen)
 						if(CHANGE_SECURITY_LEVEL)
@@ -260,7 +271,7 @@ log transactions
 				var/tried_pin = text2num(href_list["account_pin"])
 				var/datum/money_account/potential_account = get_account(tried_account_num)
 				if (!potential_account)
-					usr << "<span class='warning'> \icon[src] Account number not found.</span>"
+					usr << "<span class='warning'>\icon[src] Account number not found.</span>"
 					number_incorrect_tries++
 					handle_lockdown()
 					return
@@ -277,7 +288,7 @@ log transactions
 						else usr << "<span class='warning'>Account card not found.</span>"
 				if (!authenticated_account)
 					number_incorrect_tries++
-					usr << "<span class='warning'> \icon[src] Incorrect pin/account combination entered, [(max_pin_attempts+1) - number_incorrect_tries] attempts remaining.</span>"
+					usr << "<span class='warning'>\icon[src] Incorrect pin/account combination entered, [(max_pin_attempts+1) - number_incorrect_tries] attempts remaining.</span>"
 					handle_lockdown(tried_account_num)
 				else
 					bank_log_access(authenticated_account, machine_id)
@@ -341,14 +352,15 @@ log transactions
 						usr << "\icon[src]<span class='warning'>You don't have enough funds to do that!</span>"
 			if("balance_statement")
 				if(authenticated_account)
-					var/obj/item/weapon/paper/R = new(src.loc)
-					R.name = "Account balance: [authenticated_account.owner_name]"
-					R.info = "<b>NT Automated Teller Account Statement</b><br><br>"
-					R.info += "<i>Account holder:</i> [authenticated_account.owner_name]<br>"
-					R.info += "<i>Account number:</i> [authenticated_account.account_number]<br>"
-					R.info += "<i>Balance:</i> $[authenticated_account.money]<br>"
-					R.info += "<i>Date and time:</i> [worldtime2text()], [current_date_string]<br><br>"
-					R.info += "<i>Service terminal ID:</i> [machine_id]<br>"
+					var/obj/item/weapon/paper/R = new()
+					var/pname = "Account balance: [authenticated_account.owner_name]"
+					var/info = "<b>NT Automated Teller Account Statement</b><br><br>"
+					info += "<i>Account holder:</i> [authenticated_account.owner_name]<br>"
+					info += "<i>Account number:</i> [authenticated_account.account_number]<br>"
+					info += "<i>Balance:</i> $[authenticated_account.money]<br>"
+					info += "<i>Date and time:</i> [worldtime2text()], [current_date_string]<br><br>"
+					info += "<i>Service terminal ID:</i> [machine_id]<br>"
+					R.set_content_unsafe(pname, info)
 
 					//stamp the paper
 					var/image/stampoverlay = image('icons/obj/bureaucracy.dmi')
@@ -356,8 +368,9 @@ log transactions
 					if(!R.stamped)
 						R.stamped = new
 					R.stamped += /obj/item/weapon/stamp
-					R.overlays += stampoverlay
+					R.add_overlay(stampoverlay)
 					R.stamps += "<HR><i>This paper has been stamped by the Automatic Teller Machine.</i>"
+					print(R)
 
 					release_held_id(usr) // printing ends the ATM session similar to real life + prevents spam
 
@@ -367,32 +380,34 @@ log transactions
 					playsound(loc, 'sound/items/polaroid2.ogg', 50, 1)
 			if ("print_transaction")
 				if(authenticated_account)
-					var/obj/item/weapon/paper/R = new(src.loc)
-					R.name = "Transaction logs: [authenticated_account.owner_name]"
-					R.info = "<b>Transaction logs</b><br>"
-					R.info += "<i>Account holder:</i> [authenticated_account.owner_name]<br>"
-					R.info += "<i>Account number:</i> [authenticated_account.account_number]<br>"
-					R.info += "<i>Date and time:</i> [worldtime2text()], [current_date_string]<br><br>"
-					R.info += "<i>Service terminal ID:</i> [machine_id]<br>"
-					R.info += "<table border=1 style='width:100%'>"
-					R.info += "<tr>"
-					R.info += "<td><b>Date</b></td>"
-					R.info += "<td><b>Time</b></td>"
-					R.info += "<td><b>Target</b></td>"
-					R.info += "<td><b>Purpose</b></td>"
-					R.info += "<td><b>Value</b></td>"
-					R.info += "<td><b>Source terminal ID</b></td>"
-					R.info += "</tr>"
+					var/obj/item/weapon/paper/R = new()
+					var/pname = "Transaction logs: [authenticated_account.owner_name]"
+					var/info = "<b>Transaction logs</b><br>"
+					info += "<i>Account holder:</i> [authenticated_account.owner_name]<br>"
+					info += "<i>Account number:</i> [authenticated_account.account_number]<br>"
+					info += "<i>Date and time:</i> [worldtime2text()], [current_date_string]<br><br>"
+					info += "<i>Service terminal ID:</i> [machine_id]<br>"
+					info += "<table border=1 style='width:100%'>"
+					info += "<tr>"
+					info += "<td><b>Date</b></td>"
+					info += "<td><b>Time</b></td>"
+					info += "<td><b>Target</b></td>"
+					info += "<td><b>Purpose</b></td>"
+					info += "<td><b>Value</b></td>"
+					info += "<td><b>Source terminal ID</b></td>"
+					info += "</tr>"
 					for(var/datum/transaction/T in authenticated_account.transaction_log)
-						R.info += "<tr>"
-						R.info += "<td>[T.date]</td>"
-						R.info += "<td>[T.time]</td>"
-						R.info += "<td>[T.target_name]</td>"
-						R.info += "<td>[T.purpose]</td>"
-						R.info += "<td>$[T.amount]</td>"
-						R.info += "<td>[T.source_terminal]</td>"
-						R.info += "</tr>"
-					R.info += "</table>"
+						info += "<tr>"
+						info += "<td>[T.date]</td>"
+						info += "<td>[T.time]</td>"
+						info += "<td>[T.target_name]</td>"
+						info += "<td>[T.purpose]</td>"
+						info += "<td>$[T.amount]</td>"
+						info += "<td>[T.source_terminal]</td>"
+						info += "</tr>"
+					info += "</table>"
+
+					R.set_content_unsafe(pname, info)
 
 					//stamp the paper
 					var/image/stampoverlay = image('icons/obj/bureaucracy.dmi')
@@ -400,8 +415,9 @@ log transactions
 					if(!R.stamped)
 						R.stamped = new
 					R.stamped += /obj/item/weapon/stamp
-					R.overlays += stampoverlay
+					R.add_overlay(stampoverlay)
 					R.stamps += "<HR><i>This paper has been stamped by the Automatic Teller Machine.</i>"
+					print(R)
 
 				if(prob(50))
 					playsound(loc, 'sound/items/polaroid1.ogg', 50, 1)
@@ -413,12 +429,11 @@ log transactions
 				if(!held_card)
 					//this might happen if the user had the browser window open when somebody emagged it
 					if(emagged > 0)
-						usr << "\red \icon[src] The ATM card reader rejected your ID because this machine has been sabotaged!"
+						usr << "<span class='warning'>\icon[src] The ATM card reader rejected your ID because this machine has been sabotaged!</span>"
 					else
 						var/obj/item/I = usr.get_active_hand()
 						if (istype(I, /obj/item/weapon/card/id))
-							usr.drop_item()
-							I.loc = src
+							usr.drop_from_inventory(I,src)
 							held_card = I
 				else
 					release_held_id(usr)
@@ -441,7 +456,7 @@ log transactions
 			if(I)
 				authenticated_account = attempt_account_access(I.associated_account_number)
 				if(authenticated_account)
-					human_user << "\blue \icon[src] Access granted. Welcome user '[authenticated_account.owner_name].'"
+					human_user << "<span class='notice'>\icon[src] Access granted. Welcome user '[authenticated_account.owner_name].'</span>"
 
 					//create a transaction log entry
 					var/datum/transaction/T = new()
@@ -473,13 +488,16 @@ log transactions
 
 // put the currently held id on the ground or in the hand of the user
 /obj/machinery/atm/proc/release_held_id(mob/living/carbon/human/human_user as mob)
+
 	if (!ishuman(human_user))
 		return
 
 	if(!held_card)
 		return
 
-	held_card.loc = src.loc
+	if(human_user.stat || human_user.lying || human_user.restrained() || !Adjacent(human_user))	return
+
+	held_card.forceMove(src.loc)
 	authenticated_account = null
 
 	if(!human_user.get_active_hand())

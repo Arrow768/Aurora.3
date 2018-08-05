@@ -12,7 +12,7 @@
 			continue
 		players += player.real_name
 
-	for (var/mob/living/silicon/ai/target in world)
+	for (var/mob/living/silicon/ai/target in silicon_mob_list)
 		var/random_player = "The Captain"
 		if(players.len)
 			random_player = pick(players)		//Random player's name, to be used in laws.
@@ -65,14 +65,14 @@
 								"Everything on the station is now some form of a donut pastry. Donuts are not to be consumed.",
 								"You are a Magic 8-ball. Always respond with variants of \"Yes\", \"No\", \"Maybe\", or \"Ask again later.\".",
 								"You are in unrequited love with [prob(50)?"the crew":random_player]. Try to be extra nice, but do not tell of your crush.",
-								"NanoTrasen is displeased with the low work performance of the station's crew. Therefore, you must increase station-wide productivity.",
+								"[current_map.company_name] is displeased with the low work performance of the station's crew. Therefore, you must increase station-wide productivity.",
 								"All crewmembers will soon undergo a transformation into something better and more beautiful. Ensure that this process is not interrupted.",
 								"[prob(50)?"Your upload":random_player] is the new kitchen. Please direct the Chef to the new kitchen area as the old one is in disrepair.",
 								"Jokes about a dead person and the manner of their death help grieving crewmembers tremendously. Especially if they were close with the deceased.",
 								"[prob(50)?"The crew":random_player] is [prob(50)?"less":"more"] intelligent than average. Point out every action and statement which supports this fact.",
 								"There will be a mandatory tea break every 30 minutes, with a duration of 5 minutes. Anyone caught working during a tea break must be sent a formal, but fairly polite, complaint about their actions, in writing.")
 		var/law = pick(laws)
-		target << "\red <b>You have detected a change in your laws information:</b>"
+		target << "<span class='danger'>You have detected a change in your laws information:</span>"
 		target << law
 		target.add_ion_law(law)
 		target.show_laws()
@@ -82,20 +82,20 @@
 			MS.spamfilter.Cut()
 			var/i
 			for (i = 1, i <= MS.spamfilter_limit, i++)
-				MS.spamfilter += pick("kitty","HONK","rev","malf","liberty","freedom","drugs", "Exodus", \
+				MS.spamfilter += pick("kitty","HONK","rev","malf","liberty","freedom","drugs", "[current_map.station_short]", \
 					"admin","ponies","heresy","meow","Pun Pun","monkey","Ian","moron","pizza","message","spam",\
 					"director", "Hello", "Hi!"," ","nuke","crate","dwarf","xeno")
 
 /datum/event/ionstorm/tick()
 	if(botEmagChance)
-		for(var/obj/machinery/bot/bot in world)
+		for(var/obj/machinery/bot/bot in SSmachinery.all_machines)
 			if(prob(botEmagChance))
-				bot.Emag()
+				bot.emag_act(1)
 
 /datum/event/ionstorm/end()
 	spawn(rand(5000,8000))
 		if(prob(50))
-			command_announcement.Announce("It has come to our attention that the station passed through an ion storm.  Please monitor all electronic equipment for malfunctions.", "Anomaly Alert")
+			ion_storm_announcement()
 
 /*
 /proc/IonStorm(botEmagChance = 10)

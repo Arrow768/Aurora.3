@@ -27,10 +27,14 @@
 	if (origin == area_station)	//leaving the station
 		emergency_shuttle.departed = 1
 
+		var/list/replacements = list(
+			"%ETA%" = round(emergency_shuttle.estimate_arrival_time()/60,1),
+			"%dock%" = current_map.dock_name
+		)
 		if (emergency_shuttle.evac)
-			priority_announcement.Announce("The Emergency Shuttle has left the station. Estimate [round(emergency_shuttle.estimate_arrival_time()/60,1)] minutes until the shuttle docks at Central Command.")
+			priority_announcement.Announce(replacemany(current_map.emergency_shuttle_leaving_dock, replacements))
 		else
-			priority_announcement.Announce("The Crew Transfer Shuttle has left the station. Estimate [round(emergency_shuttle.estimate_arrival_time()/60,1)] minutes until the shuttle docks at Central Command.")
+			priority_announcement.Announce(replacemany(current_map.shuttle_leaving_dock, replacements))
 
 /datum/shuttle/ferry/emergency/can_launch(var/user)
 	if (istype(user, /obj/machinery/computer/shuttle_control/emergency))
@@ -65,7 +69,7 @@
 			world << "<span class='notice'><b>Alert: The shuttle autopilot has been overridden. Launch sequence initiated!</b></span>"
 
 	if(usr)
-		log_admin("[key_name(usr)] has overridden the shuttle autopilot and activated launch sequence")
+		log_admin("[key_name(usr)] has overridden the shuttle autopilot and activated launch sequence",ckey=key_name(usr))
 		message_admins("[key_name_admin(usr)] has overridden the shuttle autopilot and activated launch sequence")
 
 	..(user)
@@ -79,7 +83,7 @@
 			world << "<span class='notice'><b>Alert: The shuttle autopilot has been overridden. Bluespace drive engaged!</b></span>"
 
 	if(usr)
-		log_admin("[key_name(usr)] has overridden the shuttle autopilot and forced immediate launch")
+		log_admin("[key_name(usr)] has overridden the shuttle autopilot and forced immediate launch",ckey=key_name(usr))
 		message_admins("[key_name_admin(usr)] has overridden the shuttle autopilot and forced immediate launch")
 
 	..(user)
@@ -93,7 +97,7 @@
 			world << "<span class='notice'><b>Alert: The shuttle autopilot has been overridden. Launch sequence aborted!</b></span>"
 
 	if(usr)
-		log_admin("[key_name(usr)] has overridden the shuttle autopilot and cancelled launch sequence")
+		log_admin("[key_name(usr)] has overridden the shuttle autopilot and cancelled launch sequence",ckey=key_name(usr))
 		message_admins("[key_name_admin(usr)] has overridden the shuttle autopilot and cancelled launch sequence")
 
 	..(user)
@@ -150,20 +154,18 @@
 		world << "<span class='notice'><b>Alert: [req_authorizations - authorized.len] authorization\s needed to override the shuttle autopilot.</b></span>"
 
 	if(usr)
-		log_admin("[key_name(usr)] has inserted [ID] into the shuttle control computer - [req_authorizations - authorized.len] authorisation\s needed")
+		log_admin("[key_name(usr)] has inserted [ID] into the shuttle control computer - [req_authorizations - authorized.len] authorisation\s needed",ckey=key_name(usr))
 		message_admins("[key_name_admin(usr)] has inserted [ID] into the shuttle control computer - [req_authorizations - authorized.len] authorisation\s needed")
 
 	return 1
 
-
-
-
-/obj/machinery/computer/shuttle_control/emergency/attackby(obj/item/weapon/W as obj, mob/user as mob)
-	if (istype(W, /obj/item/weapon/card/emag) && !emagged)
+/obj/machinery/computer/shuttle_control/emergency/emag_act(var/remaining_charges, var/mob/user)
+	if (!emagged)
 		user << "<span class='notice'>You short out \the [src]'s authorization protocols.</span>"
 		emagged = 1
-		return
+		return 1
 
+/obj/machinery/computer/shuttle_control/emergency/attackby(obj/item/weapon/W as obj, mob/user as mob)
 	read_authorization(W)
 	..()
 
@@ -185,9 +187,9 @@
 			if (shuttle.in_use)
 				shuttle_status = "Busy."
 			else if (!shuttle.location)
-				shuttle_status = "Standing-by at [station_name]."
+				shuttle_status = "Standing-by at [current_map.station_name]."
 			else
-				shuttle_status = "Standing-by at Central Command."
+				shuttle_status = "Standing-by at [current_map.dock_name]."
 		if(WAIT_LAUNCH, FORCE_LAUNCH)
 			shuttle_status = "Shuttle has recieved command and will depart shortly."
 		if(WAIT_ARRIVE)
@@ -222,10 +224,10 @@
 		"can_force" = shuttle.can_force(src),
 		"auth_list" = auth_list,
 		"has_auth" = has_auth,
-		"user" = debug? user : null,
+		"user" = debug? user : null
 	)
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 
 	if (!ui)
 		ui = new(user, src, ui_key, "escape_shuttle_control_console.tmpl", "Shuttle Control", 470, 420)

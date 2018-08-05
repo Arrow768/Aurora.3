@@ -3,10 +3,11 @@
 /obj/machinery/computer/med_data//TODO:SANITY
 	name = "medical records console"
 	desc = "Used to view, edit and maintain medical records."
-	icon_state = "medcomp"
+
+	icon_screen = "medcomp"
 	light_color = "#315ab4"
-	req_one_access = list(access_medical_equip, access_forensics_lockers)
-	circuit = "/obj/item/weapon/circuitboard/med_data"
+	req_one_access = list(access_medical_equip, access_forensics_lockers, access_detective, access_hop)
+	circuit = /obj/item/weapon/circuitboard/med_data
 	var/obj/item/weapon/card/id/scan = null
 	var/authenticated = null
 	var/rank = null
@@ -15,7 +16,6 @@
 	var/datum/data/record/active2 = null
 	var/a_id = null
 	var/temp = null
-	var/printing = null
 
 /obj/machinery/computer/med_data/AltClick(var/mob/user)
 	eject_id()
@@ -25,11 +25,11 @@
 	set name = "Eject ID Card"
 	set src in oview(1)
 
-	if(!usr || usr.stat || usr.lying)	return
+	if(!usr || usr.stat || usr.lying || usr.restrained() || !Adjacent(usr))	return
 
 	if(scan)
 		usr << "You remove \the [scan] from \the [src]."
-		scan.loc = get_turf(src)
+		scan.forceMove(get_turf(src))
 		if(!usr.get_active_hand() && istype(usr,/mob/living/carbon/human))
 			usr.put_in_hands(scan)
 		scan = null
@@ -37,13 +37,13 @@
 		usr << "There is no ID card to remove from the console."
 	return
 
-/obj/machinery/computer/med_data/attackby(obj/item/O as obj, user as mob)
-	if(istype(O, /obj/item/weapon/card/id) && !scan)
-		usr.drop_item()
-		O.loc = src
+/obj/machinery/computer/med_data/attackby(var/obj/item/O, var/mob/user)
+	if(istype(O, /obj/item/weapon/card/id) && !scan && user.unEquip(O))
+		O.forceMove(src)
 		scan = O
-		user << "You insert [O]."
-	..()
+		user << "You insert \the [O]."
+	else
+		..()
 
 /obj/machinery/computer/med_data/attack_ai(user as mob)
 	return src.attack_hand(user)
@@ -51,6 +51,9 @@
 /obj/machinery/computer/med_data/attack_hand(mob/user as mob)
 	if(..())
 		return
+	ui_interact(user)
+
+/obj/machinery/computer/med_data/ui_interact(mob/user)
 	var/dat
 	if (src.temp)
 		dat = text("<TT>[src.temp]</TT><BR><BR><A href='?src=\ref[src];temp=1'>Clear Screen</A>")
@@ -128,7 +131,7 @@
 					dat += "<a href='?src=\ref[src];screen=1'>Back</a>"
 					dat += "<br><b>Medical Robots:</b>"
 					var/bdat = null
-					for(var/mob/living/bot/medbot/M in world)
+					for(var/mob/living/bot/medbot/M in mob_list)
 
 						if(M.z != src.z)	continue	//only find medibots on the same z-level as the computer
 						var/turf/bl = get_turf(M)
@@ -170,7 +173,7 @@
 			if (src.scan)
 
 				if(ishuman(usr))
-					scan.loc = usr.loc
+					scan.forceMove(usr.loc)
 
 					if(!usr.get_active_hand())
 						usr.put_in_hands(scan)
@@ -178,14 +181,13 @@
 					scan = null
 
 				else
-					src.scan.loc = src.loc
+					src.scan.forceMove(src.loc)
 					src.scan = null
 
 			else
 				var/obj/item/I = usr.get_active_hand()
 				if (istype(I, /obj/item/weapon/card/id))
-					usr.drop_item()
-					I.loc = src
+					usr.drop_from_inventory(I,src)
 					src.scan = I
 
 		else if (href_list["logout"])
@@ -450,6 +452,8 @@
 					src.active2 = R
 					src.screen = 4
 
+					R.inDataCore = 1
+
 			if (href_list["add_c"])
 				if (!( istype(src.active2, /datum/data/record) ))
 					return
@@ -489,33 +493,33 @@
 					src.screen = 4
 
 			if (href_list["print_p"])
-				if (!( src.printing ))
-					src.printing = 1
-					var/datum/data/record/record1 = null
-					var/datum/data/record/record2 = null
-					if ((istype(src.active1, /datum/data/record) && data_core.general.Find(src.active1)))
-						record1 = active1
-					if ((istype(src.active2, /datum/data/record) && data_core.medical.Find(src.active2)))
-						record2 = active2
-					sleep(50)
-					var/obj/item/weapon/paper/P = new /obj/item/weapon/paper( src.loc )
-					P.info = "<CENTER><B>Medical Record</B></CENTER><BR>"
-					if (record1)
-						P.info += text("Name: [] ID: []<BR>\nSex: []<BR>\nAge: []<BR>\nFingerprint: []<BR>\nPhysical Status: []<BR>\nMental Status: []<BR>", record1.fields["name"], record1.fields["id"], record1.fields["sex"], record1.fields["age"], record1.fields["fingerprint"], record1.fields["p_stat"], record1.fields["m_stat"])
-						P.name = text("Medical Record ([])", record1.fields["name"])
-					else
-						P.info += "<B>General Record Lost!</B><BR>"
-						P.name = "Medical Record"
-					if (record2)
-						P.info += text("<BR>\n<CENTER><B>Medical Data</B></CENTER><BR>\nBlood Type: []<BR>\nDNA: []<BR>\n<BR>\nMinor Disabilities: []<BR>\nDetails: []<BR>\n<BR>\nMajor Disabilities: []<BR>\nDetails: []<BR>\n<BR>\nAllergies: []<BR>\nDetails: []<BR>\n<BR>\nCurrent Diseases: [] (per disease info placed in log/comment section)<BR>\nDetails: []<BR>\n<BR>\nImportant Notes:<BR>\n\t[]<BR>\n<BR>\n<CENTER><B>Comments/Log</B></CENTER><BR>", record2.fields["b_type"], record2.fields["b_dna"], record2.fields["mi_dis"], record2.fields["mi_dis_d"], record2.fields["ma_dis"], record2.fields["ma_dis_d"], record2.fields["alg"], record2.fields["alg_d"], record2.fields["cdi"], record2.fields["cdi_d"], decode(record2.fields["notes"]))
-						var/counter = 1
-						while(record2.fields[text("com_[]", counter)])
-							P.info += text("[]<BR>", record2.fields[text("com_[]", counter)])
-							counter++
-					else
-						P.info += "<B>Medical Record Lost!</B><BR>"
-					P.info += "</TT>"
-					src.printing = null
+				var/datum/data/record/record1 = null
+				var/datum/data/record/record2 = null
+				if ((istype(src.active1, /datum/data/record) && data_core.general.Find(src.active1)))
+					record1 = active1
+				if ((istype(src.active2, /datum/data/record) && data_core.medical.Find(src.active2)))
+					record2 = active2
+
+				var/obj/item/weapon/paper/P = new /obj/item/weapon/paper()
+				var/info = "<CENTER><B>Medical Record</B></CENTER><BR>"
+				var/rname
+				if (record1)
+					info += text("Name: [] ID: []<BR>\nSex: []<BR>\nAge: []<BR>\nFingerprint: []<BR>\nPhysical Status: []<BR>\nMental Status: []<BR>", record1.fields["name"], record1.fields["id"], record1.fields["sex"], record1.fields["age"], record1.fields["fingerprint"], record1.fields["p_stat"], record1.fields["m_stat"])
+					rname = text("Medical Record ([])", record1.fields["name"])
+				else
+					info += "<B>General Record Lost!</B><BR>"
+					rname = "Medical Record"
+				if (record2)
+					info += text("<BR>\n<CENTER><B>Medical Data</B></CENTER><BR>\nBlood Type: []<BR>\nDNA: []<BR>\n<BR>\nMinor Disabilities: []<BR>\nDetails: []<BR>\n<BR>\nMajor Disabilities: []<BR>\nDetails: []<BR>\n<BR>\nAllergies: []<BR>\nDetails: []<BR>\n<BR>\nCurrent Diseases: [] (per disease info placed in log/comment section)<BR>\nDetails: []<BR>\n<BR>\nImportant Notes:<BR>\n\t[]<BR>\n<BR>\n<CENTER><B>Comments/Log</B></CENTER><BR>", record2.fields["b_type"], record2.fields["b_dna"], record2.fields["mi_dis"], record2.fields["mi_dis_d"], record2.fields["ma_dis"], record2.fields["ma_dis_d"], record2.fields["alg"], record2.fields["alg_d"], record2.fields["cdi"], record2.fields["cdi_d"], decode(record2.fields["notes"]))
+					var/counter = 1
+					while(record2.fields[text("com_[]", counter)])
+						info += text("[]<BR>", record2.fields[text("com_[]", counter)])
+						counter++
+				else
+					info += "<B>Medical Record Lost!</B><BR>"
+				info += "</TT>"
+				P.set_content_unsafe(rname, info)
+				print(P)
 
 	src.add_fingerprint(usr)
 	src.updateUsrDialog()
@@ -554,6 +558,8 @@
 
 /obj/machinery/computer/med_data/laptop
 	name = "Medical Laptop"
-	desc = "Cheap Nanotrasen Laptop."
-	icon_state = "medlaptop"
-	density = 0
+	desc = "A cheap laptop."
+	icon_state = "medlaptop0"
+
+	icon_screen = "medlaptop"
+	is_holographic = FALSE

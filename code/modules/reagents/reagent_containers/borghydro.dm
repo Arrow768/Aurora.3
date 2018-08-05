@@ -18,24 +18,24 @@
 	var/list/reagent_names = list()
 
 /obj/item/weapon/reagent_containers/borghypo/medical
-	reagent_ids = list("bicaridine", "inaprovaline", "dexalin", "stoxin", "spaceacillin", "anti_toxin")
+	reagent_ids = list("bicaridine", "inaprovaline", "dexalin", "tramadol", "spaceacillin", "anti_toxin")
 
 /obj/item/weapon/reagent_containers/borghypo/rescue
 	reagent_ids = list("tricordrazine", "inaprovaline", "tramadol")
 
-/obj/item/weapon/reagent_containers/borghypo/New()
-	..()
+/obj/item/weapon/reagent_containers/borghypo/Initialize()
+	. = ..()
 
 	for(var/T in reagent_ids)
 		reagent_volumes[T] = volume
-		var/datum/reagent/R = chemical_reagents_list[T]
+		var/datum/reagent/R = SSchemistry.chemical_reagents[T]
 		reagent_names += R.name
 
-	processing_objects.Add(src)
+	START_PROCESSING(SSprocessing, src)
 
 /obj/item/weapon/reagent_containers/borghypo/Destroy()
-	processing_objects.Remove(src)
-	..()
+	STOP_PROCESSING(SSprocessing, src)
+	return ..()
 
 /obj/item/weapon/reagent_containers/borghypo/process() //Every [recharge_time] seconds, recharge some reagents for the cyborg+
 	if(++charge_tick < recharge_time)
@@ -51,24 +51,38 @@
 					reagent_volumes[T] = min(reagent_volumes[T] + 5, volume)
 	return 1
 
-/obj/item/weapon/reagent_containers/borghypo/attack(var/mob/living/M, var/mob/user)
-	if(!istype(M))
+/obj/item/weapon/reagent_containers/borghypo/afterattack(var/mob/living/M, var/mob/user, proximity)
+
+	if(!proximity)
 		return
+
+	if(!istype(M))
+		return ..()
 
 	if(!reagent_volumes[reagent_ids[mode]])
-		user << "<span class='warning'>The injector is empty.</span>"
+		to_chat(user,"<span class='warning'>The injector is empty.</span>")
 		return
 
-	if(M.can_inject(user, 1))
-		user << "<span class='notice'>You inject [M] with the injector.</span>"
-		M << "<span class='notice'>You feel a tiny prick!</span>"
+	var/mob/living/carbon/human/H = M
+	if(istype(H))
+		var/obj/item/organ/external/affected = H.get_organ(user.zone_sel.selecting)
+		if(!affected)
+			to_chat(user,"<span class='danger'>\The [H] is missing that limb!</span>")
+			return
+		else if(affected.status & ORGAN_ROBOT)
+			to_chat(user,"<span class='danger'>You cannot inject a robotic limb.</span>")
+			return
+
+	if (M.can_inject(user, 1))
+		visible_message("<span class='notice'>[user] injects [M] with their hypospray!</span>", "<span class='notice'>You inject [M] with your hypospray!</span>")
+		to_chat(M,"<span class='notice'>You feel a tiny prick!</span>")
 
 		if(M.reagents)
 			var/t = min(amount_per_transfer_from_this, reagent_volumes[reagent_ids[mode]])
 			M.reagents.add_reagent(reagent_ids[mode], t)
 			reagent_volumes[reagent_ids[mode]] -= t
 			admin_inject_log(user, M, src, reagent_ids[mode], t)
-			user << "<span class='notice'>[t] units injected. [reagent_volumes[reagent_ids[mode]]] units remaining.</span>"
+			to_chat(user,"<span class='notice'>[t] units injected. [reagent_volumes[reagent_ids[mode]]] units remaining.</span>")
 	return
 
 /obj/item/weapon/reagent_containers/borghypo/attack_self(mob/user as mob) //Change the mode
@@ -91,14 +105,14 @@
 		if(t)
 			playsound(loc, 'sound/effects/pop.ogg', 50, 0)
 			mode = t
-			var/datum/reagent/R = chemical_reagents_list[reagent_ids[mode]]
+			var/datum/reagent/R = SSchemistry.chemical_reagents[reagent_ids[mode]]
 			usr << "<span class='notice'>Synthesizer is now producing '[R.name]'.</span>"
 
 /obj/item/weapon/reagent_containers/borghypo/examine(mob/user)
 	if(!..(user, 2))
 		return
 
-	var/datum/reagent/R = chemical_reagents_list[reagent_ids[mode]]
+	var/datum/reagent/R = SSchemistry.chemical_reagents[reagent_ids[mode]]
 
 	user << "<span class='notice'>It is currently producing [R.name] and has [reagent_volumes[reagent_ids[mode]]] out of [volume] units left.</span>"
 

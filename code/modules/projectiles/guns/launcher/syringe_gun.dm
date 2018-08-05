@@ -23,7 +23,7 @@
 		syringe = I
 		user << "<span class='notice'>You carefully insert [syringe] into [src].</span>"
 		user.remove_from_mob(syringe)
-		syringe.loc = src
+		syringe.forceMove(src)
 		sharp = 1
 		name = "syringe dart"
 		update_icon()
@@ -77,6 +77,8 @@
 	release_force = 10
 	throw_distance = 10
 
+	needspin = FALSE
+
 	var/list/darts = list()
 	var/max_darts = 1
 	var/obj/item/weapon/syringe_cartridge/next
@@ -124,7 +126,7 @@
 			user << "<span class='warning'>[src] is full!</span>"
 			return
 		user.remove_from_mob(C)
-		C.loc = src
+		C.forceMove(src)
 		darts += C //add to the end
 		user.visible_message("[user] inserts \a [C] into [src].", "<span class='notice'>You insert \a [C] into [src].</span>")
 	else

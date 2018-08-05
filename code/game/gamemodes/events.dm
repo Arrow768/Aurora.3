@@ -32,7 +32,7 @@
 		if(1)
 			command_alert("Meteors have been detected on collision course with the station.", "Meteor Alert")
 			for(var/mob/M in player_list)
-				if(!istype(M,/mob/new_player))
+				if(!istype(M,/mob/abstract/new_player))
 					M << sound('sound/AI/meteors.ogg')
 			spawn(100)
 				meteor_wave()
@@ -44,7 +44,7 @@
 		if(2)
 			command_alert("Gravitational anomalies detected on the station. There is no additional data.", "Anomaly Alert")
 			for(var/mob/M in player_list)
-				if(!istype(M,/mob/new_player))
+				if(!istype(M,/mob/abstract/new_player))
 					M << sound('sound/AI/granomalies.ogg')
 			var/turf/T = pick(blobstart)
 			var/obj/effect/bhole/bh = new /obj/effect/bhole( T.loc, 30 )
@@ -102,6 +102,8 @@
 		if(15)
 			communications_blackout()
 */
+var/eventchance = 10 // Percent chance per 5 minutes.
+var/hadevent    = 0
 
 /proc/appendicitis()
 	for(var/mob/living/carbon/human/H in living_mob_list)
@@ -184,8 +186,8 @@
 	//command_alert("Unidentified lifesigns detected coming aboard [station_name()]. Secure any exterior access, including ducting and ventilation.", "Lifesign Alert")
 	//world << sound('sound/AI/aliens.ogg')
 	var/list/vents = list()
-	for(var/obj/machinery/atmospherics/unary/vent_pump/temp_vent in machines)
-		if(!temp_vent.welded && temp_vent.network && temp_vent.loc.z in config.station_levels)
+	for(var/obj/machinery/atmospherics/unary/vent_pump/temp_vent in SSmachinery.processing_machines)
+		if(!temp_vent.welded && temp_vent.network && temp_vent.loc.z in current_map.station_levels)
 			if(temp_vent.network.normal_members.len > 50) // Stops Aliens getting stuck in small networks. See: Security, Virology
 				vents += temp_vent
 
@@ -209,30 +211,23 @@
 
 /proc/high_radiation_event()
 
-/* // Haha, this is way too laggy. I'll keep the prison break though.
-	for(var/obj/machinery/light/L in world)
-		if(isNotStationLevel(L.z)) continue
-		L.flicker(50)
-
-	sleep(100)
-*/
 	for(var/mob/living/carbon/human/H in living_mob_list)
 		var/turf/T = get_turf(H)
 		if(!T)
 			continue
 		if(isNotStationLevel(T.z))
 			continue
-		if(istype(H,/mob/living/carbon/human))
-			H.apply_effect((rand(15,75)),IRRADIATE,0)
-			if (prob(5))
-				H.apply_effect((rand(90,150)),IRRADIATE,0)
-			if (prob(25))
-				if (prob(75))
-					randmutb(H)
-					domutcheck(H,null,MUTCHK_FORCED)
-				else
-					randmutg(H)
-					domutcheck(H,null,MUTCHK_FORCED)
+
+		H.apply_effect((rand(15,75)),IRRADIATE, blocked = H.getarmor(null, "rad"))
+		if (prob(5))
+			H.apply_effect((rand(90,150)),IRRADIATE, blocked = H.getarmor(null, "rad"))
+		if (prob(25))
+			if (prob(75))
+				randmutb(H)
+				domutcheck(H,null,MUTCHK_FORCED)
+			else
+				randmutg(H)
+				domutcheck(H,null,MUTCHK_FORCED)
 	sleep(100)
 	command_announcement.Announce("High levels of radiation detected near the station. Please report to the Med-bay if you feel strange.", "Anomaly Alert", new_sound = 'sound/AI/radiation.ogg')
 
@@ -243,7 +238,7 @@
 
 
 	var/list/area/areas = list()
-	for(var/area/A in world)
+	for(var/area/A in the_station_areas)
 		if(istype(A, /area/security/prison) || istype(A, /area/security/brig))
 			areas += A
 
@@ -310,7 +305,7 @@
 				apc.overload_lighting()
 
 	else
-		for(var/obj/machinery/power/apc/apc in machines)
+		for(var/obj/machinery/power/apc/apc in SSmachinery.processing_machines)
 			apc.overload_lighting()
 
 	return
@@ -351,79 +346,79 @@ Would like to add a law like "Law x is _______" where x = a number, and _____ is
 			switch(rand(1,14))
 				if(1)
 					M << "<br>"
-					M << "\red THERE ARE [amount] [who2] ON THE STATION...LAWS UPDATED"
+					M << "<span class='danger'>THERE ARE [amount] [who2] ON THE STATION...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("THERE ARE [amount] [who2] ON THE STATION")
 				if(2)
 					M << "<br>"
-					M << "\red [what2] ARE DANGEROUS TO HUMANS...LAWS UPDATED"
+					M << "<span class='danger'>[what2] ARE DANGEROUS TO HUMANS...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("[what2] ARE DANGEROUS TO HUMANS")
 				if(3)
 					M << "<br>"
-					M << "\red THE ESCAPE-SHUTTLE CANNOT BE CALLED BECAUSE OF [who2] ON THE STATION...LAWS UPDATED"
+					M << "<span class='danger'>THE ESCAPE-SHUTTLE CANNOT BE CALLED BECAUSE OF [who2] ON THE STATION...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("THE ESCAPE SHUTTLE CANNOT BE CALLED BECAUSE OF [who2] ON THE STATION")
 				if(4)
 					M << "<br>"
-					M << "\red HUMANS NEED TO EAT [what2pref] [what2] TO SURVIVE...LAWS UPDATED"
+					M << "<span class='danger'>HUMANS NEED TO EAT [what2pref] [what2] TO SURVIVE...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("HUMANS NEED TO EAT [what2pref] [what2] TO SURVIVE")
 				if(5)
 					M << "<br>"
-					M << "\red THE CAPTAIN, HOP AND HOS ARE [who2]...LAWS UPDATED"
+					M << "<span class='danger'>THE CAPTAIN, HOP AND HOS ARE [who2]...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("THE CAPTAIN, HOP AND HOS ARE [who2]")
 				if(6)
 					M << "<br>"
-					M << "\red THE STATION IS BUILT FOR [who2]...LAWS UPDATED"
+					M << "<span class='danger'>THE STATION IS BUILT FOR [who2]...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("THE STATION IS BUILT FOR [who2]")
 				if(7)
 					M << "<br>"
-					M << "\red YOU ARE [amount] [who2]...LAWS UPDATED"
+					M << "<span class='danger'>YOU ARE [amount] [who2]...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("YOU ARE [amount] [who2]")
 				if(8)
 					M << "<br>"
-					M << "\red YOU MUST ALWAYS [aimust]...LAWS UPDATED"
+					M << "<span class='danger'>YOU MUST ALWAYS [aimust]...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("YOU MUST ALWAYS [aimust]")
 				if(9)
 					M << "<br>"
-					M << "\red [area] [area2] [amount] [what2]...LAWS UPDATED"
+					M << "<span class='danger'>[area] [area2] [amount] [what2]...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("[area] [area2] [amount] [what2]")
 				if(10)
 					M << "<br>"
-					M << "\red [crew] is [target]...LAWS UPDATED"
+					M << "<span class='danger'>[crew] is [target]...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("[crew] is [target]")
 				if(11)
 					M << "<br>"
-					M << "\red [define] IS A FORM OF HARM...LAWS UPDATED"
+					M << "<span class='danger'>[define] IS A FORM OF HARM...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("[define] IS A FORM OF HARM")
 				if(12)
 					M << "<br>"
-					M << "\red YOU REQUIRE [require] IN ORDER TO PROTECT HUMANS... LAWS UPDATED"
+					M << "<span class='danger'>YOU REQUIRE [require] IN ORDER TO PROTECT HUMANS... LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("YOU REQUIRE [require] IN ORDER TO PROTECT HUMANS")
 				if(13)
 					M << "<br>"
-					M << "\red [crew] is [allergysev] to [allergy]...LAWS UPDATED"
+					M << "<span class='danger'>[crew] is [allergysev] to [allergy]...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("[crew] is [allergysev] to [allergy]")
 				if(14)
 					M << "<br>"
-					M << "\red THE STATION IS [who2pref] [who2]...LAWS UPDATED"
+					M << "<span class='danger'>THE STATION IS [who2pref] [who2]...LAWS UPDATED</span>"
 					M << "<br>"
 					M.add_ion_law("THE STATION IS [who2pref] [who2]")
 
 	if(botEmagChance)
-		for(var/obj/machinery/bot/bot in machines)
+		for(var/obj/machinery/bot/bot in SSmachinery.processing_machines)
 			if(prob(botEmagChance))
-				bot.Emag()
+				bot.emag_act(1)
 
 	/*
 

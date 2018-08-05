@@ -16,14 +16,18 @@
 
 ///Process_Grab()
 ///Called by client/Move()
-///Checks to see if you are grabbing anything and if moving will affect your grab.
+///Checks to see if you are grabbing or being grabbed by anything and if moving will affect your grab.
 /client/proc/Process_Grab()
+	if(isliving(mob)) //if we are being grabbed
+		var/mob/living/L = mob
+		if(!L.canmove && L.grabbed_by.len)
+			L.resist() //shortcut for resisting grabs
 	for(var/obj/item/weapon/grab/G in list(mob.l_hand, mob.r_hand))
 		G.reset_kill_state() //no wandering across the station/asteroid while choking someone
 
 /obj/item/weapon/grab
 	name = "grab"
-	icon = 'icons/mob/screen1.dmi'
+	icon = 'icons/mob/screen/generic.dmi'
 	icon_state = "reinforce"
 	flags = 0
 	var/obj/screen/grab/hud = null
@@ -90,7 +94,7 @@
 			hud.screen_loc = ui_lhand
 
 /obj/item/weapon/grab/process()
-	if(gcDestroyed) // GC is trying to delete us, we'll kill our processing so we can cleanly GC
+	if(QDELING(src)) // GC is trying to delete us, we'll kill our processing so we can cleanly GC
 		return PROCESS_KILL
 
 	confirm()
@@ -181,6 +185,8 @@
 //Updating pixelshift, position and direction
 //Gets called on process, when the grab gets upgraded or the assailant moves
 /obj/item/weapon/grab/proc/adjust_position()
+	if (!affecting)
+		return
 	if(affecting.buckled)
 		animate(affecting, pixel_x = 0, pixel_y = 0, 4, 1, LINEAR_EASING)
 		return
@@ -204,12 +210,12 @@
 			shift = -10
 			adir = assailant.dir
 			affecting.set_dir(assailant.dir)
-			affecting.loc = assailant.loc
+			affecting.forceMove(assailant.loc)
 		if(GRAB_KILL)
 			shift = 0
 			adir = 1
 			affecting.set_dir(SOUTH) //face up
-			affecting.loc = assailant.loc
+			affecting.forceMove(assailant.loc)
 
 	switch(adir)
 		if(NORTH)
@@ -227,7 +233,7 @@
 		return
 	if(state == GRAB_UPGRADING)
 		return
-	if(assailant.next_move > world.time)
+	if(!assailant.canClick())
 		return
 	if(world.time < (last_action + UPGRADE_COOLDOWN))
 		return
@@ -260,7 +266,7 @@
 		assailant.set_dir(get_dir(assailant, affecting))
 		affecting.attack_log += "\[[time_stamp()]\] <font color='orange'>Has had their neck grabbed by [assailant.name] ([assailant.ckey])</font>"
 		assailant.attack_log += "\[[time_stamp()]\] <font color='red'>Grabbed the neck of [affecting.name] ([affecting.ckey])</font>"
-		msg_admin_attack("[key_name(assailant)] grabbed the neck of [key_name(affecting)]")
+		msg_admin_attack("[key_name_admin(assailant)] grabbed the neck of [key_name_admin(affecting)]",ckey=key_name(assailant),ckey_target=key_name(affecting))
 		hud.icon_state = "kill"
 		hud.name = "kill"
 		affecting.Stun(10) //10 ticks of ensured grab
@@ -272,9 +278,9 @@
 		assailant.visible_message("<span class='danger'>[assailant] has tightened \his grip on [affecting]'s neck!</span>")
 		affecting.attack_log += "\[[time_stamp()]\] <font color='orange'>Has been strangled (kill intent) by [assailant.name] ([assailant.ckey])</font>"
 		assailant.attack_log += "\[[time_stamp()]\] <font color='red'>Strangled (kill intent) [affecting.name] ([affecting.ckey])</font>"
-		msg_admin_attack("[key_name(assailant)] strangled (kill intent) [key_name(affecting)]")
+		msg_admin_attack("[key_name_admin(assailant)] strangled (kill intent) [key_name_admin(affecting)]",ckey=key_name(assailant),ckey_target=key_name(affecting))
 
-		assailant.next_move = world.time + 10
+		affecting.setClickCooldown(10)
 		affecting.losebreath += 1
 		affecting.set_dir(WEST)
 	adjust_position()
@@ -286,13 +292,13 @@
 		return 0
 
 	if(affecting)
-		if(!isturf(assailant.loc) || ( !isturf(affecting.loc) || assailant.loc != affecting.loc && get_dist(assailant, affecting) > 1) )
+		if(!isturf(assailant.loc) || ( !isturf(affecting.loc) || assailant.loc != affecting.loc && get_dist(assailant, affecting) > 1) || assailant.z != affecting.z )
 			qdel(src)
 			return 0
 
 	return 1
 
-/obj/item/weapon/grab/attack(mob/M, mob/living/user)
+/obj/item/weapon/grab/attack(mob/M, mob/living/user, var/target_zone)
 	if(!affecting)
 		return
 	if(world.time < (last_action + 20))
@@ -304,7 +310,7 @@
 	//clicking on the victim while grabbing them
 	if(M == affecting)
 		if(ishuman(affecting))
-			var/hit_zone = assailant.zone_sel.selecting
+			var/hit_zone = target_zone
 			flick(hud.icon_state, hud)
 			switch(assailant.a_intent)
 				if(I_HELP)
@@ -359,4 +365,4 @@
 	qdel(hud)
 	hud = null
 	destroying = 1 // stops us calling qdel(src) on dropped()
-	..()
+	return ..()

@@ -4,8 +4,8 @@
 	name = "infrared emitter"
 	desc = "Emits a visible or invisible beam and is triggered when the beam is interrupted."
 	icon_state = "infrared"
+	origin_tech = list(TECH_MAGNET = 2)
 	matter = list(DEFAULT_WALL_MATERIAL = 1000, "glass" = 500, "waste" = 100)
-	origin_tech = "magnets=2"
 
 	wires = WIRE_PULSE
 
@@ -29,20 +29,20 @@
 	toggle_secure()
 		secured = !secured
 		if(secured)
-			processing_objects.Add(src)
+			START_PROCESSING(SSprocessing, src)
 		else
 			on = 0
 			if(first)	qdel(first)
-			processing_objects.Remove(src)
+			STOP_PROCESSING(SSprocessing, src)
 		update_icon()
 		return secured
 
 
 	update_icon()
-		overlays.Cut()
+		cut_overlays()
 		attached_overlays = list()
 		if(on)
-			overlays += "infrared_on"
+			add_overlay("infrared_on")
 			attached_overlays += "infrared_on"
 
 		if(holder)
@@ -103,8 +103,7 @@
 		if(!holder)
 			visible_message("\icon[src] *beep* *beep*")
 		cooldown = 2
-		spawn(10)
-			process_cooldown()
+		addtimer(CALLBACK(src, .proc/process_cooldown), 10)
 		return
 
 
@@ -171,9 +170,7 @@
 
 
 /obj/effect/beam/i_beam/proc/hit()
-	//world << "beam \ref[src]: hit"
 	if(master)
-		//world << "beam hit \ref[src]: calling master \ref[master].hit"
 		master.trigger_beam()
 	qdel(src)
 	return
@@ -189,13 +186,10 @@
 	return
 
 /obj/effect/beam/i_beam/process()
-	//world << "i_beam \ref[src] : process"
 
-	if((loc.density || !(master)))
-	//	world << "beam hit loc [loc] or no master [master], deleting"
+	if((loc && loc.density) || !master)
 		qdel(src)
 		return
-	//world << "proccess: [src.left] left"
 
 	if(left > 0)
 		left--
@@ -242,16 +236,18 @@
 		return
 	return
 
-/obj/effect/beam/i_beam/Bump()
+/obj/effect/beam/i_beam/Collide()
+	. = ..()
 	qdel(src)
-	return
 
-/obj/effect/beam/i_beam/Bumped()
+/obj/effect/beam/i_beam/CollidedWith()
+	..()
 	hit()
-	return
 
 /obj/effect/beam/i_beam/Crossed(atom/movable/AM as mob|obj)
 	if(istype(AM, /obj/effect/beam))
+		return
+	if( (AM.invisibility == INVISIBILITY_OBSERVER) || (AM.invisibility == 101) )
 		return
 	spawn(0)
 		hit()
@@ -264,4 +260,4 @@
 	if(next)
 		qdel(next)
 		next = null
-	..()
+	return ..()

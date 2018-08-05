@@ -44,10 +44,10 @@
 		"door_state" = 	docking_program.memory["door_status"]["state"],
 		"door_lock" = 	docking_program.memory["door_status"]["lock"],
 		"can_force" = pod.can_force() || (emergency_shuttle.departed && pod.can_launch()),	//allow players to manually launch ahead of time if the shuttle leaves
-		"is_armed" = pod.arming_controller.armed,
+		"is_armed" = pod.arming_controller.armed
 	)
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 
 	if (!ui)
 		ui = new(user, src, ui_key, "escape_pod_console.tmpl", name, 470, 290)
@@ -75,8 +75,8 @@
 /obj/machinery/embedded_controller/radio/simple_docking_controller/escape_pod_berth
 	name = "escape pod berth controller"
 
-/obj/machinery/embedded_controller/radio/simple_docking_controller/escape_pod_berth/initialize()
-	..()
+/obj/machinery/embedded_controller/radio/simple_docking_controller/escape_pod_berth/Initialize()
+	. = ..()
 	docking_program = new/datum/computer/file/embedded_program/docking/simple/escape_pod(src)
 	program = docking_program
 
@@ -91,10 +91,10 @@
 	data = list(
 		"docking_status" = docking_program.get_docking_status(),
 		"override_enabled" = docking_program.override_enabled,
-		"armed" = armed,
+		"armed" = armed
 	)
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 
 	if (!ui)
 		ui = new(user, src, ui_key, "escape_pod_berth_console.tmpl", name, 470, 290)
@@ -102,19 +102,15 @@
 		ui.open()
 		ui.set_auto_update(1)
 
-/obj/machinery/embedded_controller/radio/simple_docking_controller/escape_pod_berth/attackby(obj/item/weapon/W as obj, mob/user as mob)
-	if (istype(W, /obj/item/weapon/card/emag) && !emagged)
-		user << "\blue You emag the [src], arming the escape pod!"
+/obj/machinery/embedded_controller/radio/simple_docking_controller/escape_pod_berth/emag_act(var/remaining_charges, var/mob/user)
+	if (!emagged)
+		user << "<span class='notice'>You emag the [src], arming the escape pod!</span>"
 		emagged = 1
 		if (istype(docking_program, /datum/computer/file/embedded_program/docking/simple/escape_pod))
 			var/datum/computer/file/embedded_program/docking/simple/escape_pod/P = docking_program
 			if (!P.armed)
 				P.arm()
-		return
-	
-	..()
-
-
+		return 1
 
 //A docking controller program for a simple door based docking port
 /datum/computer/file/embedded_program/docking/simple/escape_pod

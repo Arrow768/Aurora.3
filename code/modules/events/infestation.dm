@@ -68,8 +68,8 @@
 			spawn_area_type = /area/engineering/atmos
 			locstrings[numlocs] = "atmospherics"
 		if(LOC_INCIN)
-			spawn_area_type = /area/maintenance/incinerator
-			locstrings[numlocs] = "the incinerator"
+			spawn_area_type = /area/maintenance/disposal
+			locstrings[numlocs] = "waste disposal"
 		if(LOC_CHAPEL)
 			spawn_area_type = /area/chapel/main
 			locstrings[numlocs] = "the chapel"
@@ -131,31 +131,33 @@
 	switch(vermin)
 		if(VERM_MICE)
 			spawn_types = list(/mob/living/simple_animal/mouse/gray, /mob/living/simple_animal/mouse/brown, /mob/living/simple_animal/mouse/white)
-			max_number = 7
+			max_number = 16
+			//Large quantities of mice aren't a potential lag issue since they decompose to
+			//inert skeletons now
 			vermstring = "mice"
 		if(VERM_LIZARDS)
 			spawn_types = list(/mob/living/simple_animal/lizard)
-			max_number = 7
+			max_number = 12
 			vermstring = "lizards"
 		if(VERM_SPIDERS)
 			spawn_types = list(/obj/effect/spider/spiderling)
-			max_number = 3
+			max_number = 5
 			vermstring = "spiders"
 		if (VERM_DIYAAB)
 			spawn_types = list(/mob/living/simple_animal/hostile/diyaab)
-			max_number = 2
+			max_number = 4
 			vermstring = "strange creatures"
 		if (VERM_BATS)
 			spawn_types = list(/mob/living/simple_animal/hostile/scarybat)
-			max_number = 2
+			max_number = 4
 			vermstring = "space bats"
 		if (VERM_YITHIAN)
 			spawn_types = list(/mob/living/simple_animal/yithian)
-			max_number = 4
+			max_number = 7
 			vermstring = "strange creatures"
 		if (VERM_TINDALOS)
 			spawn_types = list(/mob/living/simple_animal/tindalos)
-			max_number = 4
+			max_number = 7
 			vermstring = "strange creatures"
 
 
@@ -170,7 +172,7 @@
 		num--
 
 		if(vermin == VERM_SPIDERS)
-			var/obj/effect/spider/spiderling/S = new(T)
+			var/obj/effect/spider/spiderling/S = new /obj/effect/spider/spiderling(T)
 			S.amount_grown = 1
 			S.growth_rate = (rand(50,300)/1000)//At most, they grow at 30% the usual rate. As low as 1/20th
 			if (severity == EVENT_LEVEL_MODERATE)
@@ -181,9 +183,9 @@
 
 /datum/event/infestation/announce()
 	if (severity == EVENT_LEVEL_MODERATE)
-		command_announcement.Announce("Bioscans indicate that large numbers of lifeforms have been breeding in [locstrings[1]] and [locstrings[2]]. Clear them out, before this starts to affect productivity.", "Vermin infestation")
+		command_announcement.Announce("Bioscans indicate that large numbers of lifeforms have been breeding in [locstrings[1]] and [locstrings[2]]. Clear them out, before this starts to affect productivity.", "Vermin infestation", new_sound = 'sound/AI/vermin.ogg')
 	else
-		command_announcement.Announce("Bioscans indicate that [vermstring] have been breeding in [locstrings[1]]. Clear them out, before this starts to affect productivity.", "Vermin infestation")
+		command_announcement.Announce("Bioscans indicate that [vermstring] have been breeding in [locstrings[1]]. Clear them out, before this starts to affect productivity.", "Vermin infestation", new_sound = 'sound/AI/vermin.ogg')
 
 
 #undef LOC_KITCHEN

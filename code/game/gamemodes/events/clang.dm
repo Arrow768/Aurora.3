@@ -16,7 +16,8 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	density = 1
 	anchored = 1
 
-	Bump(atom/clong)
+	Collide(atom/clong)
+		. = ..()
 		if(istype(clong, /turf/simulated/shuttle)) //Skip shuttles without actually deleting the rod
 			return
 
@@ -34,12 +35,12 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 
 		else if (istype(clong, /mob))
 			if(clong.density || prob(10))
-				clong.meteorhit(src)
+				clong.ex_act(2)
 		else
 			qdel(src)
 
 		if(clong && prob(25))
-			src.loc = clong.loc
+			src.forceMove(clong.loc)
 
 /proc/immovablerod()
 	var/startx = 0
@@ -79,7 +80,7 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	sleep(1)
 	while (immrod)
 		if (isNotStationLevel(immrod.z))
-			immrod.z = pick(config.station_levels)
+			immrod.z = pick(current_map.station_levels)
 		if(immrod.loc == end)
 			qdel(immrod)
 		sleep(10)

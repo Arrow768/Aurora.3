@@ -7,8 +7,8 @@
 	var/atom/movable/teleatom //atom to teleport
 	var/atom/destination //destination to teleport to
 	var/precision = 0 //teleport precision
-	var/datum/effect/effect/system/effectin //effect to show right before teleportation
-	var/datum/effect/effect/system/effectout //effect to show right after teleportation
+	var/datum/effect_system/effectin //effect to show right before teleportation
+	var/datum/effect_system/effectout //effect to show right after teleportation
 	var/soundin //soundfile to play before teleportation
 	var/soundout //soundfile to play after teleportation
 	var/force_teleport = 1 //if false, teleport will use Move() proc (dense objects will prevent teleportation)
@@ -78,13 +78,13 @@
 /datum/teleport/proc/teleportChecks()
 		return 1
 
-/datum/teleport/proc/playSpecials(atom/location,datum/effect/effect/system/effect,sound)
+/datum/teleport/proc/playSpecials(atom/location,datum/effect_system/effect,sound)
 	if(location)
 		if(effect)
 			spawn(-1)
 				src = null
-				effect.attach(location)
-				effect.start()
+				effect.location = location
+				effect.queue()
 		if(sound)
 			spawn(-1)
 				src = null
@@ -141,8 +141,7 @@
 
 /datum/teleport/instant/science/setEffects(datum/effect/effect/system/aeffectin,datum/effect/effect/system/aeffectout)
 	if(!aeffectin || !aeffectout)
-		var/datum/effect/effect/system/spark_spread/aeffect = new
-		aeffect.set_up(5, 1, teleatom)
+		var/datum/effect_system/sparks/aeffect = new(null, FALSE, 5, alldirs)
 		effectin = effectin || aeffect
 		effectout = effectout || aeffect
 		return 1
@@ -159,7 +158,7 @@
 		precision = max(rand(1,100)*bagholding.len,100)
 		if(istype(teleatom, /mob/living))
 			var/mob/living/MM = teleatom
-			MM << "<span class='danger>The Bluespace interface on your [teleatom] interferes with the teleport!</span>"
+			MM << "<span class='danger'>The Bluespace interface on your [teleatom] interferes with the teleport!</span>"
 	return 1
 
 /datum/teleport/instant/science/teleportChecks()
@@ -175,7 +174,7 @@
 			teleatom.visible_message("<span class='danger'>\The [teleatom] bounces off of the portal!</span>")
 		return 0
 
-	if(destination.z in config.admin_levels) //centcomm z-level
+	if(destination.z in current_map.admin_levels) //centcomm z-level
 		if(istype(teleatom, /obj/mecha))
 			var/obj/mecha/MM = teleatom
 			MM.occupant << "<span class='danger'>\The [MM] would not survive the jump to a location so far away!</span>"

@@ -82,10 +82,14 @@
 			if(occupied)
 				user << "<span class='danger'>There's \a [occupied] in the way.</span>"
 				return
-			if (G.state < 2)
+			if(!user.Adjacent(M))
+				return
+			if (G.state < GRAB_AGGRESSIVE)
 				if(user.a_intent == I_HURT)
-					if (prob(15))	M.Weaken(5)
-					M.apply_damage(8,def_zone = "head")
+					var/blocked = M.run_armor_check("head", "melee")
+					if (prob(30 * BLOCKED_MULT(blocked)))
+						M.Weaken(5)
+					M.apply_damage(8, BRUTE, "head", blocked)
 					visible_message("<span class='danger'>[G.assailant] slams [G.affecting]'s face against \the [src]!</span>")
 					if(material)
 						playsound(loc, material.tableslam_noise, 50, 1)
@@ -97,36 +101,23 @@
 						if(prob(50))
 							M.visible_message("<span class='danger'>\The [S] slices [M]'s face messily!</span>",
 							                   "<span class='danger'>\The [S] slices your face messily!</span>")
-							M.apply_damage(10, def_zone = "head")
-							if(prob(2))
-								M.embed(S, def_zone = "head")
+							M.apply_damage(10, BRUTE, "head", blocked)
+							M.standard_weapon_hit_effects(S, G.assailant, 10, blocked, "head")
 				else
 					user << "<span class='danger'>You need a better grip to do that!</span>"
 					return
 			else
-				G.affecting.loc = src.loc
-				G.affecting.Weaken(5)
+				G.affecting.forceMove(src.loc)
+				G.affecting.Weaken(rand(2,4))
 				visible_message("<span class='danger'>[G.assailant] puts [G.affecting] on \the [src].</span>")
 			qdel(W)
 			return
 
-	// Handle dismantling or placing things on the table from here on.
-	if(isrobot(user))
-		if (istype(W, /obj/item/weapon/gripper))
-			var/obj/item/weapon/gripper/G = W
-			if (G.wrapped)
-				G.wrapped.loc = (src.loc)
-				G.wrapped = null
-				G.justdropped = 1
-		return
-
-	if(W.loc != user) // This should stop mounted modules ending up outside the module.
+	if(!dropsafety(W))
 		return
 
 	if(istype(W, /obj/item/weapon/melee/energy/blade))
-		var/datum/effect/effect/system/spark_spread/spark_system = new /datum/effect/effect/system/spark_spread()
-		spark_system.set_up(5, 0, src.loc)
-		spark_system.start()
+		W:spark_system.queue()
 		playsound(src.loc, 'sound/weapons/blade1.ogg', 50, 1)
 		playsound(src.loc, "sparks", 50, 1)
 		user.visible_message("<span class='danger'>\The [src] was sliced apart by [user]!</span>")

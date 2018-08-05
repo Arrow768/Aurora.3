@@ -80,7 +80,6 @@
 	flags_inv = HIDEGLOVES|HIDESHOES|HIDEJUMPSUIT
 	body_parts_covered = UPPER_TORSO|LOWER_TORSO|ARMS|HANDS|LEGS|FEET
 
-
 /obj/item/clothing/suit/judgerobe
 	name = "judge's robe"
 	desc = "This robe commands authority."
@@ -90,7 +89,6 @@
 	allowed = list(/obj/item/weapon/storage/fancy/cigarettes,/obj/item/weapon/spacecash)
 	flags_inv = HIDEJUMPSUIT
 
-
 /obj/item/clothing/suit/wcoat
 	name = "waistcoat"
 	desc = "For some classy, murderous fun."
@@ -98,15 +96,6 @@
 	item_state = "wcoat"
 	blood_overlay_type = "armor"
 	body_parts_covered = UPPER_TORSO|LOWER_TORSO
-
-
-/obj/item/clothing/suit/apron/overalls
-	name = "coveralls"
-	desc = "A set of denim overalls."
-	icon_state = "overalls"
-	item_state = "overalls"
-	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS
-
 
 /obj/item/clothing/suit/syndicatefake
 	name = "red space suit replica"
@@ -119,7 +108,7 @@
 	body_parts_covered = UPPER_TORSO|LOWER_TORSO|ARMS|HANDS|LEGS|FEET
 
 /obj/item/clothing/suit/hastur
-	name = "Hastur's Robes"
+	name = "hastur's robes"
 	desc = "Robes not meant to be worn by man"
 	icon_state = "hastur"
 	item_state = "hastur"
@@ -128,7 +117,7 @@
 
 
 /obj/item/clothing/suit/imperium_monk
-	name = "Imperium monk"
+	name = "imperium monk"
 	desc = "Have YOU killed a xenos today?"
 	icon_state = "imperium_monk"
 	item_state = "imperium_monk"
@@ -137,7 +126,7 @@
 
 
 /obj/item/clothing/suit/chickensuit
-	name = "Chicken Suit"
+	name = "chicken suit"
 	desc = "A suit made long ago by the ancient empire KFC."
 	icon_state = "chickensuit"
 	item_state = "chickensuit"
@@ -147,7 +136,7 @@
 
 
 /obj/item/clothing/suit/monkeysuit
-	name = "Monkey Suit"
+	name = "monkey suit"
 	desc = "A suit that looks like a primate"
 	icon_state = "monkeysuit"
 	item_state = "monkeysuit"
@@ -157,7 +146,7 @@
 
 
 /obj/item/clothing/suit/holidaypriest
-	name = "Holiday Priest"
+	name = "holiday priest"
 	desc = "This is a nice holiday my son."
 	icon_state = "holidaypriest"
 	item_state = "holidaypriest"
@@ -178,12 +167,12 @@
  */
 
 /obj/item/clothing/suit/straight_jacket
-	name = "straight jacket"
+	name = "straitjacket"
 	desc = "A suit that completely restrains the wearer."
 	icon_state = "straight_jacket"
 	item_state = "straight_jacket"
-	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|FEET|ARMS|HANDS
-	flags_inv = HIDEGLOVES|HIDESHOES|HIDEJUMPSUIT|HIDETAIL
+	body_parts_covered = UPPER_TORSO|LOWER_TORSO|ARMS|HANDS
+	flags_inv = HIDEGLOVES|HIDEJUMPSUIT
 
 /obj/item/clothing/suit/straight_jacket/equipped(var/mob/user, var/slot)
 	if (slot == slot_wear_suit)
@@ -201,30 +190,16 @@
 	item_state = "ianshirt"
 	body_parts_covered = UPPER_TORSO|ARMS
 
-//pyjamas
-//originally intended to be pinstripes >.>
-
-/obj/item/clothing/under/bluepyjamas
-	name = "blue pyjamas"
-	desc = "Slightly old-fashioned sleepwear."
-	icon_state = "blue_pyjamas"
-	item_state = "blue_pyjamas"
-	body_parts_covered = UPPER_TORSO|LOWER_TORSO|ARMS|LEGS
-
-/obj/item/clothing/under/redpyjamas
-	name = "red pyjamas"
-	desc = "Slightly old-fashioned sleepwear."
-	icon_state = "red_pyjamas"
-	item_state = "red_pyjamas"
-	body_parts_covered = UPPER_TORSO|LOWER_TORSO|ARMS|LEGS
-
 //coats
 
 /obj/item/clothing/suit/leathercoat
 	name = "leather coat"
 	desc = "A long, thick black leather coat."
-	icon_state = "leathercoat"
-	item_state = "leathercoat"
+	icon_state = "leathercoat_alt"
+	item_state = "leathercoat_alt"
+	body_parts_covered = UPPER_TORSO|ARMS
+	min_cold_protection_temperature = T0C - 20
+	siemens_coefficient = 0.7
 
 /obj/item/clothing/suit/browncoat
 	name = "brown leather coat"
@@ -238,41 +213,6 @@
 	icon_state = "neocoat"
 	item_state = "neocoat"
 
-//stripper
-/obj/item/clothing/under/stripper
-	body_parts_covered = 0
-
-/obj/item/clothing/under/stripper/stripper_pink
-	name = "pink swimsuit"
-	desc = "A rather skimpy pink swimsuit."
-	icon_state = "stripper_p_under"
-	siemens_coefficient = 1
-
-/obj/item/clothing/under/stripper/stripper_green
-	name = "green swimsuit"
-	desc = "A rather skimpy green swimsuit."
-	icon_state = "stripper_g_under"
-	siemens_coefficient = 1
-
-/obj/item/clothing/suit/stripper/stripper_pink
-	name = "pink skimpy dress"
-	desc = "A rather skimpy pink dress."
-	icon_state = "stripper_p_over"
-	siemens_coefficient = 1
-
-/obj/item/clothing/suit/stripper/stripper_green
-	name = "green skimpy dress"
-	desc = "A rather skimpy green dress."
-	icon_state = "stripper_g_over"
-	item_state = "stripper_g"
-	siemens_coefficient = 1
-
-/obj/item/clothing/under/stripper/mankini
-	name = "mankini"
-	desc = "No honest man would wear this abomination"
-	icon_state = "mankini"
-	siemens_coefficient = 1
-
 /obj/item/clothing/suit/xenos
 	name = "xenos suit"
 	desc = "A suit made out of chitinous alien hide."
@@ -281,40 +221,6 @@
 	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|FEET|ARMS|HANDS
 	flags_inv = HIDEGLOVES|HIDESHOES|HIDEJUMPSUIT
 	siemens_coefficient = 2.0
-//swimsuit
-/obj/item/clothing/under/swimsuit/
-	siemens_coefficient = 1
-	body_parts_covered = 0
-
-/obj/item/clothing/under/swimsuit/black
-	name = "black swimsuit"
-	desc = "An oldfashioned black swimsuit."
-	icon_state = "swim_black"
-	siemens_coefficient = 1
-
-/obj/item/clothing/under/swimsuit/blue
-	name = "blue swimsuit"
-	desc = "An oldfashioned blue swimsuit."
-	icon_state = "swim_blue"
-	siemens_coefficient = 1
-
-/obj/item/clothing/under/swimsuit/purple
-	name = "purple swimsuit"
-	desc = "An oldfashioned purple swimsuit."
-	icon_state = "swim_purp"
-	siemens_coefficient = 1
-
-/obj/item/clothing/under/swimsuit/green
-	name = "green swimsuit"
-	desc = "An oldfashioned green swimsuit."
-	icon_state = "swim_green"
-	siemens_coefficient = 1
-
-/obj/item/clothing/under/swimsuit/red
-	name = "red swimsuit"
-	desc = "An oldfashioned red swimsuit."
-	icon_state = "swim_red"
-	siemens_coefficient = 1
 
 /obj/item/clothing/suit/poncho
 	name = "poncho"
@@ -366,8 +272,17 @@
 	body_parts_covered = UPPER_TORSO|ARMS
 
 /obj/item/clothing/suit/storage/leather_jacket/nanotrasen
-	desc = "A black leather coat. The letters NT are proudly displayed on the back."
+	desc = "A black leather coat. A corporate logo is proudly displayed on the back."
 	icon_state = "leather_jacket_nt"
+
+/obj/item/clothing/suit/storage/toggle/leather_vest
+	name = "leather vest"
+	desc = "A black leather vest."
+	icon_state = "leather_jacket_sleeveless"
+	item_state = "leather_jacket_sleeveless"
+	icon_open = "leather_jacket_sleeveless_open"
+	icon_closed = "leather_jacket_sleeveless"
+	body_parts_covered = UPPER_TORSO
 
 //This one has buttons for some reason
 /obj/item/clothing/suit/storage/toggle/brown_jacket
@@ -379,8 +294,17 @@
 	icon_closed = "brown_jacket"
 	body_parts_covered = UPPER_TORSO|ARMS
 
+/obj/item/clothing/suit/storage/toggle/brown_jacket/sleeveless
+	name = "brown vest"
+	desc = "A brown leather vest."
+	icon_state = "brown_jacket_sleeveless"
+	item_state = "brown_jacket_sleeveless"
+	icon_open = "brown_jacket_sleeveless_open"
+	icon_closed = "brown_jacket_sleeveless"
+	body_parts_covered = UPPER_TORSO
+
 /obj/item/clothing/suit/storage/toggle/brown_jacket/nanotrasen
-	desc = "A brown leather coat. The letters NT are proudly displayed on the back."
+	desc = "A brown leather coat. A corporate logo is proudly displayed on the back."
 	icon_state = "brown_jacket_nt"
 	icon_open = "brown_jacket_nt_open"
 	icon_closed = "brown_jacket_nt"
@@ -402,7 +326,7 @@
 	item_state = "black_hoodie"
 	icon_open = "black_hoodie_open"
 	icon_closed = "black_hoodie"
-	
+
 /obj/item/clothing/suit/storage/toggle/tracksuit
 	name = "track jacket"
 	desc = "An athletic black and white track jacket."
@@ -412,3 +336,97 @@
 	icon_open = "trackjacket_open"
 	icon_closed = "trackjacket"
 	contained_sprite = 1
+
+/obj/item/clothing/suit/storage/toggle/flannel
+	name = "green flannel shirt"
+	desc = "A flannel shirt, for all your space hipster needs."
+	icon_state = "flannel_green"
+	item_state = "flannel_green"
+	icon_open = "flannel_green_open"
+	icon_closed = "flannel_green"
+	body_parts_covered = UPPER_TORSO|ARMS
+
+/obj/item/clothing/suit/storage/toggle/flannel/red
+	name = "red flannel shirt"
+	icon_state = "flannel_red"
+	item_state = "flannel_red"
+	icon_open = "flannel_red_open"
+	icon_closed = "flannel_red"
+
+/obj/item/clothing/suit/storage/toggle/flannel/blue
+	name = "blue flannel shirt"
+	icon_state = "flannel_blue"
+	item_state = "flannel_blue"
+	icon_open = "flannel_blue_open"
+	icon_closed = "flannel_blue"
+
+/obj/item/clothing/suit/storage/toggle/flannel/gray
+	name = "grey flannel shirt"
+	icon_state = "flannel_gray"
+	item_state = "flannel_gray"
+	icon_open = "flannel_gray_open"
+	icon_closed = "flannel_gray"
+
+/obj/item/clothing/suit/storage/toggle/flannel/purple
+	name = "purple flannel shirt"
+	icon_state = "flannel_purple"
+	item_state = "flannel_purple"
+	icon_open = "flannel_purple_open"
+	icon_closed = "flannel_purple"
+
+/obj/item/clothing/suit/storage/toggle/flannel/yellow
+	name = "yellow flannel shirt"
+	icon_state = "flannel_yellow"
+	item_state = "flannel_yellow"
+	icon_open = "flannel_yellow_open"
+	icon_closed = "flannel_yellow"
+
+/obj/item/clothing/suit/storage/toggle/trench
+	name = "brown trenchcoat"
+	desc = "A rugged canvas trenchcoat."
+	icon_state = "trench"
+	item_state = "trench"
+	icon_open = "trench_open"
+	icon_closed = "trench"
+	blood_overlay_type = "coat"
+	body_parts_covered = UPPER_TORSO|ARMS
+
+/obj/item/clothing/suit/storage/toggle/trench/grey
+	name = "grey trenchcoat"
+	icon_state = "trench2"
+	item_state = "trench2"
+	icon_open = "trench2_open"
+	icon_closed = "trench2"
+	blood_overlay_type = "coat"
+
+/obj/item/clothing/suit/storage/dominia
+	name = "dominia cape"
+	desc = "This is a cape in the style of Dominia nobility. It's the latest fashion across Dominian space."
+	icon_state = "dominian_cape"
+	item_state = "dominian_cape"
+
+/obj/item/clothing/suit/storage/toggle/dominia
+	name = "dominia great coat"
+	desc = "This is a great coat in the style of Dominia nobility. It's the latest fashion across Dominian space."
+	icon_state = "dominian_noble"
+	item_state = "dominian_noble"
+	icon_open = "dominian_noble_open"
+	icon_closed = "dominian_noble"
+
+/obj/item/clothing/suit/storage/toggle/dominia/alt
+	icon_state = "dominian_noble2"
+	item_state = "dominian_noble2"
+	icon_open = "dominian_noble2_open"
+	icon_closed = "dominian_noble2"
+
+/obj/item/clothing/suit/storage/toggle/dominia/black
+	icon_state = "dominian_noble4"
+	item_state = "dominian_noble4"
+	icon_open = "dominian_noble4_open"
+	icon_closed = "dominian_noble4"
+
+/obj/item/clothing/suit/storage/toggle/dominia/black/alt
+	icon_state = "dominian_noble5"
+	item_state = "dominian_noble5"
+	icon_open = "dominian_noble5_open"
+	icon_closed = "dominian_noble5"

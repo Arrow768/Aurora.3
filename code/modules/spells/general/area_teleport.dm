@@ -1,7 +1,7 @@
 /spell/area_teleport
 	name = "Teleport"
 	desc = "This spell teleports you to a type of area of your selection."
-
+	feedback = "TP"
 	school = "abjuration"
 	charge_max = 600
 	spell_flags = NEEDSCLOTHES
@@ -70,7 +70,7 @@
 			break
 
 	if(!success)
-		user.loc = pick(L)
+		user.forceMove(pick(L))
 
 	return
 

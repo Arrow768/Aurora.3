@@ -22,12 +22,12 @@
 
 		if(chargelevel != newlevel)
 
-			overlays.Cut()
-			overlays += "ccharger-o[newlevel]"
+			cut_overlays()
+			add_overlay("ccharger-o[newlevel]")
 
 			chargelevel = newlevel
 	else
-		overlays.Cut()
+		cut_overlays()
 
 /obj/machinery/cell_charger/examine(mob/user)
 	if(!..(user, 5))
@@ -43,25 +43,24 @@
 
 	if(istype(W, /obj/item/weapon/cell) && anchored)
 		if(charging)
-			user << "\red There is already a cell in the charger."
+			user << "<span class='warning'>There is already a cell in the charger.</span>"
 			return
 		else
 			var/area/a = loc.loc // Gets our locations location, like a dream within a dream
 			if(!isarea(a))
 				return
 			if(a.power_equip == 0) // There's no APC in this area, don't try to cheat power!
-				user << "\red The [name] blinks red as you try to insert the cell!"
+				user << "<span class='warning'>The [name] blinks red as you try to insert the cell!</span>"
 				return
 
-			user.drop_item()
-			W.loc = src
+			user.drop_from_inventory(W,src)
 			charging = W
 			user.visible_message("[user] inserts a cell into the charger.", "You insert a cell into the charger.")
 			chargelevel = -1
 		update_icon()
-	else if(istype(W, /obj/item/weapon/wrench))
+	else if(iswrench(W))
 		if(charging)
-			user << "\red Remove the cell first!"
+			user << "<span class='warning'>Remove the cell first!</span>"
 			return
 
 		anchored = !anchored
@@ -83,8 +82,7 @@
 	if(istype(user, /mob/living/silicon/robot) && Adjacent(user)) // Borgs can remove the cell if they are near enough
 		if(!src.charging)
 			return
-
-		charging.loc = src.loc
+		user.put_in_hands(charging)
 		charging.update_icon()
 		charging = null
 		update_icon()
@@ -99,7 +97,7 @@
 	..(severity)
 
 
-/obj/machinery/cell_charger/process()
+/obj/machinery/cell_charger/machinery_process()
 	//world << "ccpt [charging] [stat]"
 	if((stat & (BROKEN|NOPOWER)) || !anchored)
 		update_use_power(0)

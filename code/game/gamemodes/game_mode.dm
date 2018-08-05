@@ -35,93 +35,6 @@ var/global/list/additional_antag_types = list()
 	var/event_delay_mod_moderate             // Modifies the timing of random events.
 	var/event_delay_mod_major                // As above.
 
-	var/uplink_welcome = "Illegal Uplink Console:"
-	var/uplink_uses = 12
-
-	var/list/datum/uplink_item/uplink_items = list(
-		"Ammunition" = list(
-			new/datum/uplink_item(/obj/item/ammo_magazine/a357, 2, ".357", "RA"),
-			new/datum/uplink_item(/obj/item/ammo_magazine/mc9mm, 2, "9mm", "R9"),
-			new/datum/uplink_item(/obj/item/ammo_magazine/chemdart, 2, "Darts", "AD"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/sniperammo, 2, "14.5mm", "SA"),
-			new/datum/uplink_item(/obj/item/ammo_magazine/tommymag, 2, "Tommygun Magazine (.45)", "TMM"),
-			new/datum/uplink_item(/obj/item/ammo_magazine/tommydrum, 3, "Tommygun Drum Magazine (.45)", "TMD")
-			),
-		"Highly Visible and Dangerous Weapons" = list(
-			 new/datum/uplink_item(/obj/item/weapon/storage/box/emps, 3, "5 EMP Grenades", "EM"),
-			 new/datum/uplink_item(/obj/item/weapon/melee/energy/sword, 4, "Energy Sword", "ES"),
-			 new/datum/uplink_item(/obj/item/weapon/gun/projectile/dartgun, 5, "Dart Gun", "DG"),
-			 new/datum/uplink_item(/obj/item/weapon/gun/energy/crossbow, 5, "Energy Crossbow", "XB"),
-			 new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/g9mm, 5, "Silenced 9mm", "S9"),
-			 new/datum/uplink_item(/obj/item/mecha_parts/mecha_equipment/weapon/energy/riggedlaser, 6, "Exosuit Rigged Laser", "RL"),
-			 new/datum/uplink_item(/obj/item/weapon/gun/projectile/revolver, 6, "Revolver", "RE"),
-			 new/datum/uplink_item(/obj/item/weapon/storage/box/syndicate, 10, "Mercenary Bundle", "BU"),
-			 new/datum/uplink_item(/obj/item/weapon/gun/projectile/heavysniper, 12, "Anti-materiel Rifle", "AMR"),
-			 new/datum/uplink_item(/obj/item/clothing/gloves/force/syndicate, 4, "Force Gloves", "FG"),
-			 new/datum/uplink_item(/obj/item/weapon/gun/projectile/automatic/tommygun, 7, "Tommy Gun", "TMG"),
-			 new/datum/uplink_item(/obj/item/weapon/grenade/spawnergrenade/manhacks, 2, "Manhack Delivery Grenade", "MH"),
-			),
-		"Stealthy and Inconspicuous Weapons" = list(
-			new/datum/uplink_item(/obj/item/weapon/soap/syndie, 1, "Subversive Soap", "SP"),
-			new/datum/uplink_item(/obj/item/weapon/cane/concealed, 2, "Concealed Cane Sword", "CC"),
-			new/datum/uplink_item(/obj/item/weapon/cartridge/syndicate, 3, "Detomatix PDA Cartridge", "DC"),
-			new/datum/uplink_item(/obj/item/weapon/pen/reagent/paralysis, 3, "Paralysis Pen", "PP"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/cigarette, 4, "Cigarette Kit", "BH"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/toxin, 4, "Random Toxin - Beaker", "RT")
-			),
-		"Stealth and Camouflage Items" = list(
-			new/datum/uplink_item(/obj/item/weapon/card/id/syndicate, 2, "Agent ID card", "AC"),
-			new/datum/uplink_item(/obj/item/clothing/shoes/syndigaloshes, 2, "No-Slip Shoes", "SH"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/spy, 2, "Bug Kit", "BK"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/chameleon, 3, "Chameleon Kit", "CB"),
-			new/datum/uplink_item(/obj/item/device/chameleon, 4, "Chameleon-Projector", "CP"),
-			new/datum/uplink_item(/obj/item/clothing/mask/gas/voice, 4, "Voice Changer", "VC"),
-			new/datum/uplink_item(/obj/item/weapon/disk/file/cameras/syndicate, 6, "Camera Network Access - Floppy", "SF")
-			),
-		"Devices and Tools" = list(
-			new/datum/uplink_item(/obj/item/weapon/storage/toolbox/syndicate, 1, "Fully Loaded Toolbox", "ST"),
-			new/datum/uplink_item(/obj/item/weapon/plastique, 2, "C-4 (Destroys walls)", "C4"),
-			new/datum/uplink_item(/obj/item/device/encryptionkey/syndicate, 2, "Encrypted Radio Channel Key", "ER"),
-			new/datum/uplink_item(/obj/item/device/radiojammer, 2, "Small Radio Jammer", "RJ"),
-			new/datum/uplink_item(/obj/item/device/encryptionkey/binary, 3, "Binary Translator Key", "BT"),
-			new/datum/uplink_item(/obj/item/weapon/card/emag, 3, "Cryptographic Sequencer", "EC"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/clerical, 3, "Morphic Clerical Kit", "CK"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/space, 3, "Space Suit", "SS"),
-			new/datum/uplink_item(/obj/item/clothing/glasses/thermal/syndi, 3, "Thermal Imaging Glasses", "TM"),
-			new/datum/uplink_item(/obj/item/clothing/suit/storage/vest/heavy/merc, 4, "Heavy Armor Vest", "HAV"),
-			new/datum/uplink_item(/obj/item/weapon/aiModule/syndicate, 7, "Hacked AI Upload Module", "AI"),
-			new/datum/uplink_item(/obj/item/device/powersink, 5, "Powersink (DANGER!)", "PS",),
-			new/datum/uplink_item(/obj/item/device/radio/beacon/syndicate, 7, "Singularity Beacon (DANGER!)", "SB"),
-			new/datum/uplink_item(/obj/item/weapon/circuitboard/teleporter, 20, "Teleporter Circuit Board", "TP"),
-			new/datum/uplink_item(/obj/item/weapon/antag_spawner/borg_tele, 14, "Syndicate Cyborg Teleporter", "SCT", newBuyCheck = /proc/can_buy_syndieborg)
-			),
-		"Implants" = list(
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/imp_freedom, 3, "Freedom Implant", "FI"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/imp_compress, 4, "Compressed Matter Implant", "CI"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/imp_explosive, 6, "Explosive Implant (DANGER!)", "EI"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/imp_uplink, 10, "Uplink Implant (Contains 5 Telecrystals)", "UI")
-			),
-		"Medical" = list(
-			new/datum/uplink_item(/obj/item/weapon/storage/box/sinpockets, 1, "Box of Sin-Pockets", "DP"),
-			new/datum/uplink_item(/obj/item/weapon/storage/firstaid/surgery, 5, "Surgery kit", "SK"),
-			new/datum/uplink_item(/obj/item/weapon/storage/firstaid/combat, 5, "Combat medical kit", "CM"),
-			new/datum/uplink_item(/obj/item/weapon/reagent_containers/hypospray/combat, 4, "Combat Hypospray", "CH")
-		),
-		"Hardsuit Modules" = list(
-			new/datum/uplink_item(/obj/item/rig_module/vision/thermal, 2, "Thermal Scanner", "RTS"),
-			new/datum/uplink_item(/obj/item/rig_module/fabricator/energy_net, 3, "Net Projector", "REN"),
-			new/datum/uplink_item(/obj/item/weapon/storage/box/syndie_kit/ewar_voice, 4, "Electrowarfare Suite and Voice Synthesiser", "REV"),
-			new/datum/uplink_item(/obj/item/rig_module/maneuvering_jets, 4, "Maneuvering Jets", "RMJ"),
-			new/datum/uplink_item(/obj/item/rig_module/mounted/egun, 6, "Mounted Energy Gun", "REG"),
-			new/datum/uplink_item(/obj/item/rig_module/power_sink, 6, "Power Sink", "RPS"),
-			new/datum/uplink_item(/obj/item/rig_module/mounted, 8, "Mounted Laser Cannon", "RLC")
-		),
-		"(Pointless) Badassery" = list(
-			new/datum/uplink_item(/obj/item/toy/syndicateballoon, 10, "For showing that You Are The BOSS (Useless Balloon)", "BS"),
-			new/datum/uplink_item(/obj/item/toy/nanotrasenballoon, 10, "For showing that you love NT SOO much (Useless Balloon)", "NT")
-			)
-		)
-
 /datum/game_mode/New()
 	..()
 	// Enforce some formatting.
@@ -193,17 +106,21 @@ var/global/list/additional_antag_types = list()
 			return
 		var/datum/antagonist/antag = all_antag_types[choice]
 		if(antag)
-			if(!islist(ticker.mode.antag_templates))
-				ticker.mode.antag_templates = list()
-			ticker.mode.antag_templates |= antag
+			if(!islist(SSticker.mode.antag_templates))
+				SSticker.mode.antag_templates = list()
+			SSticker.mode.antag_templates |= antag
 			message_admins("Admin [key_name_admin(usr)] added [antag.role_text] template to game mode.")
 
 	// I am very sure there's a better way to do this, but I'm not sure what it might be. ~Z
-	spawn(1)
+	// yes there is. but let me first immortalize this code.
+/*	spawn(1)
 		for(var/datum/admins/admin in world)
 			if(usr.client == admin.owner)
 				admin.show_game_mode(usr)
-				return
+				return */
+
+	if (usr.client && usr.client.holder)
+		usr.client.holder.show_game_mode(usr)
 
 /datum/game_mode/proc/announce() //to be called when round starts
 	world << "<B>The current game mode is [capitalize(name)]!</B>"
@@ -221,7 +138,7 @@ var/global/list/additional_antag_types = list()
 			antag_summary += "[antag.role_text_plural]"
 			i++
 		antag_summary += "."
-		if(antag_templates.len > 1 && master_mode != "secret")
+		if(antag_templates.len > 1 && !SSticker.hide_mode)
 			world << "[antag_summary]"
 		else
 			message_admins("[antag_summary]")
@@ -230,7 +147,7 @@ var/global/list/additional_antag_types = list()
 ///Checks to see if the game can be setup and ran with the current number of players or whatnot.
 /datum/game_mode/proc/can_start(var/do_not_spawn)
 	var/playerC = 0
-	for(var/mob/new_player/player in player_list)
+	for(var/mob/abstract/new_player/player in player_list)
 		if((player.client)&&(player.ready))
 			playerC++
 
@@ -261,12 +178,12 @@ var/global/list/additional_antag_types = list()
 
 /datum/game_mode/proc/refresh_event_modifiers()
 	if(event_delay_mod_moderate || event_delay_mod_major)
-		event_manager.report_at_round_end = 1
+		SSevents.report_at_round_end = 1
 		if(event_delay_mod_moderate)
-			var/datum/event_container/EModerate = event_manager.event_containers[EVENT_LEVEL_MODERATE]
+			var/datum/event_container/EModerate = SSevents.event_containers[EVENT_LEVEL_MODERATE]
 			EModerate.delay_modifier = event_delay_mod_moderate
 		if(event_delay_mod_moderate)
-			var/datum/event_container/EMajor = event_manager.event_containers[EVENT_LEVEL_MAJOR]
+			var/datum/event_container/EMajor = SSevents.event_containers[EVENT_LEVEL_MAJOR]
 			EMajor.delay_modifier = event_delay_mod_major
 
 /datum/game_mode/proc/pre_setup()
@@ -304,8 +221,8 @@ var/global/list/additional_antag_types = list()
 		emergency_shuttle.auto_recall = 1
 
 	feedback_set_details("round_start","[time2text(world.realtime)]")
-	if(ticker && ticker.mode)
-		feedback_set_details("game_mode","[ticker.mode]")
+	if(SSticker.mode)
+		feedback_set_details("game_mode","[SSticker.mode]")
 	feedback_set_details("server_ip","[world.internet_address]:[world.port]")
 	return 1
 
@@ -345,8 +262,6 @@ var/global/list/additional_antag_types = list()
 		"killer bugs that lay eggs in the husks of the living",
 		"a deserted transport carrying xenomorph specimens",
 		"an emissary for the gestalt requesting a security detail",
-		"a Tajaran slave rebellion",
-		"radical Skrellian transevolutionaries",
 		"classified security operations"
 		)
 	command_announcement.Announce("The presence of [pick(reasons)] in the region is tying up all available local emergency resources; emergency response teams cannot be called at this time, and post-evacuation recovery efforts will be substantially delayed.","Emergency Transmission")
@@ -371,6 +286,7 @@ var/global/list/additional_antag_types = list()
 
 	var/is_antag_mode = (antag_templates && antag_templates.len)
 	var/discord_text = "A round of **[name]** has ended! \[Game ID: [game_id]\]\n\n"
+	var/antag_text = ""
 	check_victory()
 	if(is_antag_mode)
 		sleep(10)
@@ -378,12 +294,15 @@ var/global/list/additional_antag_types = list()
 			sleep(10)
 			antag.check_victory()
 			antag.print_player_summary()
-
 			// Avoid the longest loop if we aren't actively using the bot.
 			if (discord_bot.active)
-				discord_text += antag.print_player_summary_discord()
+				antag_text += antag.print_player_summary_discord()
 
-	discord_bot.send_to_announce(discord_text)
+		sleep(10)
+		print_ownerless_uplinks()
+
+	discord_text += antag_text
+	discord_bot.send_to_announce(discord_text, 1)
 	discord_text = ""
 
 	var/clients = 0
@@ -404,10 +323,14 @@ var/global/list/additional_antag_types = list()
 		if(M.client)
 			clients++
 			if(ishuman(M))
+				var/mob/living/carbon/human/H = M
 				if(M.stat != DEAD)
 					surviving_humans++
 					if(M.loc && M.loc.loc && M.loc.loc.type in escape_locations)
 						escaped_humans++
+					if (isipc(H))
+						var/datum/species/machine/machine = H.species
+						machine.update_tag(H, H.client)
 			if(M.stat != DEAD)
 				surviving_total++
 				if(M.loc && M.loc.loc && M.loc.loc.type in escape_locations)
@@ -430,18 +353,19 @@ var/global/list/additional_antag_types = list()
 
 	var/text = ""
 	if(surviving_total > 0)
-		text += "<br>There [surviving_total>1 ? "were <b>[surviving_total] survivors</b>" : "was <b>one survivor</b>"]</b>"
-		text += " (<b>[escaped_total>0 ? escaped_total : "none"] [emergency_shuttle.evac ? "escaped" : "transferred"]</b>) and <b>[ghosts] ghosts</b>.</b><br>"
+		text += "<br>There [surviving_total>1 ? "were <b>[surviving_total] survivors</b>" : "was <b>one survivor</b>"]"
+		text += " (<b>[escaped_total>0 ? escaped_total : "none"] [emergency_shuttle.evac ? "escaped" : "transferred"]</b>) and <b>[ghosts] ghosts</b>.<br>"
 
 		discord_text += "There [surviving_total>1 ? "were **[surviving_total] survivors**" : "was **one survivor**"]"
 		discord_text += " ([escaped_total>0 ? escaped_total : "none"] [emergency_shuttle.evac ? "escaped" : "transferred"]) and **[ghosts] ghosts**."
 	else
-		text += "There were <b>no survivors</b> (<b>[ghosts] ghosts</b>).</b>"
+		text += "There were <b>no survivors</b> (<b>[ghosts] ghosts</b>)."
 
 		discord_text += "There were **no survivors** ([ghosts] ghosts)."
 	world << text
 
 	discord_bot.send_to_announce(discord_text)
+	post_webhook_event(WEBHOOK_ROUNDEND, list("survivours"=surviving_total, "escaped"=escaped_total, "ghosts"=ghosts, "gamemode"=name, "gameid"=game_id, "antags"=antag_text))
 
 	if(clients > 0)
 		feedback_set("round_end_clients",clients)
@@ -473,8 +397,7 @@ var/global/list/additional_antag_types = list()
 
 /datum/game_mode/proc/send_intercept()
 
-	var/intercepttext = "<FONT size = 3><B>Cent. Com. Update</B> Requested status information:</FONT><HR>"
-	intercepttext += "<B> In case you have misplaced your copy, attached is a list of personnel whom reliable sources&trade; suspect may be affiliated with subversive elements:</B><br>"
+	var/intercepttext = "<center><img src = ntlogo.png></center><BR><FONT size = 3><BR><B>Cent. Com. Update</B><BR>FOR YOUR EYES ONLY:</FONT><HR><font face='Courier New'>"
 
 	var/list/disregard_roles = list()
 	for(var/antag_type in all_antag_types)
@@ -483,42 +406,133 @@ var/global/list/additional_antag_types = list()
 			disregard_roles |= antag.role_text
 
 	var/list/suspects = list()
+	var/list/loyalists
+	var/list/repeat_offenders = list()
+	var/eng_suspect = 0
+	var/eng = 0
+	var/sec_suspect = 0
+	var/sec = 0
+	var/med_suspect = 0
+	var/med = 0
+	var/sci_suspect = 0
+	var/sci = 0
+	var/civ_suspect = 0
+	var/civ = 0
+	var/loyal_crew = 0
+	var/total_crew = 0
+	var/evil_department
+
 	for(var/mob/living/carbon/human/man in player_list) if(man.client && man.mind)
 
 		// NT relation option
 		var/special_role = man.mind.special_role
 		var/datum/antagonist/special_role_data = get_antag_data(special_role)
 
+		total_crew += 1
 		if (special_role in disregard_roles)
 			continue
-		else if(man.client.prefs.nanotrasen_relation == "Opposed" && prob(50) || \
-			man.client.prefs.nanotrasen_relation == "Skeptical" && prob(20))
+		else if(man.mind.assigned_job)
+			var/datum/job/job = man.mind.assigned_job
+			var/evil = 0
+			if(man.client.prefs.nanotrasen_relation == COMPANY_OPPOSED || man.client.prefs.nanotrasen_relation == COMPANY_SKEPTICAL)
+				evil = 1
+			switch(job.department)
+				if("Civilian" || "Cargo")
+					civ += 1
+					if(evil)
+						civ_suspect += 1
+				if("Engineering")
+					eng += 1
+					if(evil)
+						eng_suspect += 1
+				if("Security")
+					sec += 1
+					if(evil)
+						sec_suspect += 1
+				if("Medical")
+					med +=1
+					if(evil)
+						med_suspect += 1
+				if("Science")
+					sci += 1
+					if(evil)
+						sci_suspect += 1
+
+		else if(man.client.prefs.nanotrasen_relation == COMPANY_OPPOSED && prob(25))
 			suspects += man
+		else if(man.client.prefs.nanotrasen_relation == COMPANY_LOYAL || man.client.prefs.nanotrasen_relation == COMPANY_SUPPORTATIVE)
+			loyal_crew += 1
+			if(prob(25))
+				loyalists += man
 		// Antags
 		else if(special_role_data && prob(special_role_data.suspicion_chance))
 			suspects += man
+		if(man.incidents.len >= 3)
+			repeat_offenders += man
 
-		// Some poor people who were just in the wrong place at the wrong time..
-		else if(prob(10))
-			suspects += man
+	var/civ_ratio = 0
+	if(civ)
+		civ_ratio = civ_suspect / civ
+	var/eng_ratio = 0
+	if(eng)
+		eng_ratio = eng_suspect / eng
+	var/sec_ratio = 0
+	if(sec)
+		sec_ratio = sec_suspect / sec
+	var/med_ratio = 0
+	if(med)
+		med_ratio = med_suspect / med
+	var/sci_ratio  = 0
+	if(sci)
+		sci_ratio = sci_suspect / sci
 
-	for(var/mob/M in suspects)
-		if(player_is_antag(M.mind, only_offstation_roles = 1))
-			continue
-		switch(rand(1, 100))
-			if(1 to 50)
-				intercepttext += "Someone with the job of <b>[M.mind.assigned_role]</b> <br>"
-			else
-				intercepttext += "<b>[M.name]</b>, the <b>[M.mind.assigned_role]</b> <br>"
+	var/most_evil = max(civ_ratio, eng_ratio, sec_ratio, med_ratio, sci_ratio)
+	if(most_evil >= 0.5)
+		if(most_evil == civ_ratio)
+			evil_department = "Civilian & Supply"
+		else if(most_evil == eng_ratio)
+			evil_department = "Engineering"
+		else if(most_evil == sec_ratio)
+			evil_department = "Security"
+		else if(most_evil == med_ratio)
+			evil_department = "Medical"
+		else if(most_evil == sci_ratio)
+			evil_department = "Science"
 
-	for (var/obj/machinery/computer/communications/comm in machines)
-		if (!(comm.stat & (BROKEN | NOPOWER)) && comm.prints_intercept)
-			var/obj/item/weapon/paper/intercept = new /obj/item/weapon/paper( comm.loc )
-			intercept.name = "Cent. Com. Status Summary"
-			intercept.info = intercepttext
+	var/business_jargon = list("Collated incident reports","Assembled peer-reviews","Persistently negative staff reviews","Collected shift logs","Accumulated negative reports","Analyzed shift data")
+	var/mean_words = list("has expressed consistent disapproval with the network", "is no longer working efficiently","has gone on record against NanoTrasen practices","is spreading minor dissent in response to recent NanoTrasen behavior","has expressed subversive intent","is unhappy with their employment package")
 
-			comm.messagetitle.Add("Cent. Com. Status Summary")
-			comm.messagetext.Add(intercepttext)
+	if(suspects)
+		intercepttext += "<B>The personnel listed below have been marked at-risk elements that Cent. Com. has deemed priority handling for the current shift:</B><br>"
+		for(var/mob/living/carbon/human/M in suspects)
+			if(player_is_antag(M.mind, only_offstation_roles = 1))
+				continue
+			intercepttext += "<br>     + [pick(business_jargon)] indicate that [M.mind.assigned_role] [M.name] [pick(mean_words)]."
+		intercepttext += "Cent. Com recommends coordinating with human resources to resolve any issues with employment.<br>"
+
+	if(repeat_offenders)
+		intercepttext += "<br><B>The personnel listed below possess three or more offenses listed on record:</B>"
+		for(var/mob/living/carbon/human/M in repeat_offenders)
+			intercepttext += "<br>     + [M.mind.assigned_role] [M.name], [M.incidents.len] offenses."
+		intercepttext += "Cent. Com recommends coordinating with internal security to monitor and rehabilitate these personnel.<br>"
+
+	if(loyalists)
+		intercepttext += "<br><B>The personnel listed below have been indicated as particularly loyal to NanoTrasen:</B>"
+		for(var/mob/living/carbon/human/M in loyalists)
+			intercepttext += "<br>     + [M.mind.assigned_role] [M.name]."
+		intercepttext += "Cent. Com recommends coordinating with human resources to reward and further motivate these personnel for their loyalty.<br>"
+
+	if(evil_department)
+		intercepttext += "<br>[pick(business_jargon)] indicate that a majority of the [evil_department] department [pick(mean_words)]. This department has been marked at-risk and Cent. Com. recommends immediate action before the situation worsens.<br>"
+	if(total_crew)
+		intercepttext += "<br>Data collected and analyzed by A.L.I.C.E. indicate that [round((loyal_crew/total_crew)*100)]% of the current crew detail are supportive of NanoTrasen actions. Cent. Com. implores the current Head of Staff detail to increase this percentage.<br>"
+
+	intercepttext += "<hr> </font>Respectfully,<br><i>Quix Repi'Weish</i>, Chief Personnel Director<br>"
+	intercepttext += "<center><img src = barcode[rand(0, 3)].png></center>"
+
+	//New message handling
+	post_comm_message("Cent. Com. Status Summary", intercepttext)
+
 	world << sound('sound/AI/commandreport.ogg')
 
 /datum/game_mode/proc/get_players_for_role(var/role, var/antag_id)
@@ -530,32 +544,32 @@ var/global/list/additional_antag_types = list()
 		return candidates
 
 	// If this is being called post-roundstart then it doesn't care about ready status.
-	if(ticker && ticker.current_state == GAME_STATE_PLAYING)
+	if(SSticker.current_state == GAME_STATE_PLAYING)
 		for(var/mob/player in player_list)
 			if(!player.client)
 				continue
-			if(istype(player, /mob/new_player))
+			if(istype(player, /mob/abstract/new_player))
 				continue
-			if(!role || (player.client.prefs.be_special & role))
+			if(!role || (role in player.client.prefs.be_special_role))
 				log_debug("[player.key] had [antag_id] enabled, so we are drafting them.")
 				candidates |= player.mind
 	else
 		// Assemble a list of active players without jobbans.
-		for(var/mob/new_player/player in player_list)
+		for(var/mob/abstract/new_player/player in player_list)
 			if( player.client && player.ready )
 				players += player
 
 		// Get a list of all the people who want to be the antagonist for this round
-		for(var/mob/new_player/player in players)
-			if(!role || (player.client.prefs.be_special & role))
+		for(var/mob/abstract/new_player/player in players)
+			if(!role || (role in player.client.prefs.be_special_role))
 				log_debug("[player.key] had [antag_id] enabled, so we are drafting them.")
 				candidates += player.mind
 				players -= player
 
 		// If we don't have enough antags, draft people who voted for the round.
 		if(candidates.len < required_enemies)
-			for(var/mob/new_player/player in players)
-				if(player.ckey in round_voters)
+			for(var/mob/abstract/new_player/player in players)
+				if(player.ckey in SSvote.round_voters)
 					log_debug("[player.key] voted for this round, so we are drafting them.")
 					candidates += player.mind
 					players -= player
@@ -567,7 +581,7 @@ var/global/list/additional_antag_types = list()
 
 /datum/game_mode/proc/num_players()
 	. = 0
-	for(var/mob/new_player/P in player_list)
+	for(var/mob/abstract/new_player/P in player_list)
 		if(P.client && P.ready)
 			. ++
 
@@ -604,7 +618,7 @@ var/global/list/additional_antag_types = list()
 //Reports player logouts//
 //////////////////////////
 proc/display_roundstart_logout_report()
-	var/msg = "\blue <b>Roundstart logout report\n\n"
+	var/msg = "<span class='notice'><b>Roundstart logout report</b>\n\n"
 	for(var/mob/living/L in mob_list)
 
 		if(L.ckey)
@@ -621,9 +635,6 @@ proc/display_roundstart_logout_report()
 				msg += "<b>[L.name]</b> ([L.ckey]), the [L.job] (<font color='#ffcc00'><b>Connected, Inactive</b></font>)\n"
 				continue //AFK client
 			if(L.stat)
-				if(L.suiciding)	//Suicider
-					msg += "<b>[L.name]</b> ([L.ckey]), the [L.job] (<font color='red'><b>Suicide</b></font>)\n"
-					continue //Disconnected client
 				if(L.stat == UNCONSCIOUS)
 					msg += "<b>[L.name]</b> ([L.ckey]), the [L.job] (Dying)\n"
 					continue //Unconscious
@@ -632,15 +643,11 @@ proc/display_roundstart_logout_report()
 					continue //Dead
 
 			continue //Happy connected client
-		for(var/mob/dead/observer/D in mob_list)
+		for(var/mob/abstract/observer/D in mob_list)
 			if(D.mind && (D.mind.original == L || D.mind.current == L))
 				if(L.stat == DEAD)
-					if(L.suiciding)	//Suicider
-						msg += "<b>[L.name]</b> ([ckey(D.mind.key)]), the [L.job] (<font color='red'><b>Suicide</b></font>)\n"
-						continue //Disconnected client
-					else
-						msg += "<b>[L.name]</b> ([ckey(D.mind.key)]), the [L.job] (Dead)\n"
-						continue //Dead mob, ghost abandoned
+					msg += "<b>[L.name]</b> ([ckey(D.mind.key)]), the [L.job] (Dead)\n"
+					continue //Dead mob, ghost abandoned
 				else
 					if(D.can_reenter_corpse)
 						msg += "<b>[L.name]</b> ([ckey(D.mind.key)]), the [L.job] (<font color='red'><b>Adminghosted</b></font>)\n"
@@ -648,6 +655,8 @@ proc/display_roundstart_logout_report()
 					else
 						msg += "<b>[L.name]</b> ([ckey(D.mind.key)]), the [L.job] (<font color='red'><b>Ghosted</b></font>)\n"
 						continue //Ghosted while alive
+
+	msg += "</span>" // close the span from right at the top
 
 	for(var/mob/M in mob_list)
 		if(M.client && M.client.holder)
@@ -657,9 +666,9 @@ proc/get_nt_opposed()
 	var/list/dudes = list()
 	for(var/mob/living/carbon/human/man in player_list)
 		if(man.client)
-			if(man.client.prefs.nanotrasen_relation == "Opposed")
+			if(man.client.prefs.nanotrasen_relation == COMPANY_OPPOSED)
 				dudes += man
-			else if(man.client.prefs.nanotrasen_relation == "Skeptical" && prob(50))
+			else if(man.client.prefs.nanotrasen_relation == COMPANY_SKEPTICAL && prob(50))
 				dudes += man
 	if(dudes.len == 0) return null
 	return pick(dudes)
@@ -693,16 +702,41 @@ proc/get_nt_opposed()
 	set name = "Check Round Info"
 	set category = "OOC"
 
-	if(!ticker || !ticker.mode)
+	if(!SSticker.mode)
 		usr << "Something is terribly wrong; there is no gametype."
 		return
 
-	if(master_mode != "secret")
-		usr << "<b>The roundtype is [capitalize(ticker.mode.name)]</b>"
-		if(ticker.mode.round_description)
-			usr << "<i>[ticker.mode.round_description]</i>"
-		if(ticker.mode.extended_round_description)
-			usr << "[ticker.mode.extended_round_description]"
+	if(!SSticker.hide_mode)
+		usr << "<b>The roundtype is [capitalize(SSticker.mode.name)]</b>"
+		if(SSticker.mode.round_description)
+			usr << "<i>[SSticker.mode.round_description]</i>"
+		if(SSticker.mode.extended_round_description)
+			usr << "[SSticker.mode.extended_round_description]"
 	else
 		usr << "<i>Shhhh</i>. It's a secret."
 	return
+
+/mob/verb/check_gamemode_probability()
+	set name = "Check Gamemode Probability"
+	set category = "OOC"
+
+	if(config.show_game_type_odd)
+		to_chat(src, "<b>Secret Mode Odds:</b>")
+		var/sum = 0
+		for(var/config_tag in config.probabilities_secret)
+			sum += config.probabilities_secret[config_tag]
+		for(var/config_tag in config.probabilities_secret)
+			if(config.probabilities_secret[config_tag] > 0)
+				var/percentage = round(config.probabilities_secret[config_tag] / sum * 100, 0.1)
+				to_chat(src, "[config_tag] [percentage]%")
+
+		to_chat(src, "<b>Mixed Secret Mode Odds:</b>")
+		sum = 0
+		for(var/config_tag in config.probabilities_mixed_secret)
+			sum += config.probabilities_mixed_secret[config_tag]
+		for(var/config_tag in config.probabilities_mixed_secret)
+			if(config.probabilities_mixed_secret[config_tag] > 0)
+				var/percentage = round(config.probabilities_mixed_secret[config_tag] / sum * 100, 0.1)
+				to_chat(src, "[config_tag] [percentage]%")
+	else
+		to_chat(src, "Displaying gamemode odds is disabled in the config.")

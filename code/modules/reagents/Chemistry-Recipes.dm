@@ -1,3 +1,15 @@
+//helper that ensures the reaction rate holds after iterating
+//Ex. REACTION_RATE(0.3) means that 30% of the reagents will react each chemistry tick (~2 seconds by default).
+#define REACTION_RATE(rate) (1.0 - (1.0-rate)**(1.0/PROCESS_REACTION_ITER))
+
+//helper to define reaction rate in terms of half-life
+//Ex.
+//HALF_LIFE(0) -> Reaction completes immediately (default chems)
+//HALF_LIFE(1) -> Half of the reagents react immediately, the rest over the following ticks.
+//HALF_LIFE(2) -> Half of the reagents are consumed after 2 chemistry ticks.
+//HALF_LIFE(3) -> Half of the reagents are consumed after 3 chemistry ticks.
+#define HALF_LIFE(ticks) (ticks? 1.0 - (0.5)**(1.0/(ticks*PROCESS_REACTION_ITER)) : 1.0)
+
 /datum/chemical_reaction
 	var/name = null
 	var/id = null
@@ -5,18 +17,112 @@
 	var/list/required_reagents = list()
 	var/list/catalysts = list()
 	var/list/inhibitors = list()
-
 	var/result_amount = 0
+
+	//how far the reaction proceeds each time it is processed. Used with either REACTION_RATE or HALF_LIFE macros.
+	var/reaction_rate = HALF_LIFE(0)
+
+	//if less than 1, the reaction will be inhibited if the ratio of products/reagents is too high.
+	//0.5 = 50% yield -> reaction will only proceed halfway until products are removed.
+	var/yield = 1.0
+
+	//If limits on reaction rate would leave less than this amount of any reagent (adjusted by the reaction ratios),
+	//the reaction goes to completion. This is to prevent reactions from going on forever with tiny reagent amounts.
+	var/min_reaction = 2
+
 	var/mix_message = "The solution begins to bubble."
+	var/reaction_sound = 'sound/effects/bubbles.ogg'
 
 	var/log_is_important = 0 // If this reaction should be considered important for logging. Important recipes message admins when mixed, non-important ones just log to file.
 /datum/chemical_reaction/proc/can_happen(var/datum/reagents/holder)
+	//check that all the required reagents are present
+	if(!holder.has_all_reagents(required_reagents))
+		return 0
+
+	//check that all the required catalysts are present in the required amount
+	if(!holder.has_all_reagents(catalysts))
+		return 0
+
+	//check that none of the inhibitors are present in the required amount
+	if(holder.has_any_reagent(inhibitors))
+		return 0
+
 	return 1
 
+/datum/chemical_reaction/proc/calc_reaction_progress(var/datum/reagents/holder, var/reaction_limit)
+	var/progress = reaction_limit * reaction_rate //simple exponential progression
+
+	//calculate yield
+	if(1-yield > 0.001) //if yield ratio is big enough just assume it goes to completion
+		/*
+			Determine the max amount of product by applying the yield condition:
+			(max_product/result_amount) / reaction_limit == yield/(1-yield)
+
+			We make use of the fact that:
+			reaction_limit = (holder.get_reagent_amount(reactant) / required_reagents[reactant]) of the limiting reagent.
+		*/
+		var/yield_ratio = yield/(1-yield)
+		var/max_product = yield_ratio * reaction_limit * result_amount //rearrange to obtain max_product
+		var/yield_limit = max(0, max_product - holder.get_reagent_amount(result))/result_amount
+
+		progress = min(progress, yield_limit) //apply yield limit
+
+	//apply min reaction progress - wasn't sure if this should go before or after applying yield
+	//I guess people can just have their miniscule reactions go to completion regardless of yield.
+	for(var/reactant in required_reagents)
+		var/remainder = holder.get_reagent_amount(reactant) - progress*required_reagents[reactant]
+		if(remainder <= min_reaction*required_reagents[reactant])
+			progress = reaction_limit
+			break
+
+	return progress
+
+/datum/chemical_reaction/process(var/datum/reagents/holder)
+	//determine how far the reaction can proceed
+	var/list/reaction_limits = list()
+	for(var/reactant in required_reagents)
+		reaction_limits += holder.get_reagent_amount(reactant) / required_reagents[reactant]
+
+	//determine how far the reaction proceeds
+	var/reaction_limit = min(reaction_limits)
+	var/progress_limit = calc_reaction_progress(holder, reaction_limit)
+
+	var/reaction_progress = min(reaction_limit, progress_limit) //no matter what, the reaction progress cannot exceed the stoichiometric limit.
+
+	//need to obtain the new reagent's data before anything is altered
+	var/data = send_data(holder, reaction_progress)
+
+	//remove the reactants
+	for(var/reactant in required_reagents)
+		var/amt_used = required_reagents[reactant] * reaction_progress
+		holder.remove_reagent(reactant, amt_used, safety = 1)
+
+	//add the product
+	var/amt_produced = result_amount * reaction_progress
+	if(result)
+		holder.add_reagent(result, amt_produced, data, safety = 1)
+
+	on_reaction(holder, amt_produced)
+
+	return reaction_progress
+
+//called when a reaction processes
 /datum/chemical_reaction/proc/on_reaction(var/datum/reagents/holder, var/created_volume)
 	return
 
-/datum/chemical_reaction/proc/send_data(var/datum/reagents/T)
+//called after processing reactions, if they occurred
+/datum/chemical_reaction/proc/post_reaction(var/datum/reagents/holder)
+	var/atom/container = holder.my_atom
+	if(mix_message && container && !ismob(container))
+		var/turf/T = get_turf(container)
+		var/list/seen = viewers(4, T)
+		for(var/mob/M in seen)
+			M.show_message("<span class='notice'>\icon[container] [mix_message]</span>", 1)
+		playsound(T, reaction_sound, 80, 1)
+
+//obtains any special data that will be provided to the reaction products
+//this is called just before reactants are removed.
+/datum/chemical_reaction/proc/send_data(var/datum/reagents/holder, var/reaction_limit)
 	return null
 
 /* Common reactions */
@@ -25,21 +131,21 @@
 	name = "Inaprovaline"
 	id = "inaprovaline"
 	result = "inaprovaline"
-	required_reagents = list("oxygen" = 1, "carbon" = 1, "sugar" = 1)
+	required_reagents = list("acetone" = 1, "carbon" = 1, "sugar" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/dylovene
 	name = "Dylovene"
 	id = "anti_toxin"
 	result = "anti_toxin"
-	required_reagents = list("silicon" = 1, "potassium" = 1, "nitrogen" = 1)
+	required_reagents = list("silicon" = 1, "potassium" = 1, "ammonia" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/tramadol
 	name = "Tramadol"
 	id = "tramadol"
 	result = "tramadol"
-	required_reagents = list("inaprovaline" = 1, "ethanol" = 1, "oxygen" = 1)
+	required_reagents = list("inaprovaline" = 1, "ethanol" = 1, "acetone" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/paracetamol
@@ -54,42 +160,35 @@
 	id = "oxycodone"
 	result = "oxycodone"
 	required_reagents = list("ethanol" = 1, "tramadol" = 1)
-	catalysts = list("phoron" = 1)
+	catalysts = list("phoron" = 5)
 	result_amount = 1
 
 /datum/chemical_reaction/sterilizine
 	name = "Sterilizine"
 	id = "sterilizine"
 	result = "sterilizine"
-	required_reagents = list("ethanol" = 1, "anti_toxin" = 1, "chlorine" = 1)
+	required_reagents = list("ethanol" = 1, "anti_toxin" = 1, "hclacid" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/silicate
 	name = "Silicate"
 	id = "silicate"
 	result = "silicate"
-	required_reagents = list("aluminum" = 1, "silicon" = 1, "oxygen" = 1)
+	required_reagents = list("aluminum" = 1, "silicon" = 1, "acetone" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/mutagen
 	name = "Unstable mutagen"
 	id = "mutagen"
 	result = "mutagen"
-	required_reagents = list("radium" = 1, "phosphorus" = 1, "chlorine" = 1)
+	required_reagents = list("radium" = 1, "phosphorus" = 1, "hclacid" = 1)
 	result_amount = 3
-
-/datum/chemical_reaction/water
-	name = "Water"
-	id = "water"
-	result = "water"
-	required_reagents = list("oxygen" = 1, "hydrogen" = 2)
-	result_amount = 1
 
 /datum/chemical_reaction/thermite
 	name = "Thermite"
 	id = "thermite"
 	result = "thermite"
-	required_reagents = list("aluminum" = 1, "iron" = 1, "oxygen" = 1)
+	required_reagents = list("aluminum" = 1, "iron" = 1, "acetone" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/space_drugs
@@ -103,14 +202,14 @@
 	name = "Space Lube"
 	id = "lube"
 	result = "lube"
-	required_reagents = list("water" = 1, "silicon" = 1, "oxygen" = 1)
+	required_reagents = list("water" = 1, "silicon" = 1, "acetone" = 1)
 	result_amount = 4
 
 /datum/chemical_reaction/pacid
 	name = "Polytrinic acid"
 	id = "pacid"
 	result = "pacid"
-	required_reagents = list("sacid" = 1, "chlorine" = 1, "potassium" = 1)
+	required_reagents = list("sacid" = 1, "hclacid" = 1, "potassium" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/synaptizine
@@ -131,14 +230,14 @@
 	name = "Arithrazine"
 	id = "arithrazine"
 	result = "arithrazine"
-	required_reagents = list("hyronalin" = 1, "hydrogen" = 1)
+	required_reagents = list("hyronalin" = 1, "hydrazine" = 1)
 	result_amount = 2
 
 /datum/chemical_reaction/impedrezene
 	name = "Impedrezene"
 	id = "impedrezene"
 	result = "impedrezene"
-	required_reagents = list("mercury" = 1, "oxygen" = 1, "sugar" = 1)
+	required_reagents = list("mercury" = 1, "acetone" = 1, "sugar" = 1)
 	result_amount = 2
 
 /datum/chemical_reaction/kelotane
@@ -154,7 +253,7 @@
 	id = "peridaxon"
 	result = "peridaxon"
 	required_reagents = list("bicaridine" = 2, "clonexadone" = 2)
-	catalysts = list("phoron" = 1)
+	catalysts = list("phoron" = 5)
 	result_amount = 2
 
 /datum/chemical_reaction/virus_food
@@ -169,14 +268,14 @@
 	id = "leporazine"
 	result = "leporazine"
 	required_reagents = list("silicon" = 1, "copper" = 1)
-	catalysts = list("phoron" = 1)
+	catalysts = list("phoron" = 5)
 	result_amount = 2
 
 /datum/chemical_reaction/cryptobiolin
 	name = "Cryptobiolin"
 	id = "cryptobiolin"
 	result = "cryptobiolin"
-	required_reagents = list("potassium" = 1, "oxygen" = 1, "sugar" = 1)
+	required_reagents = list("potassium" = 1, "acetone" = 1, "sugar" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/tricordrazine
@@ -190,14 +289,14 @@
 	name = "Alkysine"
 	id = "alkysine"
 	result = "alkysine"
-	required_reagents = list("chlorine" = 1, "nitrogen" = 1, "anti_toxin" = 1)
+	required_reagents = list("hclacid" = 1, "ammonia" = 1, "anti_toxin" = 1)
 	result_amount = 2
 
 /datum/chemical_reaction/dexalin
 	name = "Dexalin"
 	id = "dexalin"
 	result = "dexalin"
-	required_reagents = list("oxygen" = 2, "phoron" = 0.1)
+	required_reagents = list("acetone" = 2, "phoron" = 0.1)
 	catalysts = list("phoron" = 1)
 	inhibitors = list("water" = 1) // Messes with cryox
 	result_amount = 1
@@ -206,7 +305,7 @@
 	name = "Dermaline"
 	id = "dermaline"
 	result = "dermaline"
-	required_reagents = list("oxygen" = 1, "phosphorus" = 1, "kelotane" = 1)
+	required_reagents = list("acetone" = 1, "phosphorus" = 1, "kelotane" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/dexalinp
@@ -242,7 +341,7 @@
 	name = "Cryoxadone"
 	id = "cryoxadone"
 	result = "cryoxadone"
-	required_reagents = list("dexalin" = 1, "water" = 1, "oxygen" = 1)
+	required_reagents = list("dexalin" = 1, "water" = 1, "acetone" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/clonexadone
@@ -250,7 +349,7 @@
 	id = "clonexadone"
 	result = "clonexadone"
 	required_reagents = list("cryoxadone" = 1, "sodium" = 1, "phoron" = 0.1)
-	catalysts = list("phoron" = 1)
+	catalysts = list("phoron" = 5)
 	result_amount = 2
 
 /datum/chemical_reaction/spaceacillin
@@ -264,21 +363,28 @@
 	name = "imidazoline"
 	id = "imidazoline"
 	result = "imidazoline"
-	required_reagents = list("carbon" = 1, "hydrogen" = 1, "anti_toxin" = 1)
+	required_reagents = list("carbon" = 1, "hydrazine" = 1, "anti_toxin" = 1)
 	result_amount = 2
 
 /datum/chemical_reaction/ethylredoxrazine
 	name = "Ethylredoxrazine"
 	id = "ethylredoxrazine"
 	result = "ethylredoxrazine"
-	required_reagents = list("oxygen" = 1, "anti_toxin" = 1, "carbon" = 1)
+	required_reagents = list("acetone" = 1, "anti_toxin" = 1, "carbon" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/ipecac
 	name = "Ipecac"
 	id = "ipecac"
 	result = "ipecac"
-	required_reagents = list("hydrogen" = 1, "anti_toxin" = 1, "ethanol" = 1)
+	required_reagents = list("hydrazine" = 1, "anti_toxin" = 1, "ethanol" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/adipemcina
+	name = "Adipemcina"
+	id = "adipemcina"
+	result = "adipemcina"
+	required_reagents = list("lithium" = 1, "anti_toxin" = 1, "potassium" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/soporific
@@ -293,7 +399,7 @@
 	name = "Chloral Hydrate"
 	id = "chloralhydrate"
 	result = "chloralhydrate"
-	required_reagents = list("ethanol" = 1, "chlorine" = 3, "water" = 1)
+	required_reagents = list("ethanol" = 1, "hclacid" = 3, "water" = 1)
 	result_amount = 1
 
 /datum/chemical_reaction/potassium_chloride
@@ -321,7 +427,7 @@
 	name = "Mindbreaker Toxin"
 	id = "mindbreaker"
 	result = "mindbreaker"
-	required_reagents = list("silicon" = 1, "hydrogen" = 1, "anti_toxin" = 1)
+	required_reagents = list("silicon" = 1, "hydrazine" = 1, "anti_toxin" = 1)
 	result_amount = 3
 
 /datum/chemical_reaction/lipozine
@@ -332,18 +438,11 @@
 	result_amount = 3
 
 /datum/chemical_reaction/surfactant
-	name = "Foam surfactant"
-	id = "foam surfactant"
-	result = "fluorosurfactant"
-	required_reagents = list("fluorine" = 2, "carbon" = 2, "sacid" = 1)
+	name = "Azosurfactant"
+	id = "surfactant"
+	result = "surfactant"
+	required_reagents = list("hydrazine" = 2, "carbon" = 2, "sacid" = 1)
 	result_amount = 5
-
-/datum/chemical_reaction/ammonia
-	name = "Ammonia"
-	id = "ammonia"
-	result = "ammonia"
-	required_reagents = list("hydrogen" = 3, "nitrogen" = 1)
-	result_amount = 3
 
 /datum/chemical_reaction/diethylamine
 	name = "Diethylamine"
@@ -370,7 +469,7 @@
 	name = "Foaming Agent"
 	id = "foaming_agent"
 	result = "foaming_agent"
-	required_reagents = list("lithium" = 1, "hydrogen" = 1)
+	required_reagents = list("lithium" = 1, "hydrazine" = 1)
 	result_amount = 1
 
 /datum/chemical_reaction/glycerol
@@ -384,7 +483,7 @@
 	name = "Sodium Chloride"
 	id = "sodiumchloride"
 	result = "sodiumchloride"
-	required_reagents = list("sodium" = 1, "chlorine" = 1)
+	required_reagents = list("sodium" = 1, "hclacid" = 1)
 	result_amount = 2
 
 /datum/chemical_reaction/condensedcapsaicin
@@ -392,14 +491,14 @@
 	id = "condensedcapsaicin"
 	result = "condensedcapsaicin"
 	required_reagents = list("capsaicin" = 2)
-	catalysts = list("phoron" = 1)
+	catalysts = list("phoron" = 5)
 	result_amount = 1
 
 /datum/chemical_reaction/coolant
 	name = "Coolant"
 	id = "coolant"
 	result = "coolant"
-	required_reagents = list("tungsten" = 1, "oxygen" = 1, "water" = 1)
+	required_reagents = list("tungsten" = 1, "acetone" = 1, "water" = 1)
 	result_amount = 3
 	log_is_important = 1
 
@@ -414,30 +513,137 @@
 	name = "Lexorin"
 	id = "lexorin"
 	result = "lexorin"
-	required_reagents = list("phoron" = 1, "hydrogen" = 1, "nitrogen" = 1)
+	required_reagents = list("phoron" = 1, "hydrazine" = 1, "ammonia" = 1)
 	result_amount = 3
+
+/datum/chemical_reaction/calomel
+	name = "Calomel"
+	id = "calomel"
+	result = "calomel"
+	required_reagents = list("mercury" = 1, "sodiumchloride" = 1, "ammonia" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/cardox
+	name = "Cardox"
+	id = "cardox"
+	result = "cardox"
+	required_reagents = list("platinum" = 1, "carbon" = 1, "sterilizine" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/cardox_removal
+	name = "Cardox Removal"
+	id = "cardox_removal"
+	result = "carbon"
+	required_reagents = list("cardox" = 0.1, "phoron" = 1)
+	result_amount = 0
+
+/datum/chemical_reaction/monoammoniumphosphate
+	name = "Monoammoniumphosphate"
+	id = "monoammoniumphosphate"
+	result = "monoammoniumphosphate"
+	required_reagents = list("ammonia" = 1, "sacid" = 1, "sodium" = 1, "phosphorus" = 1)
+	result_amount = 4
+
+/datum/chemical_reaction/koispasteclean
+	name = "Filtered K'ois"
+	id = "koispasteclean"
+	result = "koispasteclean"
+	required_reagents = list("koispaste" = 2,"cardox" = 0.1)
+	catalysts = list("cardox" = 5)
+	result_amount = 1
+
+/datum/chemical_reaction/pulmodeiectionem
+	name = "Pulmodeiectionem"
+	id = "pulmodeiectionem"
+	result = "pulmodeiectionem"
+	required_reagents = list("calomel" = 1, "lexorin" = 1)
+	result_amount = 2
+
+//Mental Medication
 
 /datum/chemical_reaction/methylphenidate
 	name = "Methylphenidate"
 	id = "methylphenidate"
 	result = "methylphenidate"
-	required_reagents = list("mindbreaker" = 1, "hydrogen" = 1)
-	result_amount = 3
+	required_reagents = list("mindbreaker" = 1, "hydrazine" = 1)
+	result_amount = 2
 
-/datum/chemical_reaction/citalopram
-	name = "Citalopram"
-	id = "citalopram"
-	result = "citalopram"
+/datum/chemical_reaction/escitalopram
+	name = "Escitalopram"
+	id = "escitalopram"
+	result = "escitalopram"
 	required_reagents = list("mindbreaker" = 1, "carbon" = 1)
-	result_amount = 3
-
+	result_amount = 2
 
 /datum/chemical_reaction/paroxetine
 	name = "Paroxetine"
 	id = "paroxetine"
 	result = "paroxetine"
-	required_reagents = list("mindbreaker" = 1, "oxygen" = 1, "inaprovaline" = 1)
+	required_reagents = list("mindbreaker" = 1, "acetone" = 1, "inaprovaline" = 1)
 	result_amount = 3
+
+/datum/chemical_reaction/fluvoxamine
+	name = "Fluvoxamine"
+	id = "fluvoxamine"
+	result = "fluvoxamine"
+	required_reagents = list("mindbreaker" = 1, "iron" = 1, "potassium" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/sertraline
+	name = "Sertraline"
+	id = "sertraline"
+	result = "sertraline"
+	required_reagents = list("mindbreaker" = 1, "aluminum" = 1, "potassium" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/paroxetine
+	name = "Paroxetine"
+	id = "paroxetine"
+	result = "paroxetine"
+	required_reagents = list("mindbreaker" = 1, "ammonia" = 1, "copper" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/duloxetine
+	name = "Duloxetine"
+	id = "duloxetine"
+	result = "duloxetine"
+	required_reagents = list("mindbreaker" = 1, "silicon" = 1, "ethanol" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/venlafaxine
+	name = "Venlafaxine"
+	id = "venlafaxine"
+	result = "venlafaxine"
+	required_reagents = list("mindbreaker" = 1, "sodium" = 1, "tungsten" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/risperidone
+	name = "Risperidone"
+	id = "risperidone"
+	result = "risperidone"
+	required_reagents = list("mindbreaker" = 1, "space_drugs" = 1, "ethanol" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/olanzapine
+	name = "Olanzapine"
+	id = "olanzapine"
+	result = "olanzapine"
+	required_reagents = list("mindbreaker" = 1, "space_drugs" = 1, "silicon" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/truthserum
+	name = "Truthserum"
+	id = "truthserum"
+	result = "truthserum"
+	required_reagents = list("mindbreaker" = 1, "synaptizine" = 1, "phoron" = 0.1)
+	result_amount = 2
+
+/datum/chemical_reaction/feartoxin
+	name = "Feartoxin"
+	id = "feartoxin"
+	result = "feartoxin"
+	required_reagents = list("mindbreaker" = 1, "synaptizine" = 1, "space_drugs" = 1)
+	result_amount = 1
 
 /* Solidification */
 
@@ -494,9 +700,7 @@
 
 /datum/chemical_reaction/flash_powder/on_reaction(var/datum/reagents/holder, var/created_volume)
 	var/location = get_turf(holder.my_atom)
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
-	s.set_up(2, 1, location)
-	s.start()
+	spark(location, 2, alldirs)
 	for(var/mob/living/carbon/M in viewers(world.view, location))
 		switch(get_dist(M, location))
 			if(0 to 3)
@@ -561,7 +765,7 @@
 /datum/chemical_reaction/napalm/on_reaction(var/datum/reagents/holder, var/created_volume)
 	var/turf/location = get_turf(holder.my_atom.loc)
 	for(var/turf/simulated/floor/target_tile in range(0,location))
-		target_tile.assume_gas("volatile_fuel", created_volume, 400+T0C)
+		target_tile.assume_gas("phoron", created_volume, 400+T0C)
 		spawn (0) target_tile.hotspot_expose(700, 400)
 	holder.del_reagent("napalm")
 	return
@@ -588,7 +792,7 @@
 	name = "Foam"
 	id = "foam"
 	result = null
-	required_reagents = list("fluorosurfactant" = 1, "water" = 1)
+	required_reagents = list("surfactant" = 1, "water" = 1)
 	result_amount = 2
 	mix_message = "The solution violently bubbles!"
 
@@ -884,7 +1088,7 @@
 	if(holder.my_atom && istype(holder.my_atom, required))
 		var/obj/item/slime_extract/T = holder.my_atom
 		if(T.Uses > 0)
-			return 1
+			return ..()
 	return 0
 
 /datum/chemical_reaction/slime/on_reaction(var/datum/reagents/holder)
@@ -907,7 +1111,7 @@
 /datum/chemical_reaction/slime/spawn/on_reaction(var/datum/reagents/holder)
 	holder.my_atom.visible_message("<span class='warning'>Infused with phoron, the core begins to quiver and grow, and soon a new baby slime emerges from it!</span>")
 	var/mob/living/carbon/slime/S = new /mob/living/carbon/slime
-	S.loc = get_turf(holder.my_atom)
+	S.forceMove(get_turf(holder.my_atom))
 	..()
 
 /datum/chemical_reaction/slime/monkey
@@ -921,7 +1125,7 @@
 /datum/chemical_reaction/slime/monkey/on_reaction(var/datum/reagents/holder)
 	for(var/i = 1, i <= 3, i++)
 		var /obj/item/weapon/reagent_containers/food/snacks/monkeycube/M = new /obj/item/weapon/reagent_containers/food/snacks/monkeycube
-		M.loc = get_turf(holder.my_atom)
+		M.forceMove(get_turf(holder.my_atom))
 	..()
 
 //Green
@@ -945,10 +1149,10 @@
 /datum/chemical_reaction/slime/metal/on_reaction(var/datum/reagents/holder)
 	var/obj/item/stack/material/steel/M = new /obj/item/stack/material/steel
 	M.amount = 15
-	M.loc = get_turf(holder.my_atom)
+	M.forceMove(get_turf(holder.my_atom))
 	var/obj/item/stack/material/plasteel/P = new /obj/item/stack/material/plasteel
 	P.amount = 5
-	P.loc = get_turf(holder.my_atom)
+	P.forceMove(get_turf(holder.my_atom))
 	..()
 
 //Gold - added back in
@@ -961,35 +1165,54 @@
 	required = /obj/item/slime_extract/gold
 
 /datum/chemical_reaction/slime/crit/on_reaction(var/datum/reagents/holder)
-	var/blocked = list(/mob/living/simple_animal/hostile,
-	/mob/living/simple_animal/hostile/pirate,
-	/mob/living/simple_animal/hostile/pirate/ranged,
-	/mob/living/simple_animal/hostile/russian,
-	/mob/living/simple_animal/hostile/russian/ranged,
-	/mob/living/simple_animal/hostile/syndicate,
-	/mob/living/simple_animal/hostile/syndicate/melee,
-	/mob/living/simple_animal/hostile/syndicate/melee/space,
-	/mob/living/simple_animal/hostile/syndicate/ranged,
-	/mob/living/simple_animal/hostile/syndicate/ranged/space,
-	/mob/living/simple_animal/hostile/alien/queen/large,
-	/mob/living/simple_animal/hostile/faithless,
-	/mob/living/simple_animal/hostile/retaliate,
-	/mob/living/simple_animal/hostile/retaliate/clown
-	)//exclusion list for things you don't want the reaction to create.
+	var/blocked = list(
+		/mob/living/simple_animal/hostile,
+		/mob/living/simple_animal/hostile/pirate,
+		/mob/living/simple_animal/hostile/pirate/ranged,
+		/mob/living/simple_animal/hostile/russian,
+		/mob/living/simple_animal/hostile/russian/ranged,
+		/mob/living/simple_animal/hostile/syndicate,
+		/mob/living/simple_animal/hostile/syndicate/melee,
+		/mob/living/simple_animal/hostile/syndicate/melee/space,
+		/mob/living/simple_animal/hostile/syndicate/ranged,
+		/mob/living/simple_animal/hostile/syndicate/ranged/space,
+		/mob/living/simple_animal/hostile/alien/queen/large,
+		/mob/living/simple_animal/hostile/faithless,
+		/mob/living/simple_animal/hostile/faithless/wizard,
+		/mob/living/simple_animal/hostile/retaliate,
+		/mob/living/simple_animal/hostile/retaliate/clown,
+		/mob/living/simple_animal/hostile/alien,
+		/mob/living/simple_animal/hostile/alien/drone,
+		/mob/living/simple_animal/hostile/alien/sentinel,
+		/mob/living/simple_animal/hostile/alien/queen,
+		/mob/living/simple_animal/hostile/alien/queen/large,
+		/mob/living/simple_animal/hostile/true_changeling,
+		/mob/living/simple_animal/hostile/commanded,
+		/mob/living/simple_animal/hostile/commanded/dog,
+		/mob/living/simple_animal/hostile/commanded/dog/amaskan,
+		/mob/living/simple_animal/hostile/commanded/dog/columbo,
+		/mob/living/simple_animal/hostile/commanded/dog/pug,
+		/mob/living/simple_animal/hostile/commanded/bear,
+		/mob/living/simple_animal/hostile/greatworm,
+		/mob/living/simple_animal/hostile/lesserworm,
+		/mob/living/simple_animal/hostile/greatwormking
+	)
+	//exclusion list for things you don't want the reaction to create.
 	var/list/critters = typesof(/mob/living/simple_animal/hostile) - blocked // list of possible hostile mobs
 	playsound(get_turf(holder.my_atom), 'sound/effects/phasein.ogg', 100, 1)
 	for(var/mob/living/carbon/human/M in viewers(get_turf(holder.my_atom), null))
-		if(M.eyecheck() <= 0)
+		if(M.eyecheck(TRUE) <= 0)
 			flick("e_flash", M.flash)
 
 	for(var/i = 1, i <= 5, i++)
 		var/chosen = pick(critters)
 		var/mob/living/simple_animal/hostile/C = new chosen
 		C.faction = "slimesummon"
-		C.loc = get_turf(holder.my_atom)
+		C.forceMove(get_turf(holder.my_atom))
 		if(prob(50))
 			for(var/j = 1, j <= rand(1, 3), j++)
 				step(C, pick(NORTH,SOUTH,EAST,WEST))
+	..()
 
 //Silver
 /datum/chemical_reaction/slime/bork
@@ -1004,14 +1227,14 @@
 	var/list/borks = typesof(/obj/item/weapon/reagent_containers/food/snacks) - /obj/item/weapon/reagent_containers/food/snacks
 	playsound(get_turf(holder.my_atom), 'sound/effects/phasein.ogg', 100, 1)
 	for(var/mob/living/carbon/human/M in viewers(get_turf(holder.my_atom), null))
-		if(M.eyecheck() <= 0)
+		if(M.eyecheck(TRUE) < FLASH_PROTECTION_MODERATE)
 			flick("e_flash", M.flash)
 
 	for(var/i = 1, i <= 4 + rand(1,2), i++)
 		var/chosen = pick(borks)
 		var/obj/B = new chosen
 		if(B)
-			B.loc = get_turf(holder.my_atom)
+			B.forceMove(get_turf(holder.my_atom))
 			if(prob(50))
 				for(var/j = 1, j <= rand(1, 3), j++)
 					step(B, pick(NORTH, SOUTH, EAST, WEST))
@@ -1094,7 +1317,7 @@
 
 /datum/chemical_reaction/slime/cell/on_reaction(var/datum/reagents/holder, var/created_volume)
 	var/obj/item/weapon/cell/slime/P = new /obj/item/weapon/cell/slime
-	P.loc = get_turf(holder.my_atom)
+	P.forceMove(get_turf(holder.my_atom))
 
 /datum/chemical_reaction/slime/glow
 	name = "Slime Glow"
@@ -1108,7 +1331,7 @@
 /datum/chemical_reaction/slime/glow/on_reaction(var/datum/reagents/holder, var/created_volume)
 	..()
 	var/obj/item/device/flashlight/slime/F = new /obj/item/device/flashlight/slime
-	F.loc = get_turf(holder.my_atom)
+	F.forceMove(get_turf(holder.my_atom))
 
 //Purple
 /datum/chemical_reaction/slime/psteroid
@@ -1122,7 +1345,7 @@
 /datum/chemical_reaction/slime/psteroid/on_reaction(var/datum/reagents/holder, var/created_volume)
 	..()
 	var/obj/item/weapon/slimesteroid/P = new /obj/item/weapon/slimesteroid
-	P.loc = get_turf(holder.my_atom)
+	P.forceMove(get_turf(holder.my_atom))
 
 /datum/chemical_reaction/slime/jam
 	name = "Slime Jam"
@@ -1145,7 +1368,7 @@
 	..()
 	var/obj/item/stack/material/phoron/P = new /obj/item/stack/material/phoron
 	P.amount = 10
-	P.loc = get_turf(holder.my_atom)
+	P.forceMove(get_turf(holder.my_atom))
 
 //Red
 /datum/chemical_reaction/slime/glycerol
@@ -1182,7 +1405,7 @@
 /datum/chemical_reaction/slime/ppotion/on_reaction(var/datum/reagents/holder)
 	..()
 	var/obj/item/weapon/slimepotion/P = new /obj/item/weapon/slimepotion
-	P.loc = get_turf(holder.my_atom)
+	P.forceMove(get_turf(holder.my_atom))
 
 //Black
 /datum/chemical_reaction/slime/mutate2
@@ -1220,7 +1443,7 @@
 /datum/chemical_reaction/slime/potion2/on_reaction(var/datum/reagents/holder)
 	..()
 	var/obj/item/weapon/slimepotion2/P = new /obj/item/weapon/slimepotion2
-	P.loc = get_turf(holder.my_atom)
+	P.forceMove(get_turf(holder.my_atom))
 
 //Adamantine
 /datum/chemical_reaction/slime/golem
@@ -1234,17 +1457,21 @@
 /datum/chemical_reaction/slime/golem/on_reaction(var/datum/reagents/holder)
 	..()
 	var/obj/effect/golemrune/Z = new /obj/effect/golemrune
-	Z.loc = get_turf(holder.my_atom)
+	Z.forceMove(get_turf(holder.my_atom))
 	Z.announce_to_ghosts()
 
-/* Food */
+/*
+====================
+	Food
+====================
+*/
 
 /datum/chemical_reaction/tofu
 	name = "Tofu"
 	id = "tofu"
 	result = null
 	required_reagents = list("soymilk" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 1
 
 /datum/chemical_reaction/tofu/on_reaction(var/datum/reagents/holder, var/created_volume)
@@ -1300,12 +1527,26 @@
 	required_reagents = list("tomatojuice" = 2, "water" = 1, "sugar" = 1)
 	result_amount = 4
 
+/datum/chemical_reaction/barbecue
+	name = "Barbecue Sauce"
+	id = "barbecue"
+	result = "barbecue"
+	required_reagents = list("ketchup" = 2, "garlicsauce" = 1, "sugar" = 1)
+	result_amount = 4
+
+/datum/chemical_reaction/garlicsauce
+	name = "Garlic Sauce"
+	id = "garlicsauce"
+	result = "garlicsauce"
+	required_reagents = list("garlicjuice" = 1, "cornoil" = 1,)
+	result_amount = 2
+
 /datum/chemical_reaction/cheesewheel
 	name = "Cheesewheel"
 	id = "cheesewheel"
 	result = null
 	required_reagents = list("milk" = 40)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 1
 
 /datum/chemical_reaction/cheesewheel/on_reaction(var/datum/reagents/holder, var/created_volume)
@@ -1324,7 +1565,7 @@
 /datum/chemical_reaction/meatball/on_reaction(var/datum/reagents/holder, var/created_volume)
 	var/location = get_turf(holder.my_atom)
 	for(var/i = 1, i <= created_volume, i++)
-		new /obj/item/weapon/reagent_containers/food/snacks/meatball(location)
+		new /obj/item/weapon/reagent_containers/food/snacks/rawmeatball(location)
 	return
 
 /datum/chemical_reaction/dough
@@ -1332,6 +1573,7 @@
 	id = "dough"
 	result = null
 	required_reagents = list("egg" = 3, "flour" = 10)
+	inhibitors = list("water" = 1, "beer" = 1) //To prevent it messing with batter recipes
 	result_amount = 1
 
 /datum/chemical_reaction/dough/on_reaction(var/datum/reagents/holder, var/created_volume)
@@ -1367,7 +1609,64 @@
 	required_reagents = list("capsaicin" = 1, "hot_ramen" = 6)
 	result_amount = 6
 
-/* Alcohol */
+/datum/chemical_reaction/coating/batter
+	name = "Batter"
+	id = "batter"
+	result = "batter"
+	required_reagents = list("egg" = 3, "flour" = 10, "water" = 5, "sodiumchloride" = 2)
+	result_amount = 20
+
+/datum/chemical_reaction/coating/beerbatter
+	name = "Beer Batter"
+	id = "beerbatter"
+	result = "beerbatter"
+	required_reagents = list("egg" = 3, "flour" = 10, "beer" = 5, "sodiumchloride" = 2)
+	result_amount = 20
+
+/datum/chemical_reaction/browniemix
+	name = "Brownie Mix"
+	id = "browniemix"
+	result = "browniemix"
+	required_reagents = list("flour" = 5, "coco" = 5, "sugar" = 5)
+	result_amount = 15
+
+/datum/chemical_reaction/butter
+	name = "Butter"
+	id = "butter"
+	result = null
+	required_reagents = list("cream" = 20, "sodiumchloride" = 1)
+	result_amount = 1
+
+/datum/chemical_reaction/butter/on_reaction(var/datum/reagents/holder, var/created_volume)
+	var/location = get_turf(holder.my_atom)
+	for(var/i = 1, i <= created_volume, i++)
+		new /obj/item/weapon/reagent_containers/food/snacks/spreads/butter(location)
+	return
+
+/*
+	Todo in future:
+		Cornmeal batter for corndogs
+		KFC style coating for chicken
+		breadcrumbs
+*/
+
+/*
+	Food: Coatings
+========================
+*/
+
+
+
+
+
+
+
+
+/*
+====================
+	Alcohol
+====================
+*/
 
 /datum/chemical_reaction/goldschlager
 	name = "Goldschlager"
@@ -1394,37 +1693,45 @@
 	name = "Iced Tea"
 	id = "icetea"
 	result = "icetea"
-	required_reagents = list("ice" = 1, "tea" = 3)
-	result_amount = 4
+	required_reagents = list("ice" = 1, "tea" = 2)
+	result_amount = 3
 
 /datum/chemical_reaction/icecoffee
 	name = "Iced Coffee"
 	id = "icecoffee"
 	result = "icecoffee"
-	required_reagents = list("ice" = 1, "coffee" = 3)
-	result_amount = 4
+	required_reagents = list("ice" = 1, "coffee" = 2)
+	result_amount = 3
 
 /datum/chemical_reaction/nuka_cola
 	name = "Nuka Cola"
 	id = "nuka_cola"
 	result = "nuka_cola"
-	required_reagents = list("uranium" = 1, "cola" = 6)
-	result_amount = 6
+	required_reagents = list("uranium" = 1, "cola" = 5)
+	result_amount = 5
 
 /datum/chemical_reaction/moonshine
 	name = "Moonshine"
 	id = "moonshine"
 	result = "moonshine"
 	required_reagents = list("nutriment" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
+
+/datum/chemical_reaction/butanol
+	name = "Butanol"
+	id = "butanol"
+	result = "butanol"
+	required_reagents = list("cornoil" = 10, "sugar" = 10)
+	catalysts = list("enzyme" = 5)
+	result_amount = 5
 
 /datum/chemical_reaction/grenadine
 	name = "Grenadine Syrup"
 	id = "grenadine"
 	result = "grenadine"
 	required_reagents = list("berryjuice" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
 
 /datum/chemical_reaction/wine
@@ -1432,7 +1739,7 @@
 	id = "wine"
 	result = "wine"
 	required_reagents = list("grapejuice" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
 
 /datum/chemical_reaction/pwine
@@ -1440,7 +1747,7 @@
 	id = "pwine"
 	result = "pwine"
 	required_reagents = list("poisonberryjuice" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
 
 /datum/chemical_reaction/melonliquor
@@ -1448,7 +1755,7 @@
 	id = "melonliquor"
 	result = "melonliquor"
 	required_reagents = list("watermelonjuice" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
 
 /datum/chemical_reaction/bluecuracao
@@ -1456,7 +1763,7 @@
 	id = "bluecuracao"
 	result = "bluecuracao"
 	required_reagents = list("orangejuice" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
 
 /datum/chemical_reaction/spacebeer
@@ -1464,7 +1771,7 @@
 	id = "spacebeer"
 	result = "beer"
 	required_reagents = list("cornoil" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
 
 /datum/chemical_reaction/vodka
@@ -1472,7 +1779,7 @@
 	id = "vodka"
 	result = "vodka"
 	required_reagents = list("potato" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
 
 /datum/chemical_reaction/sake
@@ -1480,7 +1787,7 @@
 	id = "sake"
 	result = "sake"
 	required_reagents = list("rice" = 10)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 10
 
 /datum/chemical_reaction/kahlua
@@ -1488,7 +1795,7 @@
 	id = "kahlua"
 	result = "kahlua"
 	required_reagents = list("coffee" = 5, "sugar" = 5)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 5
 
 /datum/chemical_reaction/gin_tonic
@@ -1523,8 +1830,8 @@
 	name = "White Russian"
 	id = "whiterussian"
 	result = "whiterussian"
-	required_reagents = list("blackrussian" = 3, "cream" = 2)
-	result_amount = 5
+	required_reagents = list("blackrussian" = 2, "cream" = 1)
+	result_amount = 3
 
 /datum/chemical_reaction/whiskey_cola
 	name = "Whiskey Cola"
@@ -1544,15 +1851,15 @@
 	name = "Bloody Mary"
 	id = "bloodymary"
 	result = "bloodymary"
-	required_reagents = list("vodka" = 1, "tomatojuice" = 2, "limejuice" = 1)
-	result_amount = 4
+	required_reagents = list("vodka" = 2, "tomatojuice" = 3, "limejuice" = 1)
+	result_amount = 6
 
 /datum/chemical_reaction/gargle_blaster
 	name = "Pan-Galactic Gargle Blaster"
 	id = "gargleblaster"
 	result = "gargleblaster"
-	required_reagents = list("vodka" = 1, "gin" = 1, "whiskey" = 1, "cognac" = 1, "limejuice" = 1)
-	result_amount = 5
+	required_reagents = list("vodka" = 2, "gin" = 1, "whiskey" = 1, "cognac" = 1, "limejuice" = 1)
+	result_amount = 6
 
 /datum/chemical_reaction/brave_bull
 	name = "Brave Bull"
@@ -1572,22 +1879,22 @@
 	name = "Toxins Special"
 	id = "phoronspecial"
 	result = "phoronspecial"
-	required_reagents = list("rum" = 2, "vermouth" = 1, "phoron" = 2)
-	result_amount = 5
+	required_reagents = list("rum" = 2, "vermouth" = 2, "phoron" = 2)
+	result_amount = 6
 
 /datum/chemical_reaction/beepsky_smash
 	name = "Beepksy Smash"
 	id = "beepksysmash"
 	result = "beepskysmash"
-	required_reagents = list("limejuice" = 2, "whiskey" = 2, "iron" = 1)
-	result_amount = 4
+	required_reagents = list("limejuice" = 1, "whiskey" = 1, "iron" = 1)
+	result_amount = 2
 
 /datum/chemical_reaction/doctor_delight
 	name = "The Doctor's Delight"
 	id = "doctordelight"
 	result = "doctorsdelight"
-	required_reagents = list("limejuice" = 1, "tomatojuice" = 1, "orangejuice" = 1, "cream" = 1, "tricordrazine" = 1)
-	result_amount = 5
+	required_reagents = list("limejuice" = 1, "tomatojuice" = 1, "orangejuice" = 1, "cream" = 2, "tricordrazine" = 1)
+	result_amount = 6
 
 /datum/chemical_reaction/irish_cream
 	name = "Irish Cream"
@@ -1642,15 +1949,15 @@
 	name = "Long Island Iced Tea"
 	id = "longislandicedtea"
 	result = "longislandicedtea"
-	required_reagents = list("vodka" = 1, "gin" = 1, "tequilla" = 1, "cubalibre" = 1)
-	result_amount = 4
+	required_reagents = list("vodka" = 1, "gin" = 1, "tequilla" = 1, "cubalibre" = 3)
+	result_amount = 6
 
 /datum/chemical_reaction/icedtea
 	name = "Long Island Iced Tea"
 	id = "longislandicedtea"
 	result = "longislandicedtea"
-	required_reagents = list("vodka" = 1, "gin" = 1, "tequilla" = 1, "cubalibre" = 1)
-	result_amount = 4
+	required_reagents = list("vodka" = 1, "gin" = 1, "tequilla" = 1, "cubalibre" = 3)
+	result_amount = 6
 
 /datum/chemical_reaction/threemileisland
 	name = "Three Mile Island Iced Tea"
@@ -1670,8 +1977,8 @@
 	name = "Black Russian"
 	id = "blackrussian"
 	result = "blackrussian"
-	required_reagents = list("vodka" = 3, "kahlua" = 2)
-	result_amount = 5
+	required_reagents = list("vodka" = 2, "kahlua" = 1)
+	result_amount = 3
 
 /datum/chemical_reaction/manhattan
 	name = "Manhattan"
@@ -1698,8 +2005,8 @@
 	name = "Gin Fizz"
 	id = "ginfizz"
 	result = "ginfizz"
-	required_reagents = list("gin" = 2, "sodawater" = 1, "limejuice" = 1)
-	result_amount = 4
+	required_reagents = list("gin" = 1, "sodawater" = 1, "limejuice" = 1)
+	result_amount = 3
 
 /datum/chemical_reaction/bahama_mama
 	name = "Bahama mama"
@@ -1726,22 +2033,22 @@
 	name = "Demons Blood"
 	id = "demonsblood"
 	result = "demonsblood"
-	required_reagents = list("rum" = 1, "spacemountainwind" = 1, "blood" = 1, "dr_gibb" = 1)
-	result_amount = 4
+	required_reagents = list("rum" = 3, "spacemountainwind" = 1, "blood" = 1, "dr_gibb" = 1)
+	result_amount = 6
 
 /datum/chemical_reaction/booger
 	name = "Booger"
 	id = "booger"
 	result = "booger"
-	required_reagents = list("cream" = 1, "banana" = 1, "rum" = 1, "watermelonjuice" = 1)
-	result_amount = 4
+	required_reagents = list("cream" = 2, "banana" = 1, "rum" = 1, "watermelonjuice" = 1)
+	result_amount = 5
 
 /datum/chemical_reaction/antifreeze
 	name = "Anti-freeze"
 	id = "antifreeze"
 	result = "antifreeze"
-	required_reagents = list("vodka" = 2, "cream" = 1, "ice" = 1)
-	result_amount = 4
+	required_reagents = list("vodka" = 1, "cream" = 1, "ice" = 1)
+	result_amount = 3
 
 /datum/chemical_reaction/barefoot
 	name = "Barefoot"
@@ -1761,7 +2068,7 @@
 	name = "Sbiten"
 	id = "sbiten"
 	result = "sbiten"
-	required_reagents = list("vodka" = 10, "capsaicin" = 1)
+	required_reagents = list("mead" = 10, "capsaicin" = 1)
 	result_amount = 10
 
 /datum/chemical_reaction/red_mead
@@ -1776,7 +2083,7 @@
 	id = "mead"
 	result = "mead"
 	required_reagents = list("sugar" = 1, "water" = 1)
-	catalysts = list("enzyme" = 1)
+	catalysts = list("enzyme" = 5)
 	result_amount = 2
 
 /datum/chemical_reaction/iced_beer
@@ -1814,6 +2121,62 @@
 	required_reagents = list("coffee" = 1, "milk" = 1)
 	result_amount = 2
 
+/datum/chemical_reaction/freddo_espresso
+	name = "Freddo Espresso"
+	id = "freddo_espresso"
+	result = "freddo_espresso"
+	required_reagents = list("espresso" = 1, "ice" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/caffe_americano
+	name = "Caffe Americano"
+	id = "caffe_americano"
+	result = "caffe_americano"
+	required_reagents = list("espresso" = 1, "water" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/flat_white
+	name = "Flat White"
+	id = "flat_white"
+	result = "flat_white"
+	required_reagents = list("espresso" = 1, "milk" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/latte
+	name = "Latte"
+	id = "latte"
+	result = "latte"
+	required_reagents = list("flat_white" = 1, "milk" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/cappuccino
+	name = "Cappuccino"
+	id = "cappuccino"
+	result = "cappuccino"
+	required_reagents = list("espresso" = 1, "cream" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/freddo_cappuccino
+	name = "Freddo cappuccino"
+	id = "freddo_cappuccino"
+	result = "freddo_cappuccino"
+	required_reagents = list("cappuccino" = 1, "ice" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/macchiato
+	name = "Macchiato"
+	id = "macchiato"
+	result = "macchiato"
+	required_reagents = list("cappuccino" = 1, "espresso" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/mocacchino
+	name = "Mocacchino"
+	id = "mocacchino"
+	result = "mocacchino"
+	required_reagents = list("flat_white" = 1, "coco" = 1)
+	result_amount = 2
+
 /datum/chemical_reaction/acidspit
 	name = "Acid Spit"
 	id = "acidspit"
@@ -1833,14 +2196,14 @@
 	id = "changelingsting"
 	result = "changelingsting"
 	required_reagents = list("screwdrivercocktail" = 1, "limejuice" = 1, "lemonjuice" = 1)
-	result_amount = 5
+	result_amount = 3
 
 /datum/chemical_reaction/aloe
 	name = "Aloe"
 	id = "aloe"
 	result = "aloe"
 	required_reagents = list("cream" = 1, "whiskey" = 1, "watermelonjuice" = 1)
-	result_amount = 2
+	result_amount = 3
 
 /datum/chemical_reaction/andalusia
 	name = "Andalusia"
@@ -1881,8 +2244,8 @@
 	name = "Erika Surprise"
 	id = "erikasurprise"
 	result = "erikasurprise"
-	required_reagents = list("ale" = 1, "limejuice" = 1, "whiskey" = 1, "banana" = 1, "ice" = 1)
-	result_amount = 5
+	required_reagents = list("ale" = 2, "limejuice" = 1, "whiskey" = 1, "banana" = 1, "ice" = 1)
+	result_amount = 6
 
 /datum/chemical_reaction/devilskiss
 	name = "Devils Kiss"
@@ -1931,14 +2294,14 @@
 	id = "kiraspecial"
 	result = "kiraspecial"
 	required_reagents = list("orangejuice" = 1, "limejuice" = 1, "sodawater" = 1)
-	result_amount = 2
+	result_amount = 3
 
 /datum/chemical_reaction/brownstar
 	name = "Brown Star"
 	id = "brownstar"
 	result = "brownstar"
 	required_reagents = list("orangejuice" = 2, "cola" = 1)
-	result_amount = 2
+	result_amount = 3
 
 /datum/chemical_reaction/milkshake
 	name = "Milkshake"
@@ -1946,6 +2309,83 @@
 	result = "milkshake"
 	required_reagents = list("cream" = 1, "ice" = 2, "milk" = 2)
 	result_amount = 5
+
+/datum/chemical_reaction/cmojito
+	name = "Champagne Mojito"
+	id = "cmojito"
+	result = "cmojito"
+	required_reagents = list("mintsyrup" = 1, "champagne" = 1, "rum" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/classic
+	name = "The Classic"
+	id = "classic"
+	result = "classic"
+	required_reagents = list("champagne" = 2, "bitters" = 1, "lemonjuice" = 1)
+	result_amount = 4
+
+/datum/chemical_reaction/corkpopper
+	name = "Cork Popper"
+	id = "corkpopper"
+	result = "corkpopper"
+	required_reagents = list("whiskey" = 1, "champagne" = 1, "lemonjuice" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/french75
+	name = "French 75"
+	id = "french75"
+	result = "french75"
+	required_reagents = list("champagne" = 2, "gin" = 1, "lemonjuice" = 1)
+	result_amount = 4
+
+/datum/chemical_reaction/muscmule
+	name = "Muscovite Mule"
+	id = "muscmule"
+	result = "muscmule"
+	required_reagents = list("vodka" = 1, "limejuice" = 1, "mintsyrup" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/omimosa
+	name = "Orange Mimosa"
+	id = "omimosa"
+	result = "omimosa"
+	required_reagents = list("orangejuice" = 1, "champagne" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/pinkgin
+	name = "Pink Gin"
+	id = "pinkgin"
+	result = "pinkgin"
+	required_reagents = list("gin" = 2, "bitters" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/pinkgintonic
+	name = "Pink Gin and Tonic"
+	id = "pinkgintonic"
+	result = "pinkgintonic"
+	required_reagents = list("pinkgin" = 2, "tonic" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/piratepunch
+	name = "Pirate's Punch"
+	id = "piratepunch"
+	result = "piratepunch"
+	required_reagents = list("rum" = 1, "lemonjuice" = 1, "mintsyrup" = 1, "grenadine" = 1, "bitters" = 1)
+	result_amount = 5
+
+/datum/chemical_reaction/planterpunch
+	name = "Planter's Punch"
+	id = "planterpunch"
+	result = "planterpunch"
+	required_reagents = list("rum" = 2, "orangejuice" = 1, "grenadine" = 1)
+	result_amount = 4
+
+/datum/chemical_reaction/ssroyale
+	name = "Southside Royale"
+	id = "ssroyale"
+	result = "ssroyale"
+	required_reagents = list("mintsyrup" = 1, "gin" = 1, "limejuice" = 1, "champagne" = 1)
+	result_amount = 4
 
 /datum/chemical_reaction/rewriter
 	name = "Rewriter"
@@ -1958,24 +2398,15 @@
 	name = "Sui Dream"
 	id = "suidream"
 	result = "suidream"
-	required_reagents = list("space_up" = 2, "bluecuracao" = 1, "melonliquor" = 1)
-	result_amount = 4
+	required_reagents = list("space_up" = 1, "bluecuracao" = 1, "melonliquor" = 1)
+	result_amount = 3
 
 /datum/chemical_reaction/luminol
 	name = "Luminol"
 	id = "luminol"
 	result = "luminol"
-	required_reagents = list("hydrogen" = 2, "carbon" = 2, "ammonia" = 2)
+	required_reagents = list("hydrazine" = 2, "carbon" = 2, "ammonia" = 2)
 	result_amount = 6
-
-/////////////////////////////////////////Brightdawns super cool coffee drinks//////////////////////////////////////////////
-
-/datum/chemical_reaction/white_coffee
-	name = "Café Au Lait"
-	id = "white_coffee"
-	result = "white_coffee"
-	required_reagents = list("milk" = 1, "blackcoffee" = 2)
-	result_amount = 2
 
 //aurora's drinks
 
@@ -2028,12 +2459,12 @@
 	required_reagents = list("cream" = 1, "cremeyvette" = 1, "grenadine" = 1)
 	result_amount = 3
 
-/* /datum/chemical_reaction/metropolitan //NO SPRITES
+/datum/chemical_reaction/metropolitan
 	name = "Metropolitan"
 	id = "metropolitan"
 	result = "metropolitan"
 	required_reagents = list("brandy" = 1, "vermouth" = 1, "grenadine" = 1)
-	result_amount = 3 */
+	result_amount = 3
 
 /datum/chemical_reaction/caruso
 	name = "Caruso"
@@ -2074,8 +2505,8 @@
 	name = "Old Fashioned"
 	id = "oldfashioned"
 	result = "oldfashioned"
-	required_reagents = list("bluecuracao" = 1, "gin" = 1, "ice" = 1)
-	result_amount = 3
+	required_reagents = list("whiskeysoda" = 3, "bitters" = 1, "sugar" = 1)
+	result_amount = 5
 
 /datum/chemical_reaction/blindrussian
 	name = "Blind Russian"
@@ -2090,3 +2521,314 @@
 	result = "tallrussian"
 	required_reagents = list("blackrussian" = 1, "cola" = 1)
 	result_amount = 2
+
+// Synnono Meme Drinks
+//==============================
+// Organized here because why not.
+
+/datum/chemical_reaction/badtouch
+	name = "Bad Touch"
+	id = "badtouch"
+	result = "badtouch"
+	required_reagents = list("vodka" = 2, "rum" = 2, "absinthe" = 1, "lemon_lime" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/bluelagoon
+	name = "Blue Lagoon"
+	id = "bluelagooon"
+	result = "bluelagoon"
+	required_reagents = list("lemonade" = 3, "vodka" = 1, "bluecuracao" = 1, "ice" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/cherrytreefireball
+	name = "Cherry Tree Fireball"
+	id = "cherrytreefirebal		l"
+	result = "cherrytreefireball"
+	required_reagents = list("lemonade" = 3, "fireball" = 1, "cherryjelly" = 1, "ice" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/cobaltvelvet
+	name = "Cobalt Velvet"
+	id = "cobaltvelvet"
+	result = "cobaltvelvet"
+	required_reagents = list("champagne" = 3, "bluecuracao" = 2, "cola" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/fringeweaver
+	name = "Fringe Weaver"
+	id = "fringeweaver"
+	result = "fringeweaver"
+	required_reagents = list("ethanol" = 2, "sugar" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/junglejuice
+	name = "Jungle Juice"
+	id = "junglejuice"
+	result = "junglejuice"
+	required_reagents = list("lemonjuice" = 1, "orangejuice" = 1, "lemon_lime" = 1, "vodka" = 1, "rum" = 1)
+	result_amount = 5
+
+/datum/chemical_reaction/marsarita
+	name = "Marsarita"
+	id = "marsarita"
+	result = "marsarita"
+	required_reagents = list("margarita" = 4, "bluecuracao" = 1, "capsaicin" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/meloncooler
+	name = "Melon Cooler"
+	id = "meloncooler"
+	result = "meloncooler"
+	required_reagents = list("watermelonjuice" = 2, "sodawater" = 2, "mintsyrup" = 1, "ice" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/midnightkiss
+	name = "Midnight Kiss"
+	id = "midnightkiss"
+	result = "midnightkiss"
+	required_reagents = list("champagne" = 3, "vodka" = 1, "bluecuracao" = 1)
+	result_amount = 5
+
+/datum/chemical_reaction/millionairesour
+	name = "Millionaire Sour"
+	id = "millionairesour"
+	result = "millionairesour"
+	required_reagents = list("spacemountainwind" = 3, "grenadine" = 1, "limejuice" = 1)
+	result_amount = 5
+
+/datum/chemical_reaction/olympusmons
+	name = "Olympus Mons"
+	id = "olympusmons"
+	result = "olympusmons"
+	required_reagents = list("blackrussian" = 1, "whiskey" = 1, "rum" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/europanail
+	name = "Europa Nail"
+	id = "europanail"
+	result = "europanail"
+	required_reagents = list("rustynail" = 2, "kahlua" = 2, "cream" = 2)
+	result_amount = 6
+
+/datum/chemical_reaction/portsvilleminttea
+	name = "Portsville Mint Tea"
+	id = "portsvilleminttea"
+	result = "portsvilleminttea"
+	required_reagents = list("icetea" = 3, "berryjuice" = 1, "mintsyrup" = 1, "sugar" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/shirleytemple
+	name = "Shirley Temple"
+	id = "shirleytemple"
+	result = "shirleytemple"
+	required_reagents = list("space_up" = 4, "grenadine" = 2)
+	result_amount = 6
+
+/datum/chemical_reaction/sugarrush
+	name = "Sugar Rush"
+	id = "sugarrush"
+	result = "sugarrush"
+	required_reagents = list("brownstar" = 4, "grenadine" = 1, "vodka" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/sangria
+	name = "Sangria"
+	id = "sangria"
+	result = "sangria"
+	required_reagents = list("wine" = 3, "orangejuice" = 1, "lemonjuice" = 1, "brandy" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/bassline
+	name = "Bassline"
+	id = "bassline"
+	result = "bassline"
+	required_reagents = list("vodka" = 2, "bluecuracao" = 1, "limejuice" = 1, "grapejuice" = 2)
+	result_amount = 6
+
+/datum/chemical_reaction/bluebird
+	name = "Bluebird"
+	id = "bluebird"
+	result = "bluebird"
+	required_reagents = list("gintonic" = 3, "bluecuracao" = 1)
+	result_amount = 4
+
+//Snowflake drinks
+/datum/chemical_reaction/dr_gibb_diet
+	name = "Diet Dr. Gibb"
+	id = "dr_gibb_diet"
+	result = "dr_gibb_diet"
+	required_reagents = list("dr_gibb" = 1, "water" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/dr_daniels
+	name = "Dr. Daniels"
+	id = "dr_daniels"
+	result = "dr_daniels"
+	required_reagents = list("dr_gibb_diet" = 3, "whiskey" = 1, "honey" = 1)
+	result_amount = 5
+
+/datum/chemical_reaction/meatshake
+	name = "Meatshake"
+	id = "meatshake"
+	result = "meatshake"
+	required_reagents = list("cream" = 1, "protein" = 1,"water" = 1)
+	result_amount = 3
+
+/datum/chemical_reaction/crocodile_booze
+	name = "Crocodile Guwan"
+	id = "crocodile_booze"
+	result = "crocodile_booze"
+	required_reagents = list("sarezhiwine" = 5, "toxin" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/messa_mead
+	name = "Messa's Mead"
+	id = "messa_mead"
+	result = "messa_mead"
+	required_reagents = list("honey" = 1, "earthenrootjuice" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/winter_offensive
+	name = "Winter Offensive"
+	id = "winter_offensive"
+	result = "winter_offensive"
+	required_reagents = list("ice" = 1, "victorygin" = 1)
+	result_amount = 2
+
+//Kaed's Unathi cocktails
+//========
+
+/datum/chemical_reaction/moghesmargarita
+	name = "Moghes Margarita"
+	id = "moghesmargarita"
+	result = "moghesmargarita"
+	required_reagents = list("xuizijuice" = 2, "limejuice" = 3)
+	result_amount = 5
+
+/datum/chemical_reaction/bahamalizard
+	name = "Bahama Lizard"
+	id = "bahamalizard"
+	result = "bahamalizard"
+	required_reagents = list("xuizijuice" = 2, "lemonjuice" = 2, "cream" = 1, "ice" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/cactuscreme
+	name = "Cactus Creme"
+	id = "cactuscreme"
+	result = "cactuscreme"
+	required_reagents = list("berryjuice" = 2, "cream" = 1, "xuizijuice" = 2)
+	result_amount = 5
+
+/datum/chemical_reaction/lizardplegm
+	name = "Lizard Phlegm"
+	id = "lizardphlegm"
+	result = "lizardphlegm"
+	required_reagents = list("cream" = 2, "banana" = 1, "xuizijuice" = 1, "watermelonjuice" = 1)
+	result_amount = 5
+
+/datum/chemical_reaction/cactustea
+	name = "Cactus Tea"
+	id = "cactustea"
+	result = "cactustea"
+	required_reagents = list("icetea" = 1, "xuizijuice" = 1)
+	result_amount = 2
+
+/datum/chemical_reaction/moghespolitan
+	name = "Moghespolitan"
+	id = "moghespolitan"
+	result = "moghespolitan"
+	required_reagents = list("sarezhiwine" = 2, "xuizijuice" = 1, "grenadine" = 5)
+	result_amount = 5
+
+/datum/chemical_reaction/wastelandheat
+	name = "Wasteland Heat"
+	id = "wastelandheat"
+	result = "wastelandheat"
+	required_reagents = list("xuizijuice" = 10, "capsaicin" = 3)
+	result_amount = 10
+
+/datum/chemical_reaction/sandgria
+	name = "Sandgria"
+	id = "sandgria"
+	result = "sandgria"
+	required_reagents = list("sarezhiwine" = 3, "orangejuice" = 1, "lemonjuice" = 1, "xuizijuice" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/contactwine
+	name = "Contact Wine"
+	id = "contactwine"
+	result = "contactwine"
+	required_reagents = list("xuizijuice" = 5, "radium" = 1, "sarezhiwine" = 5)
+	result_amount = 10
+
+/datum/chemical_reaction/hereticblood
+	name = "Heretics' Blood"
+	id = "hereticblood"
+	result = "hereticblood"
+	required_reagents = list("xuizijuice" = 3, "spacemountainwind" = 1, "blood" = 1, "dr_gibb" = 1)
+	result_amount = 6
+
+/datum/chemical_reaction/sandpit
+	name = "Sandpit"
+	id = "sandpit"
+	result = "sandpit"
+	required_reagents = list("xuizijuice" = 2, "orangejuice" = 2)
+	result_amount = 4
+
+/datum/chemical_reaction/cactuscola
+	name = "Cactus Cola"
+	id = "cactuscola"
+	result = "cactuscola"
+	required_reagents = list("xuizijuice" = 2, "cola" = 2, "ice" = 1)
+	result_amount = 5
+
+/datum/chemical_reaction/bloodwine
+	name = "Bloodwine"
+	id = "bloodwine"
+	result = "bloodwine"
+	required_reagents = list("blood" = 2, "sarezhiwine" = 3)
+	result_amount = 5
+
+//transmutation
+
+/datum/chemical_reaction/transmutation_silver
+	name = "Transmutation: Silver"
+	id = "transmutation_silver"
+	result = null
+	required_reagents = list("iron" = 5, "copper" = 5)
+	catalysts = list("philosopher_stone" = 1)
+	result_amount = 1
+
+/datum/chemical_reaction/transmutation_silver/on_reaction(var/datum/reagents/holder, var/created_volume)
+	var/location = get_turf(holder.my_atom)
+	for(var/i = 1, i <= created_volume, i++)
+		new /obj/item/stack/material/silver(location)
+	return
+
+/datum/chemical_reaction/transmutation_gold
+	name = "Transmutation: Gold"
+	id = "transmutation_gold"
+	result = null
+	required_reagents = list("aluminum" = 5, "silver" = 5)
+	catalysts = list("philosopher_stone" = 1)
+	result_amount = 1
+
+/datum/chemical_reaction/transmutation_gold/on_reaction(var/datum/reagents/holder, var/created_volume)
+	var/location = get_turf(holder.my_atom)
+	for(var/i = 1, i <= created_volume, i++)
+		new /obj/item/stack/material/gold(location)
+	return
+
+/datum/chemical_reaction/transmutation_diamond
+	name = "Transmutation: Diamond"
+	id = "transmutation_diamond"
+	result = null
+	required_reagents = list("carbon" = 5, "gold" = 5)
+	catalysts = list("philosopher_stone" = 1)
+	result_amount = 1
+
+/datum/chemical_reaction/transmutation_diamond/on_reaction(var/datum/reagents/holder, var/created_volume)
+	var/location = get_turf(holder.my_atom)
+	for(var/i = 1, i <= created_volume, i++)
+		new /obj/item/stack/material/diamond(location)
+	return

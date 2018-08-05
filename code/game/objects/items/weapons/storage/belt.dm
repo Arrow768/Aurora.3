@@ -4,8 +4,12 @@
 	icon = 'icons/obj/clothing/belts.dmi'
 	icon_state = "utilitybelt"
 	item_state = "utility"
+	storage_slots = 7
+	max_w_class = 3
+	max_storage_space = 28
 	slot_flags = SLOT_BELT
 	attack_verb = list("whipped", "lashed", "disciplined")
+	sprite_sheets = list("Resomi" = 'icons/mob/species/resomi/belt.dmi')
 
 	var/show_above_suit = 0
 
@@ -47,11 +51,12 @@
 		/obj/item/weapon/material/minihoe,
 		/obj/item/weapon/material/hatchet,
 		/obj/item/device/analyzer/plant_analyzer,
-		/obj/item/weapon/extinguisher/mini
+		/obj/item/weapon/extinguisher/mini,
+		/obj/item/weapon/pipewrench
 		)
 
 
-/obj/item/weapon/storage/belt/utility/full/New()
+/obj/item/weapon/storage/belt/utility/full/fill()
 	..()
 	new /obj/item/weapon/screwdriver(src)
 	new /obj/item/weapon/wrench(src)
@@ -61,7 +66,7 @@
 	new /obj/item/stack/cable_coil(src,30,pick("red","yellow","orange"))
 
 
-/obj/item/weapon/storage/belt/utility/atmostech/New()
+/obj/item/weapon/storage/belt/utility/atmostech/fill()
 	..()
 	new /obj/item/weapon/screwdriver(src)
 	new /obj/item/weapon/wrench(src)
@@ -78,6 +83,7 @@
 	icon_state = "medicalbelt"
 	item_state = "medical"
 	can_hold = list(
+		/obj/item/device/breath_analyzer,
 		/obj/item/device/healthanalyzer,
 		/obj/item/weapon/dnainjector,
 		/obj/item/weapon/reagent_containers/dropper,
@@ -97,7 +103,8 @@
 		/obj/item/clothing/glasses/hud/health,
 		/obj/item/weapon/crowbar,
 		/obj/item/device/flashlight,
-		/obj/item/weapon/extinguisher/mini
+		/obj/item/weapon/extinguisher/mini,
+		/obj/item/weapon/reagent_containers/inhaler
 		)
 
 /obj/item/weapon/storage/belt/medical/emt
@@ -111,9 +118,6 @@
 	desc = "Can hold security gear like handcuffs and flashes."
 	icon_state = "securitybelt"
 	item_state = "security"
-	storage_slots = 7
-	max_w_class = 3
-	max_storage_space = 28
 	can_hold = list(
 		/obj/item/weapon/grenade,
 		/obj/item/weapon/reagent_containers/spray/pepper,
@@ -136,7 +140,11 @@
 		/obj/item/device/megaphone,
 		/obj/item/weapon/melee,
 		/obj/item/weapon/gun/projectile/sec,
-		/obj/item/taperoll/police
+		/obj/item/taperoll/police,
+		/obj/item/weapon/material/sword/trench,
+		/obj/item/weapon/shield/energy,
+		/obj/item/weapon/shield/riot/tact,
+		/obj/item/device/holowarrant
 		)
 
 /obj/item/weapon/storage/belt/soulstone
@@ -149,7 +157,7 @@
 		/obj/item/device/soulstone
 		)
 
-/obj/item/weapon/storage/belt/soulstone/full/New()
+/obj/item/weapon/storage/belt/soulstone/full/fill()
 	..()
 	new /obj/item/device/soulstone(src)
 	new /obj/item/device/soulstone(src)
@@ -157,7 +165,6 @@
 	new /obj/item/device/soulstone(src)
 	new /obj/item/device/soulstone(src)
 	new /obj/item/device/soulstone(src)
-
 
 /obj/item/weapon/storage/belt/champion
 	name = "championship belt"
@@ -203,8 +210,13 @@
 		/obj/item/weapon/plastique,
 		/obj/item/weapon/gun/projectile/pistol,
 		/obj/item/weapon/gun/energy/crossbow,
+		/obj/item/weapon/material/sword/trench,
 		/obj/item/ammo_casing/a145,
-		/obj/item/device/radio/uplink
+		/obj/item/device/radio/uplink,
+		/obj/item/weapon/card/emag,
+		/obj/item/device/multitool/hacktool,
+		/obj/item/weapon/reagent_containers/hypospray/combat,
+		/obj/item/stack/telecrystal
 		)
 
 /obj/item/weapon/storage/belt/janitor
@@ -213,13 +225,93 @@
 	icon_state = "janibelt"
 	item_state = "janibelt"
 	storage_slots = 6
+	w_class = 3
 	max_w_class = 3
-	max_storage_space  = 28
 	can_hold = list(
 		/obj/item/weapon/grenade/chem_grenade/cleaner,
 		/obj/item/device/lightreplacer,
 		/obj/item/device/flashlight,
 		/obj/item/weapon/reagent_containers/spray,
 		/obj/item/weapon/soap,
-		/obj/item/weapon/storage/bag/trash
-)
+		/obj/item/weapon/storage/bag/trash,
+		/obj/item/weapon/screwdriver,
+		/obj/item/weapon/wrench,
+		/obj/item/weapon/crowbar
+		)
+
+/obj/item/weapon/storage/belt/wands
+	name = "wand belt"
+	desc = "A belt designed to hold various rods of power."
+	icon_state = "soulstonebelt"
+	item_state = "soulstonebelt"
+	storage_slots = 5
+	max_w_class = 3
+	max_storage_space  = 28
+	can_hold = list(
+		/obj/item/weapon/gun/energy/wand
+		)
+
+/obj/item/weapon/storage/belt/wands/full/fill()
+	..()
+	new /obj/item/weapon/gun/energy/wand/fire(src)
+	new /obj/item/weapon/gun/energy/wand/polymorph(src)
+	new /obj/item/weapon/gun/energy/wand/teleport(src)
+	new /obj/item/weapon/gun/energy/wand/force(src)
+	new /obj/item/weapon/gun/energy/wand/animation(src)
+
+/obj/item/weapon/storage/belt/mining
+	name = "explorer's belt"
+	desc = "A versatile chest rig, cherished by miners and hunters alike."
+	icon_state = "explorer"
+	item_state = "explorer"
+	storage_slots = 9
+	w_class = 4
+	max_w_class = 4 //Pickaxes are big.
+	can_hold = list(/obj/item/weapon/crowbar,
+		/obj/item/weapon/screwdriver,
+		/obj/item/weapon/weldingtool,
+		/obj/item/weapon/wirecutters,
+		/obj/item/weapon/wrench,
+		/obj/item/weapon/resonator,
+		/obj/item/weapon/oreportal,
+		/obj/item/weapon/oremagnet,
+		/obj/item/weapon/plastique/seismic,
+		/obj/item/weapon/extraction_pack,
+		/obj/item/weapon/ore_radar,
+		/obj/item/device/flashlight,
+		/obj/item/stack/cable_coil,
+		/obj/item/stack/flag,
+		/obj/item/device/wormhole_jaunter,
+		/obj/item/device/analyzer,
+		/obj/item/weapon/extinguisher/mini,
+		/obj/item/device/radio,
+		/obj/item/clothing/gloves,
+		/obj/item/clothing/glasses/material,
+		/obj/item/weapon/pickaxe,
+		/obj/item/weapon/shovel,
+		/obj/item/stack/material/animalhide,
+		/obj/item/weapon/flame/lighter,
+		/obj/item/weapon/storage/fancy/cigarettes,
+		/obj/item/weapon/reagent_containers/food/drinks/bottle,
+		/obj/item/stack/medical,
+		/obj/item/weapon/reagent_containers/hypospray,
+		/obj/item/device/gps,
+		/obj/item/weapon/storage/bag/ore,
+		/obj/item/weapon/reagent_containers/pill,
+		/obj/item/weapon/storage/pill_bottle,
+		/obj/item/weapon/ore,
+		/obj/item/weapon/reagent_containers/food/drinks,
+		/obj/item/weapon/storage/bag/plants,
+		/obj/item/warp_core,
+		/obj/item/weapon/extraction_pack,
+		/obj/item/weapon/rrf,
+		/obj/item/weapon/gun/custom_ka
+		)
+
+/obj/item/weapon/storage/belt/bandolier
+	name = "bandolier"
+	desc = "A pocketed belt designated to hold shotgun shells."
+	icon_state = "bandolier"
+	item_state = "bandolier"
+	can_hold = list(/obj/item/ammo_casing/shotgun)
+	storage_slots = 16

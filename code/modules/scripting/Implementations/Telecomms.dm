@@ -248,7 +248,7 @@ datum/signal
 		if(source in S.stored_names)
 			newsign.data["name"] = source
 		else
-			newsign.data["name"] = "<i>[html_encode(uppertext(source))]<i>"
+			newsign.data["name"] = "<i>[html_encode(uppertext(source))]</i>"
 		newsign.data["realname"] = newsign.data["name"]
 		newsign.data["job"] = job
 		newsign.data["compression"] = 0
@@ -258,7 +258,7 @@ datum/signal
 			freq = text2num(freq)
 		newsign.frequency = freq
 
-		var/datum/radio_frequency/connection = radio_controller.return_frequency(freq)
+		var/datum/radio_frequency/connection = SSradio.return_frequency(freq)
 		newsign.data["connection"] = connection
 
 

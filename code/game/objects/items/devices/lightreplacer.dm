@@ -15,7 +15,7 @@
 //
 // HOW TO REFILL THE DEVICE
 //
-// It will need to be manually refilled with lights. This can be done by using it on a boxful of lights
+// It can be manually refilled or by clicking on a storage item containing lights.
 // If it's part of a robot module, it will charge when the Robot is inside a Recharge Station.
 //
 // EMAGGED FEATURES
@@ -32,16 +32,11 @@
 //
 // The explosion cannot insta-kill anyone with 30% or more health.
 
-#define LIGHT_OK 0
-#define LIGHT_EMPTY 1
-#define LIGHT_BROKEN 2
-#define LIGHT_BURNED 3
-
 
 /obj/item/device/lightreplacer
 
 	name = "light replacer"
-	desc = "A device to automatically replace lights. Refill with working lightbulbs."
+	desc = "A device to automatically replace lights. Refill with working lightbulbs or sheets of glass."
 
 	icon = 'icons/obj/tools/lightreplacer.dmi'
 	icon_state = "lightreplacer"
@@ -50,7 +45,7 @@
 
 	flags = CONDUCT
 	slot_flags = SLOT_BELT
-	origin_tech = "magnets=3;materials=2"
+	origin_tech = list(TECH_MAGNET = 3, TECH_MATERIAL = 2)
 
 	var/max_uses = 20
 	var/uses = 10
@@ -78,40 +73,36 @@
 
 /obj/item/device/lightreplacer/examine(mob/user)
 	if(..(user, 2))
-		user << "It has [uses] lights remaining."
+		to_chat(user, "It has [uses] lights remaining.")
 		if (store_broken)
-			user << "It is storing [stored()]/[max_stored] broken lights."
+			to_chat(user, "It is storing [stored()]/[max_stored] broken lights.")
 
 /obj/item/device/lightreplacer/attackby(obj/item/W, mob/user)
-	if(istype(W,  /obj/item/weapon/card/emag) && emagged == 0)
-		Emag()
-		return
-
 	if(istype(W, /obj/item/stack/material) && W.get_material_name() == "glass")
 		var/obj/item/stack/G = W
 		if(uses >= max_uses)
-			user << "<span class='warning'>[src.name] is full."
+			to_chat(user, "<span class='warning'>[src.name] is full.</span>")
 			return
 		else if(G.use(5))
 			AddUses(2)
 			if (prob(50))
 				AddUses(1)
-			user << "<span class='notice'>You insert five pieces of glass into the [src.name]. You have [uses] lights remaining.</span>"
+			to_chat(user, "<span class='notice'>You insert five pieces of glass into the [src.name]. You have [uses] lights remaining.</span>")
 			return
 		else
-			user << "<span class='warning'>You need one sheet of glass to replace lights.</span>"
+			to_chat(user, "<span class='warning'>You need 5 sheets of glass to replace lights.</span>")
 
 	if(istype(W, /obj/item/weapon/light))
 		var/obj/item/weapon/light/L = W
 		if(L.status == 0) // LIGHT OKAY
 			if(uses < max_uses)
 				AddUses(1)
-				user << "You insert the [L.name] into the [src.name]. You have [uses] lights remaining."
-				user.drop_item()
+				to_chat(user, "You insert \the [L.name] into \the [src.name]. You have [uses] light\s remaining.")
+				user.drop_from_inventory(L,get_turf(src))
 				qdel(L)
 				return
 		else
-			user << "You need a working light."
+			to_chat(user, "You need a working light.")
 			return
 
 
@@ -120,7 +111,7 @@
 		if (box_contains_lights(target))
 			load_lights_from_box(target, user)
 		else
-			user << "This box has no bulbs in it!"
+			to_chat(user, "This box has no bulbs in it!")
 
 
 /obj/item/device/lightreplacer/proc/box_contains_lights(var/obj/item/weapon/storage/box/box)
@@ -142,20 +133,20 @@
 				break
 
 		if (!bulb)
-			user << "\red There are no more working lights left in the box!"
+			to_chat(user, "<span class='warning'>There are no more working lights left in the box!</span>")
 			return
 
 		if (do_after(user, load_interval, needhand = 0) && boxstartloc == box.loc && ourstartloc == src.loc)
 			uses++
-			user << "<span class='notice'>Light loaded: [uses]/[max_uses]</span>"
+			to_chat(user, "<span class='notice'>Light loaded: [uses]/[max_uses]</span>")
 			playsound(src.loc, 'sound/machines/click.ogg', 20, 1)
 			box.remove_from_storage(bulb,get_turf(box))
 			qdel(bulb)
 		else
-			user << "\red You need to keep the [src] close to the box!"
+			to_chat(user, "<span class='warning'>You need to keep the [src] close to the box!</span>")
 			return
 
-	user << "<span class='notice'>The [src]'s refill light shines a solid green, indicating it's full and ready to go!</span>"
+	to_chat(user, "<span class='notice'>The [src]'s refill light shines a solid green, indicating it's full and ready to go!</span>")
 
 /obj/item/device/lightreplacer/proc/stored()
 	var/count = 0
@@ -165,15 +156,11 @@
 	return count
 
 /obj/item/device/lightreplacer/attack_self(mob/user)
-	/* // This would probably be a bit OP. If you want it though, uncomment the code.
-	if(isrobot(user))
-		var/mob/living/silicon/robot/R = user
-		if(R.emagged)
-			src.Emag()
-			usr << "You shortcircuit the [src]."
-			return
-	*/
 	usr << "It has [uses] lights remaining."
+
+/obj/item/device/lightreplacer/update_icon()
+	if(emagged)
+		add_overlay("emagged")
 
 
 /obj/item/device/lightreplacer/proc/Use(var/mob/user)
@@ -229,11 +216,10 @@
 			target.brightness_range = L2.brightness_range
 			target.brightness_power = L2.brightness_power
 			target.brightness_color = L2.brightness_color
-			target.on = target.has_power()
 			target.update()
 			qdel(L2)
 
-			if(target.on && target.rigged)
+			if(!target.stat && target.rigged)
 				target.explode()
 			return
 
@@ -244,14 +230,11 @@
 		U << "There is a working [target.fitting] already inserted."
 		return
 
-/obj/item/device/lightreplacer/proc/Emag()
+/obj/item/device/lightreplacer/emag_act(var/remaining_charges, var/mob/user)
 	emagged = !emagged
 	playsound(src.loc, "sparks", 100, 1)
-	if(emagged)
-		name = "Shortcircuited [initial(name)]"
-	else
-		name = initial(name)
 	update_icon()
+	return 1
 
 //Can you use it?
 
@@ -262,8 +245,3 @@
 		return 1
 	else
 		return 0
-
-#undef LIGHT_OK
-#undef LIGHT_EMPTY
-#undef LIGHT_BROKEN
-#undef LIGHT_BURNED

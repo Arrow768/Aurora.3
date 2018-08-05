@@ -4,12 +4,14 @@ var/list/ventcrawl_machinery = list(
 	)
 
 // Vent crawling whitelisted items, whoo
-/mob/living/var/list/can_enter_vent_with = list(
+var/global/list/can_enter_vent_with = list(
+	/obj/item/device/mmi,
 	/obj/item/weapon/implant,
 	/obj/item/device/radio/borg,
 	/obj/item/weapon/holder,
 	/obj/machinery/camera,
-	/mob/living/simple_animal/borer
+	/mob/living/simple_animal/borer,
+	/mob/living/simple_animal/mouse
 	)
 
 /mob/living/var/list/icon/pipes_shown = list()
@@ -153,7 +155,7 @@ var/list/ventcrawl_machinery = list(
 					if(vent_found)
 						break
 
-			if(istype(vent_found, /obj/machinery/atmospherics/unary/vent_pump/) && vent_found:is_welded()) // welded check
+			if(vent_found:is_welded()) // welded check
 				src << "<span class='warning'>You can't crawl into a welded vent!</span>"
 				return
 
@@ -162,7 +164,7 @@ var/list/ventcrawl_machinery = list(
 			if(vent_found)
 				if(vent_found.network && (vent_found.network.normal_members.len || vent_found.network.line_members.len))
 
-					visible_message("<span class='warning'>[src] begins to climb into the ventilation system!","<span class='notice'>You begin climbing into the ventilation system...</span>")
+					visible_message("<span class='warning'>[src] begins to climb into the ventilation system!</span>","<span class='notice'>You begin climbing into the ventilation system...</span>")
 					if(vent_found.air_contents && !issilicon(src))
 
 						switch(vent_found.air_contents.temperature)
@@ -201,16 +203,16 @@ var/list/ventcrawl_machinery = list(
 					sight = (SEE_TURFS|BLIND)
 
 				else
-					src << "<span class='notice'>This vent is not connected to anything."
+					src << "<span class='notice'>This vent is not connected to anything.</span>"
 
 			else
-				src << "<span class='notice'>You must be standing on or beside an air vent to enter it."
+				src << "<span class='notice'>You must be standing on or beside an air vent to enter it.</span>"
 
 		else
-			src << "<span class='notice'>You can't vent crawl while you're stunned!"
+			src << "<span class='notice'>You can't vent crawl while you're stunned!</span>"
 
 	else
-		src << "<span class='notice'>You must be conscious to do this!"
+		src << "<span class='notice'>You must be conscious to do this!</span>"
 	return
 
 /mob/living/proc/add_ventcrawl(obj/machinery/atmospherics/starting_machine)

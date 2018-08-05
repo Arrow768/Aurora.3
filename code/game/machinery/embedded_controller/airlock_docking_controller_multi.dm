@@ -9,8 +9,8 @@
 	
 	var/datum/computer/file/embedded_program/docking/multi/docking_program
 
-/obj/machinery/embedded_controller/radio/docking_port_multi/initialize()
-	..()
+/obj/machinery/embedded_controller/radio/docking_port_multi/Initialize()
+	. = ..()
 	docking_program = new/datum/computer/file/embedded_program/docking/multi(src)
 	program = docking_program
 	
@@ -32,10 +32,10 @@
 
 	data = list(
 		"docking_status" = docking_program.get_docking_status(),
-		"airlocks" = airlocks,
+		"airlocks" = airlocks
 	)
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 
 	if (!ui)
 		ui = new(user, src, ui_key, "multi_docking_console.tmpl", name, 470, 290)
@@ -55,8 +55,8 @@
 	var/datum/computer/file/embedded_program/airlock/multi_docking/airlock_program
 	tag_secure = 1
 
-/obj/machinery/embedded_controller/radio/airlock/docking_port_multi/initialize()
-	..()
+/obj/machinery/embedded_controller/radio/airlock/docking_port_multi/Initialize()
+	. = ..()
 	airlock_program = new/datum/computer/file/embedded_program/airlock/multi_docking(src)
 	program = airlock_program
 
@@ -70,10 +70,10 @@
 		"processing" = airlock_program.memory["processing"],
 		"docking_status" = airlock_program.master_status,
 		"airlock_disabled" = (airlock_program.docking_enabled && !airlock_program.override_enabled),
-		"override_enabled" = airlock_program.override_enabled,
+		"override_enabled" = airlock_program.override_enabled
 	)
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
 
 	if (!ui)
 		ui = new(user, src, ui_key, "docking_airlock_console.tmpl", name, 470, 290)

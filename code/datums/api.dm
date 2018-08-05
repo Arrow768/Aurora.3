@@ -14,6 +14,12 @@
 			topic_commands_names.Add(A.name)
 		listclearnulls(topic_commands)
 		listclearnulls(topic_commands_names)
+
+	if (config.api_rate_limit_whitelist.len)
+		// To make the api_rate_limit_whitelist[addr] grabs actually work.
+		for (var/addr in config.api_rate_limit_whitelist)
+			config.api_rate_limit_whitelist[addr] = 1
+
 	return 1
 
 /world/proc/api_do_auth_check(var/addr, var/auth, var/datum/topic_command/command)
@@ -38,15 +44,15 @@
 	WHERE api_t.id = api_t_f.token_id AND api_f.id = api_t_f.command_id
 	AND	api_t.deleted_at IS NULL
 	AND (
-	(token = :token AND ip = :ip AND command = :command)
+	(token = :token: AND ip = :ip: AND command = :command:)
 	OR
-	(token = :token AND ip IS NULL AND command = :command)
+	(token = :token: AND ip IS NULL AND command = :command:)
 	OR
-	(token = :token AND ip = :ip AND command = \"_ANY\")
+	(token = :token: AND ip = :ip: AND command = \"_ANY\")
 	OR
-	(token = :token AND ip IS NULL AND command = \"_ANY\")
+	(token = :token: AND ip IS NULL AND command = \"_ANY\")
 	OR
-	(token IS NULL AND ip IS NULL AND command = :command)
+	(token IS NULL AND ip IS NULL AND command = :command:)
 	)"})
 	//Check if the token is not deleted
 	//Check if one of the following is true:
@@ -56,7 +62,7 @@
 	// Any Command, Any IP - Token Matches, IP is set to NULL (not required), Command is set to _ANY
 	// Public - Token is set to NULL, IP is set to NULL and command matches
 
-	authquery.Execute(list(":token" = auth, ":ip" = addr, ":command" = command.name))
+	authquery.Execute(list("token" = auth, "ip" = addr, "command" = command.name))
 	log_debug("API: Auth Check - Query Executed - Returned Rows: [authquery.RowCount()]")
 
 	if (authquery.RowCount())
@@ -71,12 +77,12 @@ proc/api_update_command_database()
 		return 0 //Error
 
 	var/DBQuery/commandinsertquery = dbcon.NewQuery({"INSERT INTO ss13_api_commands (command,description)
-	VALUES (:command_name,:command_description)
-	ON DUPLICATE KEY UPDATE description = :command_description;"})
+	VALUES (:command_name:,:command_description:)
+	ON DUPLICATE KEY UPDATE description = :command_description:;"})
 
 	for(var/com in topic_commands)
 		var/datum/topic_command/command = topic_commands[com]
-		commandinsertquery.Execute(list(":command_name" = command.name, ":command_description" = command.description))
+		commandinsertquery.Execute(list("command_name" = command.name, "command_description" = command.description))
 	log_debug("API: DB Command Update Executed")
 	return 1 //OK
 
@@ -141,7 +147,7 @@ proc/api_update_command_database()
 	var/versionstring = null
 	//The Version Number follows SemVer http://semver.org/
 	version["major"] = 2 //Major Version Number --> Increment when implementing breaking changes
-	version["minor"] = 0 //Minor Version Number --> Increment when adding features
+	version["minor"] = 2 //Minor Version Number --> Increment when adding features
 	version["patch"] = 0 //Patchlevel --> Increment when fixing bugs
 
 	versionstring = "[version["major"]].[version["minor"]].[version["patch"]]"
@@ -170,16 +176,16 @@ proc/api_update_command_database()
 	FROM ss13_api_token_command as api_t_f, ss13_api_tokens as api_t, ss13_api_commands as api_f
 	WHERE api_t.id = api_t_f.token_id AND api_f.id = api_t_f.command_id
 	AND (
-		(token = :token AND ip = :ip)
+		(token = :token: AND ip = :ip:)
 		OR
-		(token = :token AND ip IS NULL)
+		(token = :token: AND ip IS NULL)
 		OR
-		(token IS NULL AND ip = :ip)
+		(token IS NULL AND ip = :ip:)
 	)
 	ORDER BY command DESC"})
 
 
-	commandsquery.Execute(list(":token" = queryparams["auth"], ":ip" = queryparams["addr"]))
+	commandsquery.Execute(list("token" = queryparams["auth"], "ip" = queryparams["addr"]))
 	while (commandsquery.NextRow())
 		commands[commandsquery.item[1]] = commandsquery.item[1]
 		if(commandsquery.item[1] == "_ANY")
@@ -222,15 +228,15 @@ proc/api_update_command_database()
 	WHERE api_t.id = api_t_f.token_id AND api_f.id = api_t_f.command_id
 	AND	api_t.deleted_at IS NULL
 	AND (
-	(token = :token AND ip = :ip AND command = :command)
+	(token = :token: AND ip = :ip: AND command = :command:)
 	OR
-	(token = :token AND ip IS NULL AND command = :command)
+	(token = :token: AND ip IS NULL AND command = :command:)
 	OR
-	(token = :token AND ip = :ip AND command = \"_ANY\")
+	(token = :token: AND ip = :ip: AND command = \"_ANY\")
 	OR
-	(token = :token AND ip IS NULL AND command = \"_ANY\")
+	(token = :token: AND ip IS NULL AND command = \"_ANY\")
 	OR
-	(token IS NULL AND ip IS NULL AND command = :command)
+	(token IS NULL AND ip IS NULL AND command = :command:)
 	)"})
 	//Get the tokens and the associated commands
 	//Check if the token, the ip and the command matches OR
@@ -238,7 +244,7 @@ proc/api_update_command_database()
 	// the token + ip matches and the command is NULL (Allow a specific ip with a specific token to use all commands)
 	// the token + ip is NULL and the command matches (Allow a specific command to be used without auth)
 
-	permquery.Execute(list(":token" = queryparams["auth"], ":ip" = queryparams["addr"], ":command" = queryparams["command"]))
+	permquery.Execute(list("token" = queryparams["auth"], "ip" = queryparams["addr"], "command" = queryparams["command"]))
 
 	if (!permquery.RowCount())
 		statuscode = 401
@@ -708,7 +714,7 @@ proc/api_update_command_database()
 	var/allow_antaghud = queryparams["allow_antaghud"]
 	var/senderkey = queryparams["senderkey"] //Identifier of the sender (Ckey / Userid / ...)
 
-	var/mob/dead/observer/G = ghosts[target]
+	var/mob/abstract/observer/G = ghosts[target]
 
 	if(!G in ghosts)
 		statuscode = 404
@@ -743,8 +749,8 @@ proc/api_update_command_database()
 	G.has_enabled_antagHUD = 2
 	G.can_reenter_corpse = 1
 
-	G:show_message(text("\blue <B>You may now respawn.	You should roleplay as if you learned nothing about the round during your time with the dead.</B>"), 1)
-	log_admin("[senderkey] allowed [key_name(G)] to bypass the 30 minute respawn limit via the API")
+	G:show_message(text("<span class='notice'><B>You may now respawn.	You should roleplay as if you learned nothing about the round during your time with the dead.</B></span>"), 1)
+	log_admin("[senderkey] allowed [key_name(G)] to bypass the 30 minute respawn limit via the API",ckey=key_name(G),admin_key=senderkey)
 	message_admins("Admin [senderkey] allowed [key_name_admin(G)] to bypass the 30 minute respawn limit via the API", 1)
 
 
@@ -780,9 +786,6 @@ proc/api_update_command_database()
 	log_and_message_admins("World restart initiated remotely by [senderkey].")
 	feedback_set_details("end_error","remote restart")
 
-	if (blackbox)
-		blackbox.save_all_data_to_sql()
-
 	spawn(50)
 		log_game("Rebooting due to remote command.")
 		world.Reboot(10)
@@ -800,7 +803,7 @@ proc/api_update_command_database()
 		"ckey" = list("name"="ckey","desc"="The target of the adminmessage","req"=1,"type"="str"),
 		"msg" = list("name"="msg","desc"="The message that should be sent","req"=1,"type"="str"),
 		"senderkey" = list("name"="senderkey","desc"="Unique id of the person that sent the adminmessage","req"=1,"type"="senderkey"),
-		"rank" = list("name"="rank","desc"="The rank that should be displayed - Defaults to admin if none specified","req"=0,"type"="str"),
+		"rank" = list("name"="rank","desc"="The rank that should be displayed - Defaults to admin if none specified","req"=0,"type"="str")
 		)
 
 /datum/topic_command/send_adminmsg/run_command(queryparams)
@@ -831,7 +834,7 @@ proc/api_update_command_database()
 		rank = "Admin"
 
 	var/message =	"<font color='red'>[rank] PM from <b><a href='?discord_msg=[queryparams["senderkey"]]'>[queryparams["senderkey"]]</a></b>: [queryparams["msg"]]</font>"
-	var/amessage =	"<font color='blue'>[rank] PM from <a href='?discord_msg=[queryparams["senderkey"]]'>[queryparams["senderkey"]]</a> to <b>[key_name(C)]</b> : [queryparams["msg"]]</font>"
+	var/amessage =	"<font color='blue'>[rank] PM from <a href='?discord_msg=[queryparams["senderkey"]]'>[queryparams["senderkey"]]</a> to <b>[key_name(C, highlight_special = 1)]</b> : [queryparams["msg"]]</font>"
 
 	C.received_discord_pm = world.time
 	C.discord_admin = queryparams["senderkey"]
@@ -858,7 +861,7 @@ proc/api_update_command_database()
 		"title" = list("name"="title","desc"="The message title that should be sent, Defaults to NanoTrasen Update if not specified","req"=0,"type"="str"),
 		"body" = list("name"="body","desc"="The message body that should be sent","req"=1,"type"="str"),
 		"type" = list("name"="type","desc"="The type of the message that should be sent, Defaults to freeform","req"=0,"type"="slct","options"=list("freeform","ccia")),
-		"sendername" = list("name"="sendername","desc"="IC Name of the sender for the CCIA Report, Defaults to CCIAAMS, \[Command-StationName\]","req"=0,"type"="string"),
+		"sendername" = list("name"="sendername","desc"="IC Name of the sender for the CCIA Report, Defaults to CCIAAMS, \[Command-StationName\]","req"=0,"type"="str"),
 		"announce" = list("name"="announce","desc"="If the report should be announce 1 -> Yes, 0 -> No, Defaults to 1","req"=0,"type"="int")
 		)
 /datum/topic_command/send_commandreport/run_command(queryparams)
@@ -876,17 +879,6 @@ proc/api_update_command_database()
 	if(!reportannounce)
 		reportannounce = 1
 
-	//Send the message to the communications consoles
-	for (var/obj/machinery/computer/communications/C in machines)
-		if(! (C.stat & (BROKEN|NOPOWER) ) )
-			var/obj/item/weapon/paper/P = new /obj/item/weapon/paper( C.loc )
-			P.name = "[command_name()] Update"
-			P.info = reportbody
-			P.update_space(P.info)
-			P.update_icon()
-			C.messagetitle.Add("[command_name()] Update")
-			C.messagetext.Add(P.info)
-
 	//Set the report footer for CCIA Announcements
 	if (reporttype == "ccia")
 		if (reportsender)
@@ -894,14 +886,17 @@ proc/api_update_command_database()
 		else
 			reportbody += "<br><br>- CCIAAMS, [commstation_name()]"
 
+	//Send the message to the communications consoles
+	post_comm_message(reporttitle, reportbody)
+
 	if(reportannounce == 1)
 		command_announcement.Announce(reportbody, reporttitle, new_sound = 'sound/AI/commandreport.ogg', do_newscast = 1, msg_sanitized = 1);
 	if(reportannounce == 0)
-		world << "\red New NanoTrasen Update available at all communication consoles."
+		world << "<span class='alert'>New NanoTrasen Update available at all communication consoles.</span>"
 		world << sound('sound/AI/commandreport.ogg')
 
 
-	log_admin("[senderkey] has created a command report via the api: [reportbody]")
+	log_admin("[senderkey] has created a command report via the api: [reportbody]",admin_key=senderkey)
 	message_admins("[senderkey] has created a command report via the api", 1)
 
 	statuscode = 200
@@ -949,11 +944,11 @@ proc/api_update_command_database()
 	//Announce that the fax has been sent
 	if(faxannounce == 1)
 		if(sendsuccess.len < 1)
-			command_announcement.Announce("A fax message from Central Command could not be delivered because all of the following fax machines are inoperational: <br>"+list2text(targetlist, ", "), "Fax Received", new_sound = 'sound/AI/commandreport.ogg', msg_sanitized = 1);
+			command_announcement.Announce("A fax message from Central Command could not be delivered because all of the following fax machines are inoperational: <br>"+jointext(targetlist, ", "), "Fax Received", new_sound = 'sound/AI/commandreport.ogg', msg_sanitized = 1);
 		else
-			command_announcement.Announce("A fax message from Central Command has been sent to the following fax machines: <br>"+list2text(sendsuccess, ", "), "Fax Received", new_sound = 'sound/AI/commandreport.ogg', msg_sanitized = 1);
+			command_announcement.Announce("A fax message from Central Command has been sent to the following fax machines: <br>"+jointext(sendsuccess, ", "), "Fax Received", new_sound = 'sound/AI/commandreport.ogg', msg_sanitized = 1);
 
-	log_admin("[senderkey] sent a fax via the API: : [faxbody]")
+	log_admin("[senderkey] sent a fax via the API: : [faxbody]",admin_key=senderkey)
 	message_admins("[senderkey] sent a fax via the API", 1)
 
 	statuscode = 200
@@ -964,7 +959,7 @@ proc/api_update_command_database()
 /datum/topic_command/send_fax/proc/send_fax(var/obj/machinery/photocopier/faxmachine/F, title, body, senderkey)
 	// Create the reply message
 	var/obj/item/weapon/paper/P = new /obj/item/weapon/paper( null ) //hopefully the null loc won't cause trouble for us
-	P.name = "[command_name()] - [title]"
+	P.name = "[current_map.boss_name] - [title]"
 	P.info = body
 	P.update_icon()
 
@@ -974,7 +969,7 @@ proc/api_update_command_database()
 	if(!P.stamped)
 		P.stamped = new
 	P.stamped += /obj/item/weapon/stamp
-	P.overlays += stampoverlay
+	P.add_overlay(stampoverlay)
 	P.stamps += "<HR><i>This paper has been stamped by the Central Command Quantum Relay.</i>"
 
 	if(F.recievefax(P))
@@ -1009,4 +1004,203 @@ proc/api_update_command_database()
 			statuscode = 200
 			response = "Ingame Discord bot's channels were successfully updated."
 
+	return 1
+
+// Gets the currently configured access levels
+/datum/topic_command/get_access_levels
+	name = "get_access_levels"
+	description = "Gets the currently configured access levels."
+
+/datum/topic_command/get_access_levels/run_command()
+	var/list/access_levels = list()
+	for(var/datum/access/acc in get_all_access_datums())
+		access_levels.Add(list(acc.get_info_list()))
+
+	data = access_levels
+	statuscode = 200
+	response = "Levels Sent"
+	return 1
+
+// Reloads the current cargo configuration
+/datum/topic_command/cargo_reload
+	name = "cargo_reload"
+	description = "Reloads the current cargo configuration."
+	params = list(
+		"force" = list("name"="force","desc"="Force the reload even if orders have already been placed","type"="int","req"=0)
+	)
+
+/datum/topic_command/cargo_reload/run_command(queryparams)
+	var/force = text2num(queryparams["force"])
+	if(!SScargo.get_order_count())
+		SScargo.load_from_sql()
+		message_admins("Cargo has been reloaded via the API.")
+		statuscode = 200
+		response = "Cargo Reloaded from SQL."
+	else
+		if(force)
+			SScargo.load_from_sql()
+			message_admins("Cargo has been force-reloaded via the API. All current orders have been purged.")
+			statuscode = 200
+			response = "Cargo Force-Reloaded from SQL."
+		else
+			statuscode = 500
+			response = "Orders have been placed. Use force parameter to overwrite."
+	return 1
+
+//Gets a overview of all polls (title, id, type)
+/datum/topic_command/get_polls
+	name = "get_polls"
+	description = "Gets a overview of all polls."
+	params = list(
+		"current_only" = list("name"="current_only","desc"="Only get information about the current polls","type"="int","req"=0),
+		"admin_only" = list("name"="admin_only","desc"="Only get information about the admin_only polls","type"="int","req"=0)
+	)
+
+/datum/topic_command/get_polls/run_command(queryparams)
+	var/current_only = text2num(queryparams["current_only"])
+	var/admin_only = text2num(queryparams["admin_only"])
+	
+	if(!establish_db_connection(dbcon))
+		statuscode = 500
+		response = "DB-Connection unavailable"
+		return 1
+
+	var/list/polldata = list()
+
+	var/DBQuery/select_query = dbcon.NewQuery("SELECT id, polltype, starttime, endtime, question, multiplechoiceoptions, adminonly FROM ss13_poll_question [(current_only || admin_only) ? "WHERE" : ""] [(admin_only ? "adminonly = true " : "")][(current_only && admin_only ? "AND " : "")][(current_only ? "Now() BETWEEN starttime AND endtime" : "")]")
+	select_query.Execute()
+	while(select_query.NextRow())
+		polldata["[select_query.item[1]]"] = list(
+			"id"=select_query.item[1],
+			"polltype"=select_query.item[2],
+			"starttime"=select_query.item[3],
+			"endtime"=select_query.item[4],
+			"question"=select_query.item[5],
+			"multiplechoiceoptions"=select_query.item[6],
+			"adminonly"=select_query.item[7]
+			)
+
+	statuscode = 200
+	response = "Polldata sent"
+	data = polldata
+	return 1
+
+
+// Gets infos about a poll
+/datum/topic_command/get_poll_info
+	name = "get_poll_info"
+	description = "Gets Information about a poll."
+	params = list(
+		"poll_id" = list("name"="poll_id","desc"="The poll id that should be queried","type"="int","req"=1)
+	)
+
+/datum/topic_command/get_poll_info/run_command(queryparams)
+	var/poll_id = text2num(queryparams["poll_id"])
+
+	if(!establish_db_connection(dbcon))
+		statuscode = 500
+		response = "DB-Connection unavailable"
+		return 1
+
+	//Get general data about the poll
+	var/DBQuery/select_query = dbcon.NewQuery("SELECT id, polltype, starttime, endtime, question, multiplechoiceoptions, adminonly, publicresult, viewtoken FROM ss13_poll_question WHERE id = :poll_id:")
+	select_query.Execute(list("poll_id"=poll_id))
+
+	//Check if the poll exists
+	if(!select_query.NextRow())
+		statuscode = 404
+		response = "The requested poll does not exist"
+		data = null
+		return 1
+	var/list/poll_data = list(
+		"id"=select_query.item[1],
+		"polltype"=select_query.item[2],
+		"starttime"=select_query.item[3],
+		"endtime"=select_query.item[4],
+		"question"=select_query.item[5],
+		"multiplechoiceoptions"=select_query.item[6],
+		"adminonly"=select_query.item[7],
+		"publicresult"=select_query.item[8]
+		)
+
+	//Lets add a WI link to the poll, if we have the WI configured
+	if(config.webint_url)
+		poll_data["link"]="[config.webint_url]server/poll/[select_query.item[1]]/[select_query.item[9]]"
+
+	var/list/result_data = list()
+
+	/** Return different data based on the poll type: */
+	//If we have a option or a multiple choice poll, return the number of options
+	if(poll_data["polltype"] == "OPTION" || poll_data["polltype"] == "MULTICHOICE")
+		var/DBQuery/result_query = dbcon.NewQuery({"SELECT ss13_poll_vote.optionid, ss13_poll_option.text, COUNT(*) as option_count
+			FROM ss13_poll_vote
+			LEFT JOIN ss13_poll_option ON ss13_poll_vote.optionid = ss13_poll_option.id
+			WHERE ss13_poll_vote.pollid = :poll_id:
+			GROUP BY ss13_poll_vote.optionid"})
+		result_query.Execute(list("poll_id"=poll_id))
+
+		while(result_query.NextRow())
+			result_data["[result_query.item[1]]"] = list(
+				"option_id"=result_query.item[1],
+				"option_question"=result_query.item[2],
+				"option_count"=result_query.item[3]
+			)
+		if(!length(result_data))
+			statuscode = 500
+			response = "No data returned by result query."
+			data = null
+			return 1
+
+	//If we have a numval poll, return the options with the min, max, and average
+	else if(poll_data["polltype"] == "NUMVAL")
+		var/DBQuery/result_query = dbcon.NewQuery({"SELECT ss13_poll_vote.optionid, ss13_poll_option.text, ss13_poll_option.minval, ss13_poll_option.maxval, ss13_poll_option.descmin, ss13_poll_option.descmid, ss13_poll_option.descmax, AVG(rating) as option_rating_avg, MIN(rating) as option_rating_min, MAX(rating) as option_rating_max
+		FROM ss13_poll_vote
+		LEFT JOIN ss13_poll_option ON ss13_poll_vote.optionid = ss13_poll_option.id
+		WHERE ss13_poll_vote.pollid = :poll_id:
+		GROUP BY ss13_poll_vote.optionid"})
+		result_query.Execute(list("poll_id"=poll_id))
+		while(result_query.NextRow())
+			result_data["[result_query.item[1]]"] = list(
+				"option_id"=result_query.item[1],
+				"option_question"=result_query.item[2],
+				"option_minval"=result_query.item[3],
+				"option_maxval"=result_query.item[4],
+				"option_descmin"=result_query.item[5],
+				"option_descmid"=result_query.item[6],
+				"option_descmax"=result_query.item[7],
+				"option_rating_min"=result_query.item[8],
+				"option_rating_max"=result_query.item[9],
+				"option_rating_avg"=result_query.item[10] //TODO: Expand that with MEDIAN once we upgrade mariadb
+			)
+		if(!length(result_data))
+			statuscode = 500
+			response = "No data returned by result query."
+			data = null
+			return 1
+
+	//If we have a textpoll, return the number of answers
+	else if(poll_data["polltype"] == "TEXT")
+		var/DBQuery/result_query = dbcon.NewQuery({"SELECT COUNT(*) as count FROM ss13_poll_textreply WHERE pollid = :poll_id:"})
+		result_query.Execute(list("poll_id"=poll_id))
+		if(result_query.NextRow())
+			result_data = list(
+				"response_count"=result_query.item[1]
+			)
+		else
+			statuscode = 500
+			response = "No data returned by result query."
+			data = null
+			return 1
+	else
+		statuscode = 500
+		response = "Unknown Poll Type"
+		data = poll_data
+		return 1
+	
+
+	poll_data["results"] = result_data
+
+	statuscode = 200
+	response = "Poll data fetched"
+	data = poll_data
 	return 1

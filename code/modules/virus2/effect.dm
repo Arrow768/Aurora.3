@@ -98,7 +98,7 @@
 	maxm = 3
 	badness = 2
 	activate(var/mob/living/carbon/mob,var/multiplier)
-		mob.radiation += (2*multiplier)
+		mob.apply_effect(2*multiplier, IRRADIATE, blocked = 0)
 
 /datum/disease2/effect/deaf
 	name = "Dead Ear Syndrome"
@@ -115,19 +115,6 @@
 		if(istype(mob,/mob/living/carbon/human))
 			var/mob/living/carbon/human/h = mob
 			h.monkeyize()
-
-/datum/disease2/effect/suicide
-	name = "Suicidal Syndrome"
-	stage = 4
-	badness = 3
-	activate(var/mob/living/carbon/mob,var/multiplier)
-		mob.suiciding = 1
-		//instead of killing them instantly, just put them at -175 health and let 'em gasp for a while
-		viewers(mob) << "\red <b>[mob.name] is holding \his breath. It looks like \he's trying to commit suicide.</b>"
-		mob.adjustOxyLoss(175 - mob.getToxLoss() - mob.getFireLoss() - mob.getBruteLoss() - mob.getOxyLoss())
-		mob.updatehealth()
-		spawn(200) //in case they get revived by cryo chamber or something stupid like that, let them suicide again in 20 seconds
-			mob.suiciding = 0
 
 /datum/disease2/effect/killertoxins
 	name = "Toxification Syndrome"
@@ -294,8 +281,8 @@
 		else
 			data = pick("bicaridine", "kelotane", "anti_toxin", "inaprovaline", "space_drugs", "sugar",
 						"tramadol", "dexalin", "cryptobiolin", "impedrezene", "hyperzine", "ethylredoxrazine",
-						"mindbreaker", "nutriment")
-		var/datum/reagent/R = chemical_reagents_list[data]
+						"mindbreaker", "glucose")
+		var/datum/reagent/R = SSchemistry.chemical_reagents[data]
 		name = "[initial(name)] ([initial(R.name)])"
 
 	activate(var/mob/living/carbon/mob,var/multiplier)
@@ -378,12 +365,18 @@
 /datum/disease2/effect/sneeze
 	name = "Coldingtons Effect"
 	stage = 1
-	activate(var/mob/living/carbon/mob,var/multiplier)
+	activate(var/mob/living/carbon/mob, var/multiplier)
 		if (prob(30))
 			mob << "<span class='warning'>You feel like you are about to sneeze!</span>"
-		sleep(5)
+		addtimer(CALLBACK(src, .proc/do_sneeze, mob, multiplier), 5)
+
+
+	proc/do_sneeze(mob/living/carbon/mob, multiplier)
+		if (QDELETED(mob))
+			return
+
 		mob.say("*sneeze")
-		for(var/mob/living/carbon/M in get_step(mob,mob.dir))
+		for(var/mob/living/carbon/M in get_step(mob, mob.dir))
 			mob.spread_disease_to(M)
 		if (prob(50))
 			var/obj/effect/decal/cleanable/mucus/M = new(get_turf(mob))

@@ -53,14 +53,15 @@ var/list/diseases = typesof(/datum/disease) - /datum/disease
 	// if hidden[2] is true, then virus is hidden from PANDEMIC machine
 
 /datum/disease/proc/stage_act()
+
+	// Some species are immune to viruses entirely.
+	if(affected_mob && istype(affected_mob, /mob/living/carbon/human))
+		var/mob/living/carbon/human/H = affected_mob
+		if(H.species.virus_immune)
+			cure()
+			return
 	age++
 	var/cure_present = has_cure()
-	//world << "[cure_present]"
-
-	if(carrier&&!cure_present)
-		//world << "[affected_mob] is carrier"
-		return
-
 	spread = (cure_present?"Remissive":initial_spread)
 	if(stage > max_stages)
 		stage = max_stages
@@ -126,7 +127,7 @@ var/list/diseases = typesof(/datum/disease) - /datum/disease
 			source = affected_mob
 		else //no source and no mob affected. Rogue disease. Break
 			return
-	
+
 	if(affected_mob.reagents != null)
 		if(affected_mob)
 			if(affected_mob.reagents.has_reagent("spaceacillin"))
@@ -146,9 +147,9 @@ var/list/diseases = typesof(/datum/disease) - /datum/disease
 	return
 
 
-/datum/disease/proc/process()
+/datum/disease/process()
 	if(!holder)
-		active_diseases -= src
+		STOP_PROCESSING(SSdisease, src)
 		return
 	if(prob(65))
 		spread(holder)
@@ -190,11 +191,12 @@ var/list/diseases = typesof(/datum/disease) - /datum/disease
 /datum/disease/New(var/process=1, var/datum/disease/D)//process = 1 - adding the object to global list. List is processed by master controller.
 	cure_list = list(cure_id) // to add more cures, add more vars to this list in the actual disease's New()
 	if(process)				 // Viruses in list are considered active.
-		active_diseases += src
+		START_PROCESSING(SSdisease, src)
 	initial_spread = spread
 
 /datum/disease/Destroy()
-	active_diseases.Remove(src)
+	STOP_PROCESSING(SSdisease, src)
+	return ..()
 
 /datum/disease/proc/IsSame(var/datum/disease/D)
 	if(istype(src, D.type))

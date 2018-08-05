@@ -5,7 +5,7 @@
 	max_co2 = 0
 	minbodytemp = 0
 	maxbodytemp = 500
-	mob_size = 5
+	mob_size = MOB_SMALL
 
 	var/obj/item/device/radio/borg/radio = null
 	var/mob/living/silicon/ai/connected_ai = null
@@ -40,11 +40,10 @@
 	var/obj/item/held_item = null //Storage for single item they can hold.
 	speed = -1                    //Spiderbots gotta go fast.
 	pass_flags = PASSTABLE | PASSDOORHATCH
-	small = 1
 	speak_emote = list("beeps","clicks","chirps")
 
-/mob/living/simple_animal/spiderbot/New()
-	..()
+/mob/living/simple_animal/spiderbot/Initialize()
+	. = ..()
 	add_language("Ceti Basic")
 	default_language = all_languages["Ceti Basic"]
 	verbs |= /mob/living/proc/ventcrawl
@@ -63,7 +62,7 @@
 		if(!B.brainmob.key)
 			var/ghost_can_reenter = 0
 			if(B.brainmob.mind)
-				for(var/mob/dead/observer/G in player_list)
+				for(var/mob/abstract/observer/G in player_list)
 					if(G.can_reenter_corpse && G.mind == B.brainmob.mind)
 						ghost_can_reenter = 1
 						break
@@ -85,15 +84,14 @@
 			positronic = 1
 			add_language("Robot Talk")
 
-		user.drop_item()
 		src.mmi = O
 		src.transfer_personality(O)
 
-		O.loc = src
+		user.drop_from_inventory(O,src)
 		src.update_icon()
 		return 1
 
-	if (istype(O, /obj/item/weapon/weldingtool))
+	if (iswelder(O))
 		var/obj/item/weapon/weldingtool/WT = O
 		if (WT.remove_fuel(0))
 			if(health < maxHealth)
@@ -124,34 +122,25 @@
 			user << "<span class='notice'>You swipe your access card and pop the brain out of \the [src].</span>"
 			eject_brain()
 			if(held_item)
-				held_item.loc = src.loc
+				held_item.forceMove(src.loc)
 				held_item = null
 			return 1
 		else
 			user << "<span class='danger'>You swipe your card with no effect.</span>"
 			return 0
-	else if (istype(O, /obj/item/weapon/card/emag))
-		if (emagged)
-			user << "<span class='danger'>\The [src] is already overloaded - better run!</span>"
-			return 0
-		else
-			var/obj/item/weapon/card/emag/emag = O
-			emag.uses--
-			emagged = 1
-			user << "<span class='danger'>You short out the security protocols and overload \the [src]'s cell, priming it to explode in a short time.</span>"
-			spawn(0)
-				sleep(100)
-				if(!src) return
-				src << "<span class='warning'>Your cell seems to be outputting a lot of power...</span>"
-				sleep(200)
-				if(!src) return
-				src << "<span class='danger'>Internal heat sensors are spiking! Something is badly wrong with your cell!</span>"
-				sleep(300)
-				if(!src) return
-				src.explode()
-				return
+
 	else
-		attacked_with_item(O, user)
+		O.attack(src, user, user.zone_sel.selecting)
+
+/mob/living/simple_animal/spiderbot/emag_act(var/remaining_charges, var/mob/user)
+	if (emagged)
+		user << "<span class='warning'>[src] is already overloaded - better run.</span>"
+		return 0
+	else
+		user << "<span class='notice'>You short out the security protocols and overload [src]'s cell, priming it to explode in a short time.</span>"
+		spawn(100)	src << "<span class='danger'>Your cell seems to be outputting a lot of power...</span>"
+		spawn(200)	src << "<span class='danger'>Internal heat sensors are spiking! Something is badly wrong with your cell!</span>"
+		spawn(300)	src.explode()
 
 /mob/living/simple_animal/spiderbot/proc/transfer_personality(var/obj/item/device/mmi/M as obj)
 
@@ -166,7 +155,7 @@
 	eject_brain()
 	death()
 
-/mob/living/simple_animal/spiderbot/proc/update_icon()
+/mob/living/simple_animal/spiderbot/update_icon()
 	if(mmi)
 		if(positronic)
 			icon_state = "spiderbot-chassis-posi"
@@ -182,7 +171,7 @@
 	if(mmi)
 		var/turf/T = get_turf(loc)
 		if(T)
-			mmi.loc = T
+			mmi.forceMove(T)
 		if(mind)	mind.transfer_to(mmi.brainmob)
 		mmi = null
 		real_name = initial(real_name)
@@ -193,16 +182,16 @@
 
 /mob/living/simple_animal/spiderbot/Destroy()
 	eject_brain()
-	..()
+	return ..()
 
-/mob/living/simple_animal/spiderbot/New()
+/mob/living/simple_animal/spiderbot/Initialize()
+	. = ..()
 
 	radio = new /obj/item/device/radio/borg(src)
 	camera = new /obj/machinery/camera(src)
 	camera.c_tag = "spiderbot-[real_name]"
 	camera.replace_networks(list("SS13"))
 
-	..()
 
 /mob/living/simple_animal/spiderbot/death()
 
@@ -213,7 +202,7 @@
 		camera.status = 0
 
 	if (held_item)
-		held_item.loc = src.loc
+		held_item.forceMove(src.loc)
 		held_item = null
 
 	eject_brain()
@@ -231,7 +220,7 @@
 		return
 
 	if(!held_item)
-		usr << "\red You have nothing to drop!"
+		usr << "<span class='warning'>You have nothing to drop!</span>"
 		return 0
 
 	if(istype(held_item, /obj/item/weapon/grenade))
@@ -239,7 +228,7 @@
 			"<span class='danger'>You launch \the [held_item]!</span>", \
 			"You hear a skittering noise and a thump!")
 		var/obj/item/weapon/grenade/G = held_item
-		G.loc = src.loc
+		G.forceMove(src.loc)
 		G.prime()
 		held_item = null
 		return 1
@@ -248,7 +237,7 @@
 		"<span class='notice'>You drop \the [held_item].</span>", \
 		"You hear a skittering noise and a soft thump.")
 
-	held_item.loc = src.loc
+	held_item.forceMove(src.loc)
 	held_item = null
 	return 1
 
@@ -277,7 +266,7 @@
 		for(var/obj/item/I in view(1, src))
 			if(selection == I)
 				held_item = selection
-				selection.loc = src
+				selection.forceMove(src)
 				visible_message("<span class='notice'>\The [src] scoops up \the [held_item].</span>", \
 					"<span class='notice'>You grab \the [held_item].</span>", \
 					"You hear a skittering noise and a clink.")

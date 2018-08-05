@@ -16,6 +16,11 @@
 	mob_size = 3
 	composition_reagent = "slimejelly"
 
+/mob/living/simple_animal/slime/can_force_feed(var/feeder, var/food, var/feedback)
+	if(feedback)
+		feeder << "Where do you intend to put \the [food]? \The [src] doesn't have a mouth!"
+	return 0
+
 /mob/living/simple_animal/adultslime
 	name = "pet slime"
 	desc = "A lovable, domesticated slime."
@@ -33,9 +38,9 @@
 	mob_size = 6
 	composition_reagent = "slimejelly"
 
-/mob/living/simple_animal/adultslime/New()
-	..()
-	overlays += "aslime-:33"
+/mob/living/simple_animal/adultslime/Initialize()
+	. = ..()
+	add_overlay("aslime-:33")
 
 
 /mob/living/simple_animal/slime/adult/death()

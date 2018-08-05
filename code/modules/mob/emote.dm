@@ -1,10 +1,9 @@
 // All mobs should have custom emote, really..
 //m_type == 1 --> visual.
 //m_type == 2 --> audible
-/mob/proc/custom_emote(var/m_type=1,var/message = null)
-
-	if(stat || !use_me && usr == src)
-		usr << "You are unable to emote."
+/mob/proc/custom_emote(var/m_type=1,var/message = null, var/log_emote = 1)
+	if(usr && stat || !use_me && usr == src)
+		src << "You are unable to emote."
 		return
 
 	var/muzzled = istype(src.wear_mask, /obj/item/clothing/mask/muzzle)
@@ -22,10 +21,9 @@
 
 
 	if (message)
-		log_emote("[name]/[key] : [message]")
-
 		send_emote(message, m_type)
-
+		if (log_emote)
+			log_emote("[name]/[key] : [message]",ckey=key_name(key))
 
 /mob/proc/emote_dead(var/message)
 
@@ -50,7 +48,7 @@
 		input = message
 
 	if(input)
-		log_emote("Ghost/[src.key] : [input]")
+		log_emote("Ghost/[src.key] : [input]",ckey=key_name(src))
 		say_dead_direct(input, src)
 
 
@@ -63,10 +61,10 @@
 		messageturfs += turf
 
 	for(var/mob/M in player_list)
-		if (!M.client || istype(M, /mob/new_player))
+		if (!M.client || istype(M, /mob/abstract/new_player))
 			continue
 		if(get_turf(M) in messageturfs)
-			if (istype(M, /mob/dead/observer))
+			if (istype(M, /mob/abstract/observer))
 				messagemobs_neardead += M
 				continue
 			else if (istype(M, /mob/living) && !(type == 2 && (sdisabilities & DEAF || ear_deaf)))

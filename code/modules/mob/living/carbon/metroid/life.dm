@@ -1,38 +1,25 @@
 /mob/living/carbon/slime/Life()
-	set invisibility = 0
-	set background = 1
+	set background = BACKGROUND_ENABLED
 
-	if (src.monkeyizing)
+	if (src.transforming)
 		return
 
 	..()
 
 	if(stat != DEAD)
-		handle_chemicals_in_body()
 		handle_nutrition()
 
 		if(is_ventcrawling == 0) // Stops sight returning to normal if inside a vent
-			sight = SEE_SELF
+			sight = initial(sight)
 
-		if (!client)
-			handle_targets()
-			if (!AIproc)
-				spawn()
-					handle_AI()
-			handle_speech_and_mood()
+/mob/living/carbon/slime/think()
+	..()
+	handle_targets()
+	if (!AIproc)
+		handle_AI()
+	handle_speech_and_mood()
 
-	var/datum/gas_mixture/environment
-	if(src.loc)
-		environment = loc.return_air()
-
-	regular_hud_updates()
-
-	if(environment)
-		handle_environment(environment) // Handle temperature/pressure differences between body and environment
-
-	handle_regular_status_updates() // Status updates, death etc.
-
-/mob/living/carbon/slime/proc/handle_environment(datum/gas_mixture/environment)
+/mob/living/carbon/slime/handle_environment(datum/gas_mixture/environment)
 	if(!environment)
 		adjustToxLoss(rand(10,20))
 		return
@@ -55,11 +42,14 @@
 
 	//Account for massive pressure differences
 
-	if(bodytemperature < hurt_temperature) // start calculating temperature damage etc
-		if(bodytemperature <= die_temperature)
-			if(bodytemperature <= 50)
+	if(bodytemperature < (T0C + 5)) // start calculating temperature damage etc
+
+		if(bodytemperature <= hurt_temperature)
+			if(bodytemperature <= die_temperature)
 				adjustToxLoss(200)
 			else
+				// could be more fancy, but doesn't worth the complexity: when the slimes goes into a cold area
+				// the damage is mostly determined by how fast its body cools
 				adjustToxLoss(30)
 
 	updatehealth()
@@ -83,13 +73,14 @@
 	temp_change = (temperature - current)
 	return temp_change
 
-/mob/living/carbon/slime/proc/handle_chemicals_in_body()
+/mob/living/carbon/slime/handle_chemicals_in_body()
 	chem_effects.Cut()
 	analgesic = 0
 
 	if(touching) touching.metabolize()
 	if(ingested) ingested.metabolize()
 	if(bloodstr) bloodstr.metabolize()
+	if(breathing) breathing.metabolize()
 
 	if(CE_PAINKILLER in chem_effects)
 		analgesic = chem_effects[CE_PAINKILLER]
@@ -98,7 +89,7 @@
 
 	return //TODO: DEFERRED
 
-/mob/living/carbon/slime/proc/handle_regular_status_updates()
+/mob/living/carbon/slime/handle_regular_status_updates()
 
 	src.blinded = null
 

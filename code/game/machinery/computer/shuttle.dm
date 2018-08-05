@@ -1,7 +1,9 @@
 /obj/machinery/computer/shuttle
 	name = "Shuttle"
 	desc = "For shuttle control."
-	icon_state = "shuttle"
+
+	is_holographic = FALSE
+	icon_screen = "shuttle"
 	light_color = "#00ffff"
 	var/auth_need = 3.0
 	var/list/authorized = list(  )
@@ -9,7 +11,7 @@
 
 	attackby(var/obj/item/weapon/card/W as obj, var/mob/user as mob)
 		if(stat & (BROKEN|NOPOWER))	return
-		if ((!( istype(W, /obj/item/weapon/card) ) || !( ticker ) || emergency_shuttle.location() || !( user )))	return
+		if ((!( istype(W, /obj/item/weapon/card) ) || !(ROUND_IS_STARTED) || emergency_shuttle.location() || !( user )))	return
 		if (istype(W, /obj/item/weapon/card/id)||istype(W, /obj/item/device/pda))
 			if (istype(W, /obj/item/device/pda))
 				var/obj/item/device/pda/pda = W
@@ -36,12 +38,12 @@
 					src.authorized += W:registered_name
 					if (src.auth_need - src.authorized.len > 0)
 						message_admins("[key_name_admin(user)] has authorized early shuttle launch")
-						log_game("[user.ckey] has authorized early shuttle launch")
-						world << text("\blue <B>Alert: [] authorizations needed until shuttle is launched early</B>", src.auth_need - src.authorized.len)
+						log_game("[key_name(user)] has authorized early shuttle launch",ckey=key_name(user))
+						world << text("<span class='notice'><b>Alert: [] authorizations needed until shuttle is launched early</b></span>", src.auth_need - src.authorized.len)
 					else
 						message_admins("[key_name_admin(user)] has launched the shuttle")
-						log_game("[user.ckey] has launched the shuttle early")
-						world << "\blue <B>Alert: Shuttle launch time shortened to 10 seconds!</B>"
+						log_game("[key_name(user)] has launched the shuttle early",ckey=key_name(user))
+						world << "<span class='notice'><b>Alert: Shuttle launch time shortened to 10 seconds!</b></span>"
 						emergency_shuttle.set_launch_countdown(10)
 						//src.authorized = null
 						qdel(src.authorized)
@@ -49,10 +51,10 @@
 
 				if("Repeal")
 					src.authorized -= W:registered_name
-					world << text("\blue <B>Alert: [] authorizations needed until shuttle is launched early</B>", src.auth_need - src.authorized.len)
+					world << text("<span class='notice'><b>Alert: [] authorizations needed until shuttle is launched early</b></span>", src.auth_need - src.authorized.len)
 
 				if("Abort")
-					world << "\blue <B>All authorizations to shortening time for shuttle launch have been revoked!</B>"
+					world << "<span class='notice'><b>All authorizations to shortening time for shuttle launch have been revoked!</b></span>"
 					src.authorized.len = 0
 					src.authorized = list(  )
 
@@ -62,7 +64,7 @@
 			if(!emagged && !emergency_shuttle.location() && user.get_active_hand() == W)
 				switch(choice)
 					if("Launch")
-						world << "\blue <B>Alert: Shuttle launch time shortened to 10 seconds!</B>"
+						world << "<span class='notice'><b>Alert: Shuttle launch time shortened to 10 seconds!</b></span>"
 						emergency_shuttle.set_launch_countdown(10)
 						emagged = 1
 					if("Cancel")

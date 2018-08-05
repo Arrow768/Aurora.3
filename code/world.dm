@@ -1,12 +1,14 @@
+#define WORLD_ICON_SIZE 32
+#define PIXEL_MULTIPLIER WORLD_ICON_SIZE/32
+#define WORLD_MIN_SIZE 32
 
 /*
 	The initialization of the game happens roughly like this:
 
 	1. All global variables are initialized (including the global_init instance).
 	2. The map is initialized, and map objects are created.
-	3. world/New() runs, creating the process scheduler (and the old master controller) and spawning their setup.
-	4. processScheduler/setup() runs, creating all the processes. game_controller/setup() runs, calling initialize() on all movable atoms in the world.
-	5. The gameticker is created.
+	3. world/New() runs, creating & starting the master controller.
+	4. The master controller initializes the rest of the game.
 
 */
 var/global/datum/global_init/init = new ()
@@ -20,8 +22,12 @@ var/global/datum/global_init/init = new ()
 	makeDatumRefLists()
 	load_configuration()
 
-	qdel(src)
+	qdel(src) //we're done
+	init = null
 
+/datum/global_init/Destroy()
+	..()
+	return 3	// QDEL_HINT_HARDDEL ain't defined here, so magic number it is.
 
 /var/game_id = null
 /proc/generate_gameid()
@@ -32,17 +38,24 @@ var/global/datum/global_init/init = new ()
 	var/list/c = list("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 	var/l = c.len
 
-	var/t = world.realtime
-	while(t != 0)
-		game_id += c[(t % l) + 1]
+	var/t = world.timeofday
+	for(var/_ = 1 to 4)
+		game_id = "[c[(t % l) + 1]][game_id]"
+		t = round(t / l)
+	game_id = "-[game_id]"
+	t = round(world.realtime / (10 * 60 * 60 * 24))
+	for(var/_ = 1 to 3)
+		game_id = "[c[(t % l) + 1]][game_id]"
 		t = round(t / l)
 
 /world
-	mob = /mob/new_player
+	mob = /mob/abstract/new_player
 	turf = /turf/space
 	area = /area/space
 	view = "15x15"
 	cache_lifespan = 0	//stops player uploaded stuff from being kept in the rsc past the current session
+	maxx = WORLD_MIN_SIZE	// So that we don't get map-window-popin at boot. DMMS will expand this.
+	maxy = WORLD_MIN_SIZE
 
 
 #define RECOMMENDED_VERSION 510
@@ -60,6 +73,8 @@ var/global/datum/global_init/init = new ()
 	if(byond_version < RECOMMENDED_VERSION)
 		world.log << "Your server's byond version does not meet the recommended requirements for this server. Please update BYOND to [RECOMMENDED_VERSION]."
 
+	world.TgsNew()
+
 	config.post_load()
 
 	if(config && config.server_name != null && config.server_suffix && world.port > 0)
@@ -71,38 +86,18 @@ var/global/datum/global_init/init = new ()
 	load_mods()
 	//end-emergency fix
 
-	src.update_status()
-
 	. = ..()
 
-	sleep_offline = 1
+#ifdef UNIT_TEST
+	log_unit_test("Unit Tests Enabled.  This will destroy the world when testing is complete.")
+	load_unit_test_changes()
+#endif
 
-	// Set up roundstart seed list.
-	plant_controller = new()
+	// Do not add initialization stuff to this file, unless it *must* run before the MC initializes!
+	// (hint: you generally won't need this)
+	// To do things on server-start, create a subsystem or shove it into one of the miscellaneous init subsystems.
 
-	// This is kinda important. Set up details of what the hell things are made of.
-	populate_material_list()
-
-	//Create the asteroid Z-level.
-	if(config.generate_asteroid)
-		new /datum/random_map(null,13,32,5,217,223)
-
-	// Create autolathe recipes, as above.
-	populate_lathe_recipes()
-
-	// Create robolimbs for chargen.
-	populate_robolimb_list()
-
-	processScheduler = new
-	master_controller = new /datum/controller/game_controller()
-	spawn(1)
-		processScheduler.deferSetupFor(/datum/controller/process/ticker)
-		processScheduler.setup()
-		master_controller.setup()
-
-	spawn(3000)		//so we aren't adding to the round-start lag
-		if(config.ToRban)
-			ToRban_autoupdate()
+	Master.Initialize(10, FALSE)
 
 #undef RECOMMENDED_VERSION
 
@@ -112,17 +107,36 @@ var/list/world_api_rate_limit = list()
 
 /world/Topic(T, addr, master, key)
 	var/list/response[] = list()
-	var/list/queryparams[] = json_decode(T)
+	var/list/queryparams[]
+
+	try
+		queryparams = json_decode(T)
+	catch()
+		queryparams = list()
+
+	log_debug("API: Request Received - from:[addr], master:[master], key:[key]")
+	diary << "TOPIC: \"[T]\", from:[addr], master:[master], key:[key], auth:[queryparams["auth"] ? queryparams["auth"] : "null"] [log_end]"
+
+	// TGS topic hook. Returns if successful, expects old-style serialization.
+	var/tgs_topic_return = TgsTopic(T)
+
+	if (tgs_topic_return)
+		log_debug("API - TGS3 Request.")
+		return tgs_topic_return
+	else if (!queryparams.len)
+		log_debug("API - Bad Request - Invalid/no JSON data sent.")
+		response["statuscode"] = 400
+		response["response"] = "Bad Request - Invalid/no JSON data sent."
+		return json_encode(response)
+
 	queryparams["addr"] = addr //Add the IP to the queryparams that are passed to the api functions
 	var/query = queryparams["query"]
 	var/auth = queryparams["auth"]
-	log_debug("API: Request Received - from:[addr], master:[master], key:[key]")
-	diary << "TOPIC: \"[T]\", from:[addr], master:[master], key:[key], auth:[auth] [log_end]"
 
-	if (!ticker) //If the game is not started most API Requests would not work because of the throtteling
+	/*if (!SSticker) //If the game is not started most API Requests would not work because of the throtteling
 		response["statuscode"] = 500
 		response["response"] = "Game not started yet!"
-		return json_encode(response)
+		return json_encode(response)*/
 
 	if (isnull(query))
 		log_debug("API - Bad Request - No query specified")
@@ -175,40 +189,35 @@ var/list/world_api_rate_limit = list()
 
 
 /world/Reboot(var/reason)
-	/*spawn(0)
-		world << sound(pick('sound/AI/newroundsexy.ogg','sound/misc/apcdestroyed.ogg','sound/misc/bangindonk.ogg')) // random end sounds!! - LastyBatsy
-		*/
+	world.TgsReboot()
 
-	processScheduler.stop()
+	Master.Shutdown()
 
-	for(var/client/C in clients)
-		if(config.server)	//if you set a server location in config.txt, it sends you there instead of trying to reconnect to the same world address. -- NeoFite
+	if(config.server)	//if you set a server location in config.txt, it sends you there instead of trying to reconnect to the same world address. -- NeoFite
+		for(var/client/C in clients)
 			C << link("byond://[config.server]")
-
-	// Handle runtime condensing here
-	if (config.log_runtime)
-		var/input_file = "data/logs/_runtime/[diary_date_string]-runtime.log"
-		var/output_file = "data/logs/_runtime/[diary_date_string]-runtime-condensed.log"
-
-		var/command = "tools/Runtime Condenser/RuntimeCondenser.exe -q -s [input_file] -d [output_file]"
-
-		if (src.system_type == MS_WINDOWS)
-			command = replacetext(command, "/", "\\")
-
-		var/exit_code = shell(command)
-		if (exit_code)
-			log_debug("RuntimeCondenser.exe exited with error code [exit_code].")
 
 	..(reason)
 
-var/inerror = 0
 /world/Error(var/exception/e)
+	var/static/inerror = 0
+
 	//runtime while processing runtimes
 	if (inerror)
 		inerror = 0
 		return ..(e)
 
 	inerror = 1
+
+// A horrible hack for unit tests but fuck runtiming timers.
+// They don't provide any useful information, and as such, are being suppressed.
+#ifdef UNIT_TEST
+
+	if (findtextEx(e.name, "Invalid timer:") || findtextEx(e.desc, "Invalid timer:"))
+		inerror = 0
+		return
+
+#endif // UNIT_TEST
 
 	e.time_stamp()
 	log_exception(e)
@@ -266,7 +275,7 @@ var/inerror = 0
 	config.load("config/config.txt")
 	config.load("config/game_options.txt","game_options")
 
-	if (config.use_age_restriction_for_jobs)
+	if (config.age_restrictions_from_file)
 		config.load("config/age_restrictions.txt", "age_restrictions")
 
 /hook/startup/proc/loadMods()
@@ -316,7 +325,7 @@ var/inerror = 0
 				D.associate(directory[ckey])
 
 /world/proc/update_status()
-	var/s = ""
+	var/list/s = list()
 
 	if (config && config.server_name)
 		s += "<b>[config.server_name]</b> &#8212; "
@@ -331,7 +340,7 @@ var/inerror = 0
 
 	var/list/features = list()
 
-	if(ticker)
+	if (Master.initialization_time_taken)	// This is set at the end of initialization.
 		if(master_mode)
 			features += master_mode
 	else
@@ -358,17 +367,13 @@ var/inerror = 0
 	else if (n > 0)
 		features += "~[n] player"
 
-	/*
-	is there a reason for this? the byond site shows 'hosted by X' when there is a proper host already.
-	if (host)
-		features += "hosted by <b>[host]</b>"
-	*/
-
-	if (!host && config && config.hostedby)
+	if (config && config.hostedby)
 		features += "hosted by <b>[config.hostedby]</b>"
 
 	if (features)
-		s += ": [list2text(features, ", ")]"
+		s += ": [jointext(features, ", ")]"
+
+	s = s.Join()
 
 	/* does this help? I do not know */
 	if (src.status != s)
@@ -440,7 +445,14 @@ var/inerror = 0
 		con.failed_connections = 0	//If this connection succeeded, reset the failed connections counter.
 	else
 		con.failed_connections++		//If it failed, increase the failed connections counter.
+
+#ifdef UNIT_TEST
+		// UTs are presumed public. Change this to hide your shit.
+		error("Database connection failed with message:")
+		error(con.ErrorMsg())
+#else
 		world.log << con.ErrorMsg()
+#endif
 
 	return .
 
@@ -451,6 +463,7 @@ var/inerror = 0
 		return 0
 
 	if (con.failed_connections > FAILED_DB_CONNECTION_CUTOFF)
+		error("DB connection cutoff exceeded for a database object in establish_db_connection().")
 		return 0
 
 	if (!con.IsConnected())

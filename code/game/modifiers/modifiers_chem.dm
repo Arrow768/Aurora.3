@@ -68,6 +68,45 @@
 		L.sprint_cost_factor -= cost_added
 		L.sprint_speed_factor -= speed_added
 
+/datum/modifier/luminous
+	var/lightrange = 0
 
+/datum/modifier/luminous/activate()
+	..()
+	if (isliving(target))
+		var/mob/living/L = target
+		lightrange = strength
+		L.set_light(lightrange, 1, LIGHT_COLOR_FIRE)
 
+/datum/modifier/luminous/deactivate()
+	..()
+	if (isliving(target))
+		var/mob/living/L = target
+		L.set_light(0)
 
+//Doubleburn napalm modifier. Applied by Zo'rane Fire
+//Increases damage dealt by burn sources
+/datum/modifier/napalm
+	var/added_burn_mod
+	var/delta
+
+/datum/modifier/napalm/activate()
+	..()
+	delta = strength
+	if (isliving(target))
+		var/mob/living/L = target
+		added_burn_mod = L.burn_mod * delta - L.burn_mod
+		L.burn_mod += added_burn_mod
+
+/datum/modifier/napalm/deactivate()
+	..()
+	if (isliving(target))
+		var/mob/living/L = target
+		L.burn_mod -= added_burn_mod
+
+/datum/modifier/napalm/custom_validity()
+	if(istype(target, /mob/living))
+		var/mob/living/L = target
+		if(L.fire_stacks)
+			return 1
+	return 0

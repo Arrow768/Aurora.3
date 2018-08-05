@@ -11,12 +11,39 @@
 
 	has_fine_manipulation = 0
 	siemens_coefficient = 0
-	gluttonous = 2
+	gluttonous = TRUE
+	mouth_size = 15	// Should be larger than any human-type.
+	allowed_eat_types = TYPE_ORGANIC | TYPE_SYNTHETIC | TYPE_HUMANOID
+	mob_size = 14
+	fall_mod = 0
+
+	has_limbs = list(
+		"chest" =  list("path" = /obj/item/organ/external/chest/unbreakable),
+		"groin" =  list("path" = /obj/item/organ/external/groin/unbreakable),
+		"head" =   list("path" = /obj/item/organ/external/head/unbreakable),
+		"l_arm" =  list("path" = /obj/item/organ/external/arm/unbreakable),
+		"r_arm" =  list("path" = /obj/item/organ/external/arm/right/unbreakable),
+		"l_leg" =  list("path" = /obj/item/organ/external/leg/unbreakable),
+		"r_leg" =  list("path" = /obj/item/organ/external/leg/right/unbreakable),
+		"l_hand" = list("path" = /obj/item/organ/external/hand/unbreakable),
+		"r_hand" = list("path" = /obj/item/organ/external/hand/right/unbreakable),
+		"l_foot" = list("path" = /obj/item/organ/external/foot/unbreakable),
+		"r_foot" = list("path" = /obj/item/organ/external/foot/right/unbreakable)
+		)
 
 	eyes = "blank_eyes"
 
-	brute_mod = 0.5 // Hardened carapace.
-	burn_mod = 2    // Weak to fire.
+	stamina = 175
+	sprint_speed_factor = 2
+	sprint_cost_factor = 0.80
+	stamina_recovery = 5
+	natural_climbing = 1
+	climb_coeff = 0.1
+
+	virus_immune = 1
+
+	brute_mod = 0.25 // Hardened carapace.
+	burn_mod = 1.75    // Weak to fire.
 
 	warning_low_pressure = 50
 	hazard_low_pressure = -1
@@ -25,7 +52,8 @@
 	cold_level_2 = -1
 	cold_level_3 = -1
 
-	flags = IS_RESTRICTED | NO_BREATHE | NO_SCAN | NO_PAIN | NO_SLIP | NO_POISON
+	flags =  NO_BREATHE | NO_SCAN | NO_PAIN | NO_SLIP | NO_POISON | NO_EMBED
+	spawn_flags = IS_RESTRICTED
 
 	reagent_tag = IS_XENOS
 
@@ -42,7 +70,9 @@
 	breath_type = null
 	poison_type = null
 
-	vision_flags = SEE_SELF|SEE_MOBS
+	vision_flags = DEFAULT_SIGHT | SEE_MOBS
+
+	darksight = 8
 
 	has_organ = list(
 		"heart" =           /obj/item/organ/heart,
@@ -97,7 +127,7 @@
 	var/datum/gas_mixture/environment = T.return_air()
 	if(!environment) return
 
-	if(environment.gas["phoron"] > 0 || locate(/obj/effect/alien/weeds) in T)
+	if(environment.gas["phoron"] > 0 || locate(/obj/structure/alien/weeds) in T)
 		if(!regenerate(H))
 			var/obj/item/organ/xenos/plasmavessel/P = H.internal_organs_by_name["plasma vessel"]
 			P.stored_plasma += weeds_plasma_rate
@@ -139,14 +169,6 @@
 
 	return 0
 
-/datum/species/xenos/handle_login_special(var/mob/living/carbon/human/H)
-	H.AddInfectionImages()
-	..()
-
-/datum/species/xenos/handle_logout_special(var/mob/living/carbon/human/H)
-	H.RemoveInfectionImages()
-	..()
-
 /datum/species/xenos/drone
 	name = "Xenomorph Drone"
 	caste_name = "drone"
@@ -176,7 +198,8 @@
 		/mob/living/carbon/human/proc/transfer_plasma,
 		/mob/living/carbon/human/proc/evolve,
 		/mob/living/carbon/human/proc/resin,
-		/mob/living/carbon/human/proc/corrosive_acid
+		/mob/living/carbon/human/proc/corrosive_acid,
+		/mob/living/carbon/human/proc/darkness_eyes
 		)
 
 /datum/species/xenos/drone/handle_post_spawn(var/mob/living/carbon/human/H)
@@ -206,6 +229,11 @@
 		"nutrient channel" = /obj/item/organ/diona/nutrients
 		)
 
+	stamina = 200
+	sprint_speed_factor = 2.25
+	sprint_cost_factor = 1
+	stamina_recovery = 4
+
 	inherent_verbs = list(
 		/mob/living/proc/ventcrawl,
 		/mob/living/carbon/human/proc/tackle,
@@ -213,7 +241,8 @@
 		/mob/living/carbon/human/proc/leap,
 		/mob/living/carbon/human/proc/psychic_whisper,
 		/mob/living/proc/devour,
-		/mob/living/carbon/human/proc/regurgitate
+		/mob/living/carbon/human/proc/regurgitate,
+		/mob/living/carbon/human/proc/darkness_eyes
 		)
 
 /datum/species/xenos/sentinel
@@ -243,7 +272,8 @@
 		/mob/living/carbon/human/proc/regurgitate,
 		/mob/living/carbon/human/proc/transfer_plasma,
 		/mob/living/carbon/human/proc/corrosive_acid,
-		/mob/living/carbon/human/proc/neurotoxin
+		/mob/living/carbon/human/proc/neurotoxin,
+		/mob/living/carbon/human/proc/darkness_eyes
 		)
 
 /datum/species/xenos/queen
@@ -281,7 +311,9 @@
 		/mob/living/carbon/human/proc/transfer_plasma,
 		/mob/living/carbon/human/proc/corrosive_acid,
 		/mob/living/carbon/human/proc/neurotoxin,
-		/mob/living/carbon/human/proc/resin
+		/mob/living/carbon/human/proc/gut,
+		/mob/living/carbon/human/proc/resin,
+		/mob/living/carbon/human/proc/darkness_eyes
 		)
 
 /datum/species/xenos/queen/handle_login_special(var/mob/living/carbon/human/H)
@@ -296,7 +328,7 @@
 
 /datum/hud_data/alien
 
-	icon = 'icons/mob/screen1_alien.dmi'
+	icon = 'icons/mob/screen/alien.dmi'
 	has_a_intent =  1
 	has_m_intent =  1
 	has_warnings =  1
@@ -313,5 +345,5 @@
 		"o_clothing" =   list("loc" = ui_belt,      "name" = "Suit",         "slot" = slot_wear_suit, "state" = "equip",  "dir" = SOUTH),
 		"head" =         list("loc" = ui_id,        "name" = "Hat",          "slot" = slot_head,      "state" = "hair"),
 		"storage1" =     list("loc" = ui_storage1,  "name" = "Left Pocket",  "slot" = slot_l_store,   "state" = "pocket"),
-		"storage2" =     list("loc" = ui_storage2,  "name" = "Right Pocket", "slot" = slot_r_store,   "state" = "pocket"),
+		"storage2" =     list("loc" = ui_storage2,  "name" = "Right Pocket", "slot" = slot_r_store,   "state" = "pocket")
 		)

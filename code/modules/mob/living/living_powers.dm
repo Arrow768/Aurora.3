@@ -8,16 +8,17 @@
 
 	if (layer != 2.45)
 		layer = 2.45 //Just above cables with their 2.44
-		src << text("\blue You are now hiding.")
+		src << text("<span class='notice'>You are now hiding.</span>")
 	else
 		layer = MOB_LAYER
-		src << text("\blue You have stopped hiding.")
+		src << text("<span class='notice'>You have stopped hiding.</span>")
 
 /mob/living/proc/devour()
 	set category = "Abilities"
 	set name = "Devour Creature"
 	set desc = "Attempt to eat a nearby creature, swallowing it whole if small enough, or eating it piece by piece otherwise"
 	var/list/choices = list()
+
 	for(var/mob/living/C in view(1,src))
 
 		if((!(src.Adjacent(C)) || C == src)) continue//cant steal nymphs right out of other gestalts
@@ -26,7 +27,11 @@
 			var/mob/living/carbon/alien/diona/D = C
 			if (D.gestalt)
 				continue
-		choices.Add(C)
+
+		if (C in src)	// Just no.
+			continue
+
+		choices += C
 
 	var/mob/living/L = input(src,"Which creature do you wish to consume?") in null|choices
 
@@ -59,7 +64,7 @@
 	else
 		newspeed = text2num(response)
 
-	if (!newspeed || newspeed >= speed || newspeed <= 0)
+	if (!newspeed || newspeed >= speed || newspeed <= 0.2)
 		src << "Error, invalid value entered. Walk speed has not been changed"
 		return
 

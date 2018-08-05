@@ -35,6 +35,7 @@
 	heat_damage_per_tick = 20
 	mob_size = 10
 
+	tameable = FALSE
 
 /mob/living/simple_animal/hostile/alien/drone
 	name = "alien drone"
@@ -90,11 +91,6 @@
 	damage = 30
 	icon_state = "toxin"
 
-/mob/living/simple_animal/hostile/alien/death()
-	..()
-	visible_message("[src] lets out a waning guttural screech, green blood bubbling from its maw...")
-	playsound(src, 'sound/voice/hiss6.ogg', 100, 1)
-
 // Xenoarch aliens.
 /mob/living/simple_animal/hostile/samak
 	name = "samak"
@@ -139,7 +135,6 @@
 	emote_see = list("sniffs the air cautiously","looks around")
 	emote_hear = list("snuffles")
 	pass_flags = PASSTABLE
-	small = 1
 	density = 0
 	mob_size = 3
 
@@ -172,7 +167,6 @@
 	icon_dead = "yithian_dead"
 	icon = 'icons/jungle.dmi'
 	pass_flags = PASSTABLE
-	small = 1
 	density = 0
 	mob_size = 2
 
@@ -184,6 +178,5 @@
 	icon_dead = "tindalos_dead"
 	icon = 'icons/jungle.dmi'
 	pass_flags = PASSTABLE
-	small = 1
 	density = 0
 	mob_size = 1.5

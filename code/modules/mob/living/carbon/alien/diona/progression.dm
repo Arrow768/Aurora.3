@@ -12,7 +12,7 @@
 
 	if(istype(loc,/obj/item/weapon/holder/diona))
 		var/obj/item/weapon/holder/diona/L = loc
-		src.loc = L.loc
+		src.forceMove(L.loc)
 		qdel(L)
 
 	return "Diona"
@@ -25,18 +25,17 @@
 	if(stat != CONSCIOUS)
 		return
 
-
-
-	if(nutrition < evolve_nutrition)
-		src << "\red You do not have enough biomass to grow yet. Currently [nutrition]/[evolve_nutrition]."
+	var/limbs_can_grow = round((nutrition / evolve_nutrition) * 6,1)
+	if(limbs_can_grow <= 3) //Head, Trunk, Fork
+		src << "<span class='warning'>You do not have enough biomass to grow yet. Currently you can only grow [limbs_can_grow]/6 limbs. ([nutrition]/[evolve_nutrition] biomass).</span>"
 		return
 
 	if(gestalt)
-		src << "\red You are already part of a collective, if you wish to form your own, you must split off first"
+		src << "<span class='warning'>You are already part of a collective, if you wish to form your own, you must split off first.</span>"
 		return
 
 	if (!istype(loc, /turf))
-		src << "\red There's not enough space to grow here. Stand on the floor!."
+		src << "<span class='warning'>There's not enough space to grow here. Stand on the floor!.</span>"
 		return
 
 	// confirm_evolution() handles choices and other specific requirements.
@@ -47,11 +46,11 @@
 	stunned = 10//No more moving or talking for now
 	//muted = 10
 	playsound(src.loc, 'sound/species/diona/gestalt_grow.ogg', 100, 1)
-	src.visible_message("\red [src] begins to shift and quiver.",
-	"\red You begin to shift and quiver, feeling your awareness splinter. ")
+	src.visible_message("<span class='warning'> [src] begins to shift and quiver.</span>",
+	"<span class='warning'> You begin to shift and quiver, feeling your awareness splinter.</span>")
 	sleep(52)
-	src.visible_message("\red [src] erupts in a shower of shed bark as it splits into a tangle of half a dozen new dionaea.",
-	"\red All at once, we consume our stored nutrients to surge with growth, splitting into a tangle of half a dozen new dionaea. We have attained our gestalt form.")
+	src.visible_message("<span class='warning'> [src] erupts in a shower of shed bark as it splits into a tangle of new dionaea.</span>",
+	"<span class='warning'> All at once, we consume our stored nutrients to surge with growth, splitting into a tangle of new dionaea. We have attained a new form.</span>")
 
 	var/mob/living/carbon/human/adult = new adult_form(get_turf(src))
 	adult.set_species(new_species)
@@ -66,6 +65,10 @@
 	for (var/obj/item/W in src.contents)
 		src.drop_from_inventory(W)
 
+	//So that the nymph doesn't get basic for free when evolving.
+	if (adult.languages)
+		adult.languages.Cut()
+
 	for(var/datum/language/L in languages)
 		adult.add_language(L.name)
 
@@ -73,7 +76,6 @@
 	//Although we are still host, these nymphs become neighbors, not contents
 	for(var/mob/living/carbon/alien/diona/D in contents)
 		D.forceMove(adult)
-		D.loc = adult
 		D.gestalt = adult
 		D.stat = CONSCIOUS
 
@@ -81,6 +83,19 @@
 	//Our mind is already in the gestalt, this is really just transferring our empty body
 	src.nutrition = 0
 	src.forceMove(adult)
-	src.loc = adult
 	src.stat = CONSCIOUS
 	src.gestalt = adult
+
+	//What do you call a person with no arms or no legs?
+	var/list/organ_removal_priorities = list("l_arm","r_arm","l_leg","r_leg")
+	var/limbs_to_remove = (6 - limbs_can_grow)
+	for(var/organ_name in organ_removal_priorities)
+		if(limbs_to_remove <= 0)
+			break
+		var/obj/item/organ/external/O = adult.organs_by_name[organ_name]
+		src << "<span class='warning'>You didn't have enough biomass to grow your [O.name]!</span>"
+		//adult.organs -= O
+		O.droplimb(1,DROPLIMB_EDGE)
+		qdel(O)
+		limbs_to_remove -= 1
+	//Matt

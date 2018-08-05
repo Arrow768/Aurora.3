@@ -5,7 +5,8 @@
 	var/min_weight	= 0 // The minimum weight that this event will have. Only used if non-zero.
 	var/max_weight	= 0 // The maximum weight that this event will have. Only use if non-zero.
 	var/severity 	= 0 // The current severity of this event
-	var/one_shot	= 0	//If true, then the event will not be re-added to the list of available events
+	var/one_shot	= 0	// If true, then the event will not be re-added to the list of available events
+	var/add_to_queue= 1	// If true, add back to the queue of events upon finishing.
 	var/list/role_weights = list()
 	var/list/excluded_gamemodes = list()	// A list of gamemodes during which this event won't fire.
 	var/datum/event/event_type
@@ -18,6 +19,7 @@
 	weight = event_weight
 	min_weight = min_event_weight
 	max_weight = max_event_weight
+	src.add_to_queue = add_to_queue
 	if(job_weights)
 		role_weights = job_weights
 	if(excluded_roundtypes)
@@ -27,7 +29,7 @@
 	if(!enabled)
 		return 0
 
-	if(excluded_gamemodes.len && (ticker.mode in excluded_gamemodes))
+	if(excluded_gamemodes.len && (SSticker.mode in excluded_gamemodes))
 		// There's no way it'll be run this round anyways.
 		enabled = 0
 		return 0
@@ -66,6 +68,9 @@
 
 	var/dummy 			=	0
 	//If 1, this event is a dummy instance used for retrieving values, it should not run or add/remove itself from any lists
+
+	var/two_part		=	0
+	//used for events that run secondary announcements, like releasing maint access.
 
 /datum/event/nothing
 	no_fake = 1
@@ -111,7 +116,7 @@
 
 //Do not override this proc, instead use the appropiate procs.
 //This proc will handle the calls to the appropiate procs.
-/datum/event/proc/process()
+/datum/event/process()
 	if(activeFor > startWhen && activeFor < endWhen)
 		tick()
 
@@ -143,22 +148,25 @@
 	endedAt = world.time
 
 	if(!dummy)
-		event_manager.active_events -= src
-		event_manager.event_complete(src)
+		SSevents.active_events -= src
+		SSevents.event_complete(src)
 
 
 
 /datum/event/New(var/datum/event_meta/EM = null, var/is_dummy = 0)
 	dummy = is_dummy
 	event_meta = EM
-	severity = event_meta.severity
-	if(severity < EVENT_LEVEL_MUNDANE) severity = EVENT_LEVEL_MUNDANE
-	if(severity > EVENT_LEVEL_MAJOR) severity = EVENT_LEVEL_MAJOR
+	if (event_meta)
+		severity = event_meta.severity
+		if(severity < EVENT_LEVEL_MUNDANE) severity = EVENT_LEVEL_MUNDANE
+		if(severity > EVENT_LEVEL_MAJOR) severity = EVENT_LEVEL_MAJOR
+	else
+		severity = EVENT_LEVEL_MODERATE//Fixes runtime errors with admin triggered events
 
 	if (dummy)
 		return
 	// event needs to be responsible for this, as stuff like APLUs currently make their own events for curious reasons
-	event_manager.active_events += src
+	SSevents.active_events += src
 	startedAt = world.time
 
 	setup()

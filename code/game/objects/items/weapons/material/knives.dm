@@ -58,15 +58,9 @@
 	edge = 1
 	force_divisor = 0.15 // 9 when wielded with hardness 60 (steel)
 	matter = list(DEFAULT_WALL_MATERIAL = 12000)
-	origin_tech = "materials=1"
+	origin_tech = list(TECH_MATERIAL = 1)
 	attack_verb = list("slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
 	unbreakable = 1
-
-/obj/item/weapon/material/knife/suicide_act(mob/user)
-	viewers(user) << pick("\red <b>[user] is slitting \his wrists with the [src.name]! It looks like \he's trying to commit suicide.</b>", \
-						"\red <b>[user] is slitting \his throat with the [src.name]! It looks like \he's trying to commit suicide.</b>", \
-						"\red <b>[user] is slitting \his stomach open with the [src.name]! It looks like \he's trying to commit seppuku.</b>")
-	return (BRUTELOSS)
 
 /obj/item/weapon/material/knife/hook
 	name = "meat hook"
@@ -85,6 +79,17 @@
 	name = "butcher's cleaver"
 	icon = 'icons/obj/kitchen.dmi'
 	icon_state = "butch"
-	desc = "A huge thing used for chopping and chopping up meat. This includes clowns and clown-by-products."
+	desc = "A huge thing used for chopping and chopping up meat."
 	force_divisor = 0.25 // 15 when wielded with hardness 60 (steel)
 	attack_verb = list("cleaved", "slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
+
+/obj/item/weapon/material/knife/bayonet
+	name = "bayonet"
+	desc = "A sharp military knife, can be attached to a rifle."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "bayonet"
+	item_state = "knife"
+	applies_material_colour = 0
+	force_divisor = 0.35
+	can_embed = 0
+	w_class = 3
