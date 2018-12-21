@@ -172,7 +172,6 @@
 		var/datum/mind/player = pick(candidates)
 		candidates -= player
 		draft_antagonist(player)
-		log_assignment(player)
 
 	return 1
 
