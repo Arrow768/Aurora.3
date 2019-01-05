@@ -227,6 +227,17 @@ var/bomb_set
 /obj/machinery/nuclearbomb/Topic(href, href_list)
 	if(..())
 		return 1
+	
+	if (!isliving(usr) || isAI(usr))
+		return
+
+	if (!usr.IsAdvancedToolUser())
+		usr << "You lack the dexterity to do that."
+		return
+
+	if (!Adjacent(usr))
+		usr << "You can't reach the [src] from there, get closer!"
+		return
 
 	if (href_list["auth"])
 		if (auth)
