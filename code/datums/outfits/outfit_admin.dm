@@ -267,7 +267,7 @@
 	head = /obj/item/clothing/head/ushanka
 
 
-/datum/outfit/admin/sovietsoldier
+/datum/outfit/admin/sovietadmiral
 	name = "Soviet Admiral"
 
 	uniform = /obj/item/clothing/under/soviet
@@ -280,10 +280,10 @@
 	glasses = /obj/item/clothing/glasses/eyepatch/hud/thermal
 	id = /obj/item/weapon/card/id
 
-/datum/outfit/admin/sovietsoldier/get_id_assignment()
+/datum/outfit/admin/sovietadmiral/get_id_assignment()
 	return "Admiral"
 
-/datum/outfit/admin/sovietsoldier/get_id_rank()
+/datum/outfit/admin/sovietadmiral/get_id_rank()
 	return "Admiral"
 
 
