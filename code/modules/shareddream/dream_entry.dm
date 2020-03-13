@@ -1,10 +1,11 @@
 var/list/dream_entries = list()
 
-/mob/living/carbon/human
+/mob/living/
 	var/mob/living/brain_ghost/bg = null
+	var/willfully_sleeping = FALSE
 
-/mob/living/carbon/human/proc/handle_shared_dreaming(var/force_wakeup = FALSE)
-	// If they're an Unconsious person with the abillity to do Skrellepathy.
+/mob/living/proc/handle_shared_dreaming(var/force_wakeup = FALSE)
+	// If they're an Unconsious mob with the abillity to do Skrellepathy.
 	// If either changes, they should be nocked back to the real world.
 	if(can_commune() && stat == UNCONSCIOUS && sleeping > 1)
 		if(!istype(bg) && client) // Don't spawn a brainghost if we're not logged in.

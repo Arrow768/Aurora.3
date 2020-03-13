@@ -10,6 +10,7 @@
 			src.reset_view(null)
 
 		src.updatehealth()
+		handle_shared_dreaming()
 
 		if (hardware_integrity() <= 0 || backup_capacitor() <= 0)
 			death()

@@ -19,6 +19,7 @@ var/list/ai_verbs_default = list(
 	/mob/living/silicon/ai/proc/ai_checklaws,
 	/mob/living/silicon/ai/proc/control_integrated_radio,
 	/mob/living/silicon/ai/proc/core,
+	/mob/living/silicon/ai/proc/enter_srom,
 	/mob/living/silicon/ai/proc/pick_icon,
 	/mob/living/silicon/ai/proc/sensor_mode,
 	/mob/living/silicon/ai/proc/show_laws_verb,
@@ -370,6 +371,18 @@ var/list/ai_verbs_default = list(
 		var/new_sprite = input("Select an icon!", "AI", selected_sprite) as null|anything in ai_icons
 		if(new_sprite) selected_sprite = new_sprite
 	updateicon()
+
+// Allow the AI to enter the srom
+// Temp. for the warbling event
+/mob/living/silicon/ai/proc/enter_srom()
+	set category = "AI Commands"
+	set name = "Enter Srom"
+
+	sleeping = 5
+	willfully_sleeping = TRUE
+	stat = UNCONSCIOUS
+/mob/living/silicon/ai/can_commune()
+	return TRUE
 
 // this verb lets the ai see the stations manifest
 /mob/living/silicon/ai/proc/ai_roster()

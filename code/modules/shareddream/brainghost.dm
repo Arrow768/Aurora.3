@@ -5,21 +5,24 @@
 	alpha = 200
 
 	var/image/ghostimage = null
-	var/mob/living/carbon/human/body = null
-
+	var/mob/living/body = null
 
 /mob/living/brain_ghost/Initialize()
 	. = ..()
-	var/mob/living/carbon/human/form = loc
-	if(!istype(form))
+	//Set the body and name
+	body = loc
+	if(!istype(body))
 		qdel(src)
 		return
-	overlays += image(form.icon,form,form.icon_state)
-	overlays += form.overlays
-	name = form.real_name
+	name = body.real_name
+	//Setup the image and overlays
+	setup_image()
+	//Set the location
 	loc = pick(dream_entries)
-	body = form
 
+/mob/living/brain_ghost/proc/setup_image()
+	overlays += image(body.icon,body,body.icon_state)
+	overlays += body.overlays
 
 /mob/living/brain_ghost/verb/awaken()
 	set name = "Awaken"
@@ -52,7 +55,7 @@
 		body.handle_shared_dreaming()
 
 /mob/living/brain_ghost/say(var/message, var/datum/language/speaking = null, var/verb="says", var/alt_name="")
-	if(!istype(body) || body.stat!=UNCONSCIOUS)
+	if(!istype(body) || !ishuman(body) || body.stat!=UNCONSCIOUS)
 		return
 	if(prob(20)) // 1/5 chance to mumble out anything you say in the dream.
 		var/list/words = text2list(replacetext(message, "\[^a-zA-Z]*$", ""), " ")
@@ -69,3 +72,12 @@
 		body.stat = UNCONSCIOUS // Toggled before anything else can happen. Ideally.
 
 	..(message, speaking, verb="says", alt_name="")
+
+
+/mob/living/brain_ghost/ai/setup_image()
+	return . = ..() //TODO: make that look like something that isnt a AI
+
+/mob/living/brain_ghost/ai/awaken_impl(var/force_awaken = FALSE)
+	if(stat == UNCONSCIOUS)
+		stat = CONSCIOUS
+	. = ..()
