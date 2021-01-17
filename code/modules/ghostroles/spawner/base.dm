@@ -60,23 +60,6 @@
 	if(!enabled && !can_edit(user)) //If its not enabled and the user cant edit it, dont show it
 		return "Currently Disabled"
 
-	if(loc_type == GS_LOC_ATOM && !length(spawn_atoms))
-		return "No spawn atoms available"
-
-	if(req_head_whitelist && !check_whitelist(user))
-		return "Missing Head of Staff Whitelist"
-
-	var/ban_reason = jobban_isbanned(user,jobban_job)
-	if(jobban_job && ban_reason)
-		return "[ban_reason]"
-
-	if(req_species_whitelist)
-		if(!is_alien_whitelisted(user, req_species_whitelist))
-			return "Missing Species Whitelist"
-
-	if(observers_only && !isobserver(user))
-		return "Observers Only"
-
 	return FALSE
 
 //Return a error message if the user CANT spawn. Otherwise FALSE
@@ -86,6 +69,18 @@
 	var/cant_see = cant_see(user)
 	if(cant_see) //If we cant see it, we cant spawn it
 		return cant_see
+	if(loc_type == GS_LOC_ATOM && !length(spawn_atoms))
+		return "No spawn atoms available"
+	var/ban_reason = jobban_isbanned(user,jobban_job)
+	if(jobban_job && ban_reason)
+		return "[ban_reason]"
+	if(req_head_whitelist && !check_whitelist(user))
+		return "Missing Head of Staff Whitelist"
+	if(req_species_whitelist)
+		if(!is_alien_whitelisted(user, req_species_whitelist))
+			return "Missing Species Whitelist"
+	if(observers_only && !isobserver(user))
+		return "Observers Only"
 	if(!(istype(user, /mob/abstract/observer) || isnewplayer(user)))
 		return "You are not a ghost."
 	if(!enabled) //If the spawner id disabled, we cant spawn in
