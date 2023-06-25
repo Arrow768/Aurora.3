@@ -25,8 +25,10 @@ jobs:
           ${{ runner.os }}-
     - name: Update TGUI
       run: |
-        chmod +x tools/bootstrap/node
-        tools/bootstrap/node tools/build/build.js tgui
+        pwd
+        echo $GITHUB_WORKSPACE
+        chmod +x $GITHUB_WORKSPACE/tools/bootstrap/node
+        $GITHUB_WORKSPACE/tools/bootstrap/node tools/build/build.js tgui
     - name: Commit
       run: |
         git pull origin master
