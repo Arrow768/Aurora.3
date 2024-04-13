@@ -189,7 +189,7 @@
 /obj/item/device/encryptionkey/heads/xo
 	name = "executive officer's encryption key"
 	icon_state = "hop_cypherkey"
-	channels = list(CHANNEL_SERVICE = TRUE, CHANNEL_COMMAND = TRUE, CHANNEL_SECURITY = TRUE, CHANNEL_PENAL = TRUE, CHANNEL_HAILING = TRUE)
+	channels = list(CHANNEL_COMMAND = TRUE, CHANNEL_SECURITY = TRUE, CHANNEL_PENAL = TRUE, CHANNEL_ENGINEERING = TRUE, CHANNEL_SCIENCE = TRUE, CHANNEL_MEDICAL = TRUE, CHANNEL_SUPPLY = TRUE, CHANNEL_SERVICE = TRUE, CHANNEL_HAILING = TRUE)
 
 /obj/item/device/encryptionkey/headset_cargo
 	name = "operations radio encryption key"
