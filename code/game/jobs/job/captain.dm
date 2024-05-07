@@ -100,7 +100,7 @@ var/datum/announcement/minor/captain_announcement = new(do_newscast = 1)
 	blacklisted_species = list(SPECIES_TAJARA, SPECIES_TAJARA_MSAI, SPECIES_TAJARA_ZHAN, SPECIES_UNATHI, SPECIES_DIONA, SPECIES_IPC, SPECIES_IPC_G1, SPECIES_IPC_G2, SPECIES_IPC_XION, SPECIES_IPC_ZENGHU, SPECIES_IPC_BISHOP, SPECIES_IPC_SHELL, SPECIES_VAURCA_WORKER, SPECIES_VAURCA_WARRIOR, SPECIES_VAURCA_BULWARK, SPECIES_VAURCA_BREEDER, SPECIES_DIONA, SPECIES_DIONA_COEUS)
 
 /datum/job/xo/get_access()
-	return get_all_station_access() //ToDo: Figure out if we should remove the captains office
+	return get_all_station_access()
 
 /obj/outfit/job/xo
 	name = "Executive Officer"
