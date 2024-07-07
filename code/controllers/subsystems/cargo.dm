@@ -104,7 +104,7 @@ SUBSYSTEM_DEF(cargo)
 
 //Load the cargo data from SQL
 /datum/controller/subsystem/cargo/proc/load_from_sql()
-	if(!establish_db_connection(GLOB.dbcon))
+	if(!SSdbcore.Connect())
 		log_subsystem_cargo("SQL ERROR - Failed to connect. - Falling back to JSON")
 		return load_from_json()
 	else
@@ -112,52 +112,58 @@ SUBSYSTEM_DEF(cargo)
 		reset_cargo()
 
 		//Load the categories
-		var/DBQuery/category_query = GLOB.dbcon.NewQuery("SELECT id, name, display_name, description, icon, price_modifier FROM ss13_cargo_categories WHERE deleted_at IS NULL ORDER BY order_by ASC")
-		category_query.Execute()
-		while(category_query.NextRow())
+		var/datum/db_query/cargo_category_query = SSdbcore.NewQuery("SELECT id, name, display_name, description, icon, price_modifier FROM ss13_cargo_categories WHERE deleted_at IS NULL ORDER BY order_by ASC")
+		cargo_category_query.Execute()
+		while(cargo_category_query.NextRow())
 			CHECK_TICK
 			add_category(
-				category_query.item[2],
-				category_query.item[3],
-				category_query.item[4],
-				category_query.item[5],
-				text2num(category_query.item[6]))
+				cargo_category_query.item[2],
+				cargo_category_query.item[3],
+				cargo_category_query.item[4],
+				cargo_category_query.item[5],
+				text2num(cargo_category_query.item[6]))
+		qdel(cargo_category_query)
+
 		//Load the suppliers
-		var/DBQuery/supplier_query = GLOB.dbcon.NewQuery("SELECT id, short_name, name, description, tag_line, shuttle_time, shuttle_price, available, price_modifier FROM ss13_cargo_suppliers WHERE deleted_at is NULL")
-		supplier_query.Execute()
-		while(supplier_query.NextRow())
+		var/datum/db_query/cargo_supplier_query = SSdbcore.NewQuery("SELECT id, short_name, name, description, tag_line, shuttle_time, shuttle_price, available, price_modifier FROM ss13_cargo_suppliers WHERE deleted_at is NULL")
+		cargo_supplier_query.Execute()
+		while(cargo_supplier_query.NextRow())
 			CHECK_TICK
 			add_supplier(
-				supplier_query.item[2],
-				supplier_query.item[3],
-				supplier_query.item[4],
-				supplier_query.item[5],
-				supplier_query.item[6],
-				supplier_query.item[7],
-				supplier_query.item[8],
-				supplier_query.item[9])
+				cargo_supplier_query.item[2],
+				cargo_supplier_query.item[3],
+				cargo_supplier_query.item[4],
+				cargo_supplier_query.item[5],
+				cargo_supplier_query.item[6],
+				cargo_supplier_query.item[7],
+				cargo_supplier_query.item[8],
+				cargo_supplier_query.item[9])
+		qdel(cargo_supplier_query)
+
 		//Load the items
-		var/DBQuery/item_query = GLOB.dbcon.NewQuery("SELECT id, name, supplier, description, categories, price, items, access, container_type, groupable, item_mul FROM ss13_cargo_items WHERE deleted_at IS NULL AND approved_at IS NOT NULL AND supplier IS NOT NULL ORDER BY order_by ASC, name ASC, supplier ASC")
-		item_query.Execute()
-		while(item_query.NextRow())
+		var/datum/db_query/cargo_item_query = SSdbcore.NewQuery("SELECT id, name, supplier, description, categories, price, items, access, container_type, groupable, item_mul FROM ss13_cargo_items WHERE deleted_at IS NULL AND approved_at IS NOT NULL AND supplier IS NOT NULL ORDER BY order_by ASC, name ASC, supplier ASC")
+		cargo_item_query.Execute()
+		while(cargo_item_query.NextRow())
 			CHECK_TICK
-			var/item_id = item_query.item[1]
+			var/item_id = cargo_item_query.item[1]
 			var/error_message = add_item(
-				item_query.item[1],
-				item_query.item[2],
-				item_query.item[3],
-				item_query.item[4],
-				item_query.item[5],
-				item_query.item[6],
-				item_query.item[7],
-				item_query.item[8],
-				item_query.item[9],
-				item_query.item[10],
-				item_query.item[11])
+				cargo_item_query.item[1],
+				cargo_item_query.item[2],
+				cargo_item_query.item[3],
+				cargo_item_query.item[4],
+				cargo_item_query.item[5],
+				cargo_item_query.item[6],
+				cargo_item_query.item[7],
+				cargo_item_query.item[8],
+				cargo_item_query.item[9],
+				cargo_item_query.item[10],
+				cargo_item_query.item[11])
 			if(error_message && istext(error_message))
 				log_subsystem_cargo("SScargo: Error when loading item [item_id] from sql: [error_message]")
-				var/DBQuery/item_error_query = GLOB.dbcon.NewQuery("UPDATE ss13_cargo_items SET error_message = :error_message: WHERE id = :id:")
-				item_error_query.Execute(list("id"=item_id,"error_message"=error_message))
+				var/datum/db_query/cargo_item_error_query = SSdbcore.NewQuery("UPDATE ss13_cargo_items SET error_message = :error_message: WHERE id = :id:",list("id"=item_id,"error_message"=error_message))
+				cargo_item_error_query.Execute()
+				qdel(cargo_item_error_query)
+		qdel(cargo_item_query)
 
 
 //Loads the cargo data from JSON
@@ -743,18 +749,13 @@ SUBSYSTEM_DEF(cargo)
 	if(GLOB.config.cargo_load_items_from != "sql")
 		log_subsystem_cargo("Order Data Dump Aborted - Cargo not loaded from database")
 		return
-	if(!establish_db_connection(GLOB.dbcon))
+	if(!SSdbcore.Connect())
 		log_subsystem_cargo("SQL ERROR - Failed to connect. - Unable to dump order data")
 		return
 
 	dumped_orders = TRUE
 
 	// Loop through all the orders and dump them all
-	var/DBQuery/dump_query = GLOB.dbcon.NewQuery("INSERT INTO `ss13_cargo_orderlog` (`game_id`, `order_id`, `status`, `price`, `ordered_by_id`, `ordered_by`, `authorized_by_id`, `authorized_by`, `received_by_id`, `received_by`, `paid_by_id`, `paid_by`, `time_submitted`, `time_approved`, `time_shipped`, `time_delivered`, `time_paid`, `reason`) \
-	VALUES (:game_id:, :order_id:, :status:, :price:, :ordered_by_id:, :ordered_by:, :authorized_by_id:, :authorized_by:, :received_by_id:, :received_by:, :paid_by_id:, :paid_by:, :time_submitted:, :time_approved:, :time_shipped:, :time_delivered:, :time_paid:, :reason:)")
-	var/DBQuery/dump_item_query = GLOB.dbcon.NewQuery("INSERT INTO `ss13_cargo_orderlog_items` (`cargo_orderlog_id`, `cargo_item_id`, `amount`) \
-	VALUES (:cargo_orderlog_id:, :cargo_item_id:, :amount:)")
-	var/DBQuery/log_id = GLOB.dbcon.NewQuery("SELECT LAST_INSERT_ID() AS log_id")
 	for(var/datum/cargo_order/co in all_orders)
 		//Iterate over the items in the order and build the a list with the item count
 		var/list/itemcount = list()
@@ -764,43 +765,48 @@ SUBSYSTEM_DEF(cargo)
 			else
 				itemcount["[coi.ci.id]"] = 1
 
-		if(!dump_query.Execute(list(
-			"game_id"=GLOB.round_id,
-			"order_id"=co.order_id,
-			"status"=co.status,
-			"price"=co.price,
-			"ordered_by_id"=co.ordered_by_id,
-			"ordered_by"=co.ordered_by,
-			"authorized_by_id"=co.authorized_by_id,
-			"authorized_by"=co.authorized_by,
-			"received_by_id"=co.received_by_id,
-			"received_by"=co.received_by,
-			"paid_by_id"=co.paid_by_id,
-			"paid_by"=co.paid_by,
-			"time_submitted"=co.time_submitted,
-			"time_approved"=co.time_approved,
-			"time_shipped"=co.time_shipped,
-			"time_delivered"=co.time_delivered,
-			"time_paid"=co.time_paid,
-			"reason"=co.reason
-			)))
+		var/datum/db_query/cargo_dump_query = SSdbcore.NewQuery(
+			"INSERT INTO `ss13_cargo_orderlog` (`game_id`, `order_id`, `status`, `price`, `ordered_by_id`, `ordered_by`, `authorized_by_id`, `authorized_by`, `received_by_id`, `received_by`, `paid_by_id`, `paid_by`, `time_submitted`, `time_approved`, `time_shipped`, `time_delivered`, `time_paid`, `reason`) \
+			VALUES (:game_id:, :order_id:, :status:, :price:, :ordered_by_id:, :ordered_by:, :authorized_by_id:, :authorized_by:, :received_by_id:, :received_by:, :paid_by_id:, :paid_by:, :time_submitted:, :time_approved:, :time_shipped:, :time_delivered:, :time_paid:, :reason:)",
+			list(
+				"game_id"=GLOB.round_id,
+				"order_id"=co.order_id,
+				"status"=co.status,
+				"price"=co.price,
+				"ordered_by_id"=co.ordered_by_id,
+				"ordered_by"=co.ordered_by,
+				"authorized_by_id"=co.authorized_by_id,
+				"authorized_by"=co.authorized_by,
+				"received_by_id"=co.received_by_id,
+				"received_by"=co.received_by,
+				"paid_by_id"=co.paid_by_id,
+				"paid_by"=co.paid_by,
+				"time_submitted"=co.time_submitted,
+				"time_approved"=co.time_approved,
+				"time_shipped"=co.time_shipped,
+				"time_delivered"=co.time_delivered,
+				"time_paid"=co.time_paid,
+				"reason"=co.reason
+			),
+			allow_during_shutdown=TRUE
+			)
+		if(!cargo_dump_query.Execute())
 			log_subsystem_cargo("SQL ERROR - Cound not write order to database")
 			continue
 
-		//Run the query to get the inserted id
-		log_id.Execute()
-
-		var/db_log_id = null
-		if (log_id.NextRow())
-			db_log_id = text2num(log_id.item[1])
-
-		if(db_log_id)
-			for(var/item_id in itemcount)
-				dump_item_query.Execute(list(
-					"cargo_orderlog_id"=db_log_id,
+		for(var/item_id in itemcount)
+			var/datum/db_query/cargo_dump_item_query = SSdbcore.NewQuery("INSERT INTO `ss13_cargo_orderlog_items` (`cargo_orderlog_id`, `cargo_item_id`, `amount`) \
+				VALUES (:cargo_orderlog_id:, :cargo_item_id:, :amount:)",
+				list(
+					"cargo_orderlog_id"=cargo_dump_query.last_insert_id,
 					"cargo_item_id"=item_id,
 					"amount"=itemcount[item_id]
-				))
+				),
+				allow_during_shutdown=TRUE
+				)
+			cargo_dump_item_query.Execute(async=TRUE)
+			qdel(cargo_dump_item_query)
+		qdel(cargo_dump_query)
 		CHECK_TICK
 
 
