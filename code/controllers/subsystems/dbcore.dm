@@ -368,10 +368,12 @@ SUBSYSTEM_DEF(dbcore)
  * * arguments - The parameters of the query
  * * allow_during_shutdown - If the query is permited to be executed during shutdown
  *
+ * Returns /datum/db_query - When using that you should manually check if if the query successfully completed or not
  */
 /datum/db_query_template/proc/Execute(arguments, allow_during_shutdown=FALSE)
 	var/datum/db_query/query =  SSdbcore.NewQuery(sql, arguments, allow_during_shutdown)
-	return query.Execute()
+	query.Execute()
+	return query
 
 /datum/db_query
 	// Inputs
@@ -386,7 +388,7 @@ SUBSYSTEM_DEF(dbcore)
 
 	// Status information
 	/// Current status of the query.
-	var/status
+	var/status = DB_QUERY_NEW
 	/// Job ID of the query passed by rustg.
 	var/job_id
 	var/last_error
@@ -412,7 +414,8 @@ SUBSYSTEM_DEF(dbcore)
 	src.arguments = arguments
 
 /datum/db_query/Destroy()
-	Close()
+	rows = null
+	item = null
 	SSdbcore.all_queries -= src
 	SSdbcore.queries_standby -= src
 	SSdbcore.queries_active -= src
@@ -486,8 +489,9 @@ SUBSYSTEM_DEF(dbcore)
  */
 /datum/db_query/proc/Execute(async = TRUE)
 	Activity("Execute")
-	if(status == DB_QUERY_STARTED)
-		CRASH("Attempted to start a new query while waiting on the old one")
+	if(status != DB_QUERY_NEW)
+		log_subsystem_dbcore("QUERY Execute with invalid status. Query: [sql], Status: [status]")
+		CRASH("Attempted to Execute a query that is not in status DB_QUERY_NEW: [status]")
 
 	if(!SSdbcore.IsConnected())
 		last_error = "No connection!"
@@ -496,7 +500,6 @@ SUBSYSTEM_DEF(dbcore)
 	var/start_time
 	if(!async)
 		start_time = REALTIMEOFDAY
-	Close()
 	status = DB_QUERY_STARTED
 	if(async)
 		if(!MC_RUNNING(SSdbcore.init_stage))
@@ -525,14 +528,14 @@ SUBSYSTEM_DEF(dbcore)
  */
 /datum/db_query/proc/ExecuteNoSleep(permit_before_dbcore_running=FALSE)
 	Activity("Execute")
-	if(status == DB_QUERY_STARTED)
-		CRASH("Attempted to start a new query while waiting on the old one")
+	if(status != DB_QUERY_NEW)
+		log_subsystem_dbcore("QUERY ExecuteNoSleep with invalid status. Query: [sql], Status: [status]")
+		CRASH("Attempted to ExecuteNoSleep a query that is not in status DB_QUERY_NEW: [status]")
 
 	if(!SSdbcore.IsConnected())
 		last_error = "No connection!"
 		return FALSE
 
-	Close()
 	status = DB_QUERY_STARTED
 	if(!MC_RUNNING(SSdbcore.init_stage) && !permit_before_dbcore_running)
 		status = DB_QUERY_BROKEN
@@ -619,8 +622,4 @@ SUBSYSTEM_DEF(dbcore)
 /datum/db_query/proc/ErrorMsg()
 	return last_error
 
-/// Deletes the Rows and Items from the Query
-/datum/db_query/proc/Close()
-	rows = null
-	item = null
 #undef SHUTDOWN_QUERY_TIMELIMIT

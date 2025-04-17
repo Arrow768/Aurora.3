@@ -68,7 +68,7 @@ SUBSYSTEM_DEF(law)
 		migrate_to_sql()
 
 /datum/controller/subsystem/law/proc/migrate_to_sql()
-	var/datum/db_query_template/law_update_query = SSdbcore.NewQueryTemplate({"
+	var/datum/db_query_template/law_update_query_template = SSdbcore.NewQueryTemplate({"
 		INSERT IGNORE INTO ss13_law
 			(law_id, name, description, min_fine, max_fine, min_brig_time, max_brig_time, severity, felony)
 		VALUES
@@ -77,7 +77,7 @@ SUBSYSTEM_DEF(law)
 	for(var/datum/law/L in laws)
 		log_subsystem_law("Migrating law [L.id] to SQL")
 
-		law_update_query.Execute(list(
+		var/datum/db_query/law_update_query =  law_update_query_template.Execute(list(
 			"law_id"=L.id,
 			"name"=L.name,
 			"desc"=L.desc,
@@ -88,4 +88,5 @@ SUBSYSTEM_DEF(law)
 			"severity"=L.severity,
 			"felony"=L.felony
 			))
+		qdel(law_update_query)
 	return
