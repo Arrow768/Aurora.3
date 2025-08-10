@@ -8,13 +8,27 @@
 	smoothing_flags = SMOOTH_TRUE
 
 /obj/effect/decal/cleanable/draftingchalk/Initialize(mapload)
-	. = ..()
+	..()
 	if (mapload)
 		QUEUE_SMOOTH(src)
 	else
 		smooth_icon()
 		for (var/obj/effect/decal/cleanable/draftingchalk/C in orange(1, src))
 			C.smooth_icon()
+	return INITIALIZE_HINT_LATELOAD
+
+/obj/effect/decal/cleanable/draftingchalk/LateInitialize()
+	SSpersistence.register_track(src, null)
+
+
+/obj/effect/decal/cleanable/draftingchalk/persistence_get_content()
+	var/list/content = ..()
+	content["color"] = color
+	return content
+
+/obj/effect/decal/cleanable/draftingchalk/persistence_apply_content(content, x, y, z)
+	..()
+	src.color = content["color"]
 
 /obj/item/pen/drafting
 	name = "white drafting chalk"

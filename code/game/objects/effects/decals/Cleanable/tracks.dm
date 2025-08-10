@@ -57,6 +57,9 @@
 	/// Amount of pixels to shift either way in an attempt to make the tracks more organic
 	var/transverse_amplitude = 3
 
+/obj/effect/decal/cleanable/blood/tracks/persistence_get_content()
+	return null
+
 /obj/effect/decal/cleanable/blood/tracks/reveal_blood()
 	if(!fluorescent)
 		if(stack?.len)

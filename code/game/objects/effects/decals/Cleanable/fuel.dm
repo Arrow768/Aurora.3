@@ -8,11 +8,25 @@
 	anchored = 1
 	var/amount = 1
 
+/obj/effect/decal/cleanable/liquid_fuel/persistence_get_content()
+	var/list/content = ..()
+	content["amount"] = amount
+	return content
+
+/obj/effect/decal/cleanable/liquid_fuel/persistence_apply_content(content, x, y, z)
+	..()
+	src.amount = content["amount"]
+
 /obj/effect/decal/cleanable/liquid_fuel/Initialize(mapload, amt = 1, nologs = 0)
-	. = ..()
+	..()
 	if(!nologs && !mapload)
 		log_and_message_admins("spilled liquid fuel", user = usr, location = get_turf(src))
 	src.amount = amt
+
+	return INITIALIZE_HINT_LATELOAD
+
+/obj/effect/decal/cleanable/liquid_fuel/LateInitialize()
+	. = ..()
 
 	var/has_spread = 0
 	//Be absorbed by any other liquid fuel in the tile.
@@ -25,6 +39,7 @@
 
 	if(!has_spread)
 		Spread()
+		SSpersistence.register_track(src, null)
 	else
 		qdel(src)
 
@@ -118,6 +133,7 @@
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "white_foam"
 	var/amount = 1
+
 
 /obj/effect/decal/cleanable/foam/Initialize(mapload, amt = 1, nologs = 0)
 	SHOULD_CALL_PARENT(FALSE)

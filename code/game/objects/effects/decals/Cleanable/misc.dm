@@ -41,6 +41,14 @@
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "flour"
 
+/obj/effect/decal/cleanable/flour/Initialize(mapload)
+	..()
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/flour/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
+
+
 /obj/effect/decal/cleanable/greenglow
 	name = "glowing goo"
 	desc = "Jeez. I hope that's not for lunch."
@@ -103,6 +111,13 @@
 	icon = 'icons/obj/chemical.dmi'
 	icon_state = "molten"
 
+/obj/effect/decal/cleanable/molten_item/Initialize(mapload)
+	..()
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/molten_item/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
+
 //Vomit (sorry)
 /obj/effect/decal/cleanable/vomit
 	name = "vomit"
@@ -116,8 +131,12 @@
 	var/list/viruses = list()
 
 /obj/effect/decal/cleanable/vomit/Initialize()
-	. = ..()
+	..()
 	create_reagents(20, src)
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/vomit/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
 
 /obj/effect/decal/cleanable/tomato_smudge
 	name = "tomato smudge"
@@ -127,6 +146,13 @@
 	icon = 'icons/effects/tomatodecal.dmi'
 	random_icon_states = list("tomato_floor1", "tomato_floor2", "tomato_floor3")
 
+/obj/effect/decal/cleanable/tomato_smudge/Initialize(mapload)
+	..()
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/tomato_smudge/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
+
 /obj/effect/decal/cleanable/egg_smudge
 	name = "smashed egg"
 	desc = "Seems like this one won't hatch."
@@ -135,6 +161,13 @@
 	icon = 'icons/effects/tomatodecal.dmi'
 	random_icon_states = list("smashed_egg1", "smashed_egg2", "smashed_egg3")
 
+/obj/effect/decal/cleanable/egg_smudge/Initialize(mapload)
+	..()
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/egg_smudge/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
+
 /obj/effect/decal/cleanable/pie_smudge //honk
 	name = "smashed pie"
 	desc = "It's pie cream from a cream pie."
@@ -142,6 +175,13 @@
 	anchored = TRUE
 	icon = 'icons/effects/tomatodecal.dmi'
 	random_icon_states = list("smashed_pie")
+
+/obj/effect/decal/cleanable/pie_smudge/Initialize(mapload)
+	..()
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/pie_smudge/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
 
 /obj/effect/decal/cleanable/fruit_smudge
 	name = "smudge"
@@ -152,6 +192,13 @@
 	icon_state = "mfloor1"
 	random_icon_states = list("mfloor1", "mfloor2", "mfloor3", "mfloor4", "mfloor5", "mfloor6", "mfloor7")
 
+/obj/effect/decal/cleanable/fruit_smudge/Initialize(mapload)
+	..()
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/fruit_smudge/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
+
 /obj/effect/decal/cleanable/confetti
 	name = "confetti"
 	desc = "Tiny bits of colored paper thrown about for the janitor to enjoy!"
@@ -160,6 +207,13 @@
 	anchored = TRUE
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "confetti"
+
+/obj/effect/decal/cleanable/confetti/Initialize(mapload)
+	..()
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/confetti/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
 
 /obj/effect/decal/cleanable/confetti/attack_hand(mob/user)
 	to_chat(user, SPAN_NOTICE("You start to meticulously pick up the confetti."))
@@ -173,3 +227,10 @@
 	anchored = TRUE
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "acid_puddle"
+
+/obj/effect/decal/cleanable/acid_remnants/Initialize(mapload)
+	..()
+	return INITIALIZE_HINT_LATELOAD
+/obj/effect/decal/cleanable/acid_remnants/LateInitialize()
+	. = ..()
+	SSpersistence.register_track(src, null)
